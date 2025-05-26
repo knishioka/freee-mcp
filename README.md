@@ -71,7 +71,9 @@ TOKEN_STORAGE_PATH=./tokens.json
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-3. **Edit the configuration file:**
+3. **Choose your configuration method:**
+
+   **Option A: Using tokens.json (Recommended after running setup-auth)**
    ```json
    {
      "mcpServers": {
@@ -81,8 +83,26 @@ TOKEN_STORAGE_PATH=./tokens.json
          "env": {
            "FREEE_CLIENT_ID": "your_client_id_here",
            "FREEE_CLIENT_SECRET": "your_client_secret_here",
-           "FREEE_REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
            "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json"
+         }
+       }
+     }
+   }
+   ```
+
+   **Option B: Using environment variables for tokens**
+   ```json
+   {
+     "mcpServers": {
+       "freee": {
+         "command": "node",
+         "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
+         "env": {
+           "FREEE_CLIENT_ID": "your_client_id_here",
+           "FREEE_CLIENT_SECRET": "your_client_secret_here",
+           "FREEE_ACCESS_TOKEN": "your_access_token",
+           "FREEE_REFRESH_TOKEN": "your_refresh_token",
+           "FREEE_COMPANY_ID": "your_company_id"
          }
        }
      }
@@ -91,7 +111,7 @@ TOKEN_STORAGE_PATH=./tokens.json
 
 4. **Restart Claude Desktop** to apply the configuration.
 
-5. **Verify the server is running** by checking if freee tools are available in Claude.
+5. **Verify the server is running** by checking if freee tools are available in Claude. Try asking "What freee tools are available?"
 
 #### Other MCP Clients
 
@@ -109,25 +129,18 @@ npm run setup-auth
 ```
 
 This script will:
-1. Open the authorization URL in your browser
-2. Wait for you to authorize and get the code
-3. Exchange the code for tokens immediately
-4. Save tokens to `tokens.json` or display environment variables
+1. Load credentials from `.env` file if available
+2. Check for existing tokens in `tokens.json`
+3. Open the authorization URL in your browser
+4. Wait for you to authorize and get the code
+5. Exchange the code for tokens immediately
+6. Save tokens to `tokens.json` or display environment variables
+
+After running this script, use **Option A** in the Claude Desktop configuration above.
 
 #### Method 2: Environment Variables
 
-Add these to your Claude Desktop configuration:
-```json
-{
-  "env": {
-    "FREEE_CLIENT_ID": "your_client_id",
-    "FREEE_CLIENT_SECRET": "your_client_secret",
-    "FREEE_ACCESS_TOKEN": "your_access_token",
-    "FREEE_REFRESH_TOKEN": "your_refresh_token",
-    "FREEE_COMPANY_ID": "your_company_id"
-  }
-}
-```
+If you already have tokens, you can directly set them in the Claude Desktop configuration. Use **Option B** in the Claude Desktop configuration above with your actual token values.
 
 #### Method 3: Manual Flow (Not Recommended)
 
