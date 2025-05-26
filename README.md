@@ -57,22 +57,43 @@ TOKEN_STORAGE_PATH=./tokens.json
 
 ### MCP Client Configuration
 
-Add the server to your MCP client configuration:
+#### Claude Desktop Configuration
 
-```json
-{
-  "mcpServers": {
-    "freee": {
-      "command": "node",
-      "args": ["path/to/mcp-server-freee/dist/index.js"],
-      "env": {
-        "FREEE_CLIENT_ID": "your_client_id",
-        "FREEE_CLIENT_SECRET": "your_client_secret"
-      }
-    }
-  }
-}
-```
+1. **Build the server first:**
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. **Locate the configuration file:**
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+3. **Edit the configuration file:**
+   ```json
+   {
+     "mcpServers": {
+       "freee": {
+         "command": "node",
+         "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
+         "env": {
+           "FREEE_CLIENT_ID": "your_client_id_here",
+           "FREEE_CLIENT_SECRET": "your_client_secret_here",
+           "FREEE_REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
+           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Restart Claude Desktop** to apply the configuration.
+
+5. **Verify the server is running** by checking if freee tools are available in Claude.
+
+#### Other MCP Clients
+
+For other MCP clients, adapt the configuration format as needed:
 
 ## Usage
 
