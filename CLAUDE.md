@@ -13,6 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Recent Changes
 
+### Financial Report APIs for Efficient Data Access (2025/1/26)
+- Added comprehensive financial report APIs for efficient profit calculation
+- `freee_get_profit_loss` - Get operating profit without aggregating thousands of transactions
+- `freee_get_balance_sheet` - Get balance sheet data in aggregated format
+- `freee_get_cash_flow` - Get cash flow statements efficiently
+- Enhanced token error handling with proactive refresh and detailed logging
+
 ### Multiple Company Support (2025/1/26)
 - Added `FREEE_DEFAULT_COMPANY_ID` environment variable support
 - Made `companyId` parameter optional in all tools
@@ -40,8 +47,9 @@ This is a Model Context Protocol (MCP) server that integrates with the freee acc
 3. **API Client** (`src/api/freeeClient.ts`):
    - Axios-based HTTP client with interceptors for authentication
    - Automatic token injection and refresh on 401 responses
-   - Implements all freee API endpoints (companies, deals, invoices, etc.)
-   - Error handling with proper API error message extraction
+   - Implements all freee API endpoints (companies, deals, invoices, financial reports)
+   - **Financial Report APIs**: Efficient access to P&L, balance sheet, cash flow data
+   - Error handling with proper API error message extraction and token management
 
 4. **Schema Validation** (`src/schemas.ts`):
    - Zod schemas for all tool inputs
@@ -55,9 +63,11 @@ This is a Model Context Protocol (MCP) server that integrates with the freee acc
 ### Key Design Patterns
 
 - **Token Management**: Tokens are automatically refreshed 5 minutes before expiry
-- **Company Context**: Most operations require a `companyId` parameter
+- **Company Context**: Most operations require a `companyId` parameter (with optional default)
 - **Error Recovery**: Failed auth attempts trigger token refresh before retry
-- **Tool Organization**: Tools are grouped by resource type (auth, company, deal, etc.)
+- **Tool Organization**: Tools are grouped by resource type (auth, company, deal, reports, etc.)
+- **Efficiency Focus**: Financial reports provide aggregated data to avoid processing thousands of transactions
+- **API Rate Limiting**: Report APIs minimize API calls for better performance and rate limit compliance
 
 ### freee API Integration Details
 

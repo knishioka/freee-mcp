@@ -246,6 +246,56 @@ Parameters:
 - 特別損益
 - 当期純利益
 
+### 使用例
+
+#### 営業利益の月次推移を確認
+```
+# 2024年4月から6月の営業利益
+Use tool: freee_get_profit_loss
+Parameters:
+- fiscalYear: 2024
+- startMonth: 4
+- endMonth: 6
+```
+
+#### 前年同期比較のための営業利益取得
+```
+# 今期（2024年度）
+Use tool: freee_get_profit_loss
+Parameters:
+- fiscalYear: 2024
+- startMonth: 4
+- endMonth: 9
+
+# 前期（2023年度）
+Use tool: freee_get_profit_loss  
+Parameters:
+- fiscalYear: 2023
+- startMonth: 4
+- endMonth: 9
+```
+
+#### 取引先別営業利益分析
+```
+Use tool: freee_get_profit_loss
+Parameters:
+- fiscalYear: 2024
+- startMonth: 4
+- endMonth: 12
+- breakdownDisplayType: "partner"  # 取引先別内訳
+```
+
+### パフォーマンス比較
+
+| 方法 | API呼び出し数 | データ処理 | レート制限への影響 |
+|------|-------------|-----------|-----------------|
+| **個別取引集計** | 数千〜数万回 | クライアント側で集計必要 | 高リスク（制限に達する可能性） |
+| **損益計算書API** | **1回** | **サーバー側で完了済み** | **最小リスク** |
+
+#### 具体例：年間営業利益取得の場合
+- 従来方法：取引数1万件 → API呼び出し1万回 → レート制限の27%消費
+- **効率的方法：`freee_get_profit_loss` → API呼び出し1回 → レート制限の0.03%消費**
+
 ## Development
 
 ### Building
