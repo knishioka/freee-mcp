@@ -61,6 +61,12 @@ async function main() {
   const question = (query) => new Promise((resolve) => rl.question(query, resolve));
   
   const hiddenQuestion = (query) => new Promise((resolve) => {
+    // Check if we're in a TTY environment
+    if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== 'function') {
+      // Fallback to regular input in non-interactive environments
+      return question(query);
+    }
+    
     process.stdout.write(query);
     const stdin = process.stdin;
     stdin.setRawMode(true);

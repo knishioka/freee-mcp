@@ -7,9 +7,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build**: `npm run build` - Compiles TypeScript code to JavaScript in the `dist/` directory
 - **Development**: `npm run dev` - Starts the development server with hot reload using tsx
 - **Start**: `npm start` - Runs the compiled JavaScript from `dist/index.js`
-- **Lint**: `npm run lint` - Runs ESLint on TypeScript files in the `src/` directory
+- **Lint**: `npm run lint` - Runs ESLint on TypeScript files in the `src/` directory with auto-fix support
 - **Type Check**: `npm run typecheck` - Performs TypeScript type checking without emitting files
 - **Test**: `npm test` - Runs the Jest test suite
+
+## Code Quality & Development Guidelines
+
+### Linting and Code Style
+- **ESLint Configuration**: Project uses ESLint with TypeScript support for code quality
+- **Pre-commit Hooks**: Automatic linting and type checking runs before each commit via husky and lint-staged
+- **Code Style**: 2-space indentation, single quotes, semicolons required
+- **Auto-fix**: Run `npm run lint -- --fix` to automatically fix linting issues
+
+### Pre-commit Process
+When committing changes, the following checks run automatically:
+1. ESLint with auto-fix on staged TypeScript files
+2. TypeScript type checking
+3. If any check fails, the commit is blocked
+
+### Development Notes
+- Always run `npm run lint` and `npm run typecheck` before committing
+- Use `npm run build` to verify compilation succeeds
+- Follow existing code patterns and TypeScript best practices
+- Avoid `any` types where possible (warnings are acceptable for external APIs)
 
 ## Recent Changes
 

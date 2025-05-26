@@ -225,375 +225,375 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      // Auth tools
-      case 'freee_get_auth_url': {
-        const params = schemas.AuthorizeSchema.parse(args);
-        const authUrl = freeeClient.getAuthorizationUrl(params.state);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Authorization URL: ${authUrl}\n\nPlease visit this URL to authorize the application.`,
-            },
-          ],
-        };
-      }
+    // Auth tools
+    case 'freee_get_auth_url': {
+      const params = schemas.AuthorizeSchema.parse(args);
+      const authUrl = freeeClient.getAuthorizationUrl(params.state);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Authorization URL: ${authUrl}\n\nPlease visit this URL to authorize the application.`,
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_access_token': {
-        const params = schemas.GetTokenSchema.parse(args);
-        const tokenResponse = await freeeClient.getAccessToken(params.code);
+    case 'freee_get_access_token': {
+      const params = schemas.GetTokenSchema.parse(args);
+      const tokenResponse = await freeeClient.getAccessToken(params.code);
         
-        // Temporarily store token with a dummy company ID to make the API call
-        await tokenManager.setToken(0, tokenResponse);
+      // Temporarily store token with a dummy company ID to make the API call
+      await tokenManager.setToken(0, tokenResponse);
         
-        // Get companies to store token properly
-        const companies = await freeeClient.getCompanies();
+      // Get companies to store token properly
+      const companies = await freeeClient.getCompanies();
         
-        // Remove the temporary token
-        await tokenManager.removeToken(0);
+      // Remove the temporary token
+      await tokenManager.removeToken(0);
         
-        if (companies.length > 0) {
-          // Store token for all companies
-          for (const company of companies) {
-            await tokenManager.setToken(company.id, tokenResponse);
-          }
+      if (companies.length > 0) {
+        // Store token for all companies
+        for (const company of companies) {
+          await tokenManager.setToken(company.id, tokenResponse);
         }
+      }
         
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Access token obtained successfully. Token stored for ${companies.length} companies: ${companies.map(c => c.display_name).join(', ')}`,
-            },
-          ],
-        };
-      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Access token obtained successfully. Token stored for ${companies.length} companies: ${companies.map(c => c.display_name).join(', ')}`,
+          },
+        ],
+      };
+    }
 
-      case 'freee_set_company_token': {
-        const params = schemas.SetCompanyTokenSchema.parse(args);
-        await tokenManager.setToken(params.companyId, {
-          access_token: params.accessToken,
-          refresh_token: params.refreshToken,
-          expires_in: params.expiresIn,
-          token_type: 'Bearer',
-          scope: 'read write',
-          created_at: Math.floor(Date.now() / 1000),
-        });
+    case 'freee_set_company_token': {
+      const params = schemas.SetCompanyTokenSchema.parse(args);
+      await tokenManager.setToken(params.companyId, {
+        access_token: params.accessToken,
+        refresh_token: params.refreshToken,
+        expires_in: params.expiresIn,
+        token_type: 'Bearer',
+        scope: 'read write',
+        created_at: Math.floor(Date.now() / 1000),
+      });
         
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Token set successfully for company ${params.companyId}`,
-            },
-          ],
-        };
-      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Token set successfully for company ${params.companyId}`,
+          },
+        ],
+      };
+    }
 
-      // Company tools
-      case 'freee_get_companies': {
-        const companies = await freeeClient.getCompanies();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(companies, null, 2),
-            },
-          ],
-        };
-      }
+    // Company tools
+    case 'freee_get_companies': {
+      const companies = await freeeClient.getCompanies();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(companies, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_company': {
-        const params = schemas.GetCompanySchema.parse(args);
-        const companyId = getCompanyId(params.companyId);
-        const company = await freeeClient.getCompany(companyId);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(company, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_get_company': {
+      const params = schemas.GetCompanySchema.parse(args);
+      const companyId = getCompanyId(params.companyId);
+      const company = await freeeClient.getCompany(companyId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(company, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Deal tools
-      case 'freee_get_deals': {
-        const params = schemas.GetDealsSchema.parse(args);
-        const companyId = getCompanyId(params.companyId);
-        const deals = await freeeClient.getDeals(companyId, {
-          partner_id: params.partnerId,
-          account_item_id: params.accountItemId,
-          start_issue_date: params.startIssueDate,
-          end_issue_date: params.endIssueDate,
-          offset: params.offset,
-          limit: params.limit,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(deals, null, 2),
-            },
-          ],
-        };
-      }
+    // Deal tools
+    case 'freee_get_deals': {
+      const params = schemas.GetDealsSchema.parse(args);
+      const companyId = getCompanyId(params.companyId);
+      const deals = await freeeClient.getDeals(companyId, {
+        partner_id: params.partnerId,
+        account_item_id: params.accountItemId,
+        start_issue_date: params.startIssueDate,
+        end_issue_date: params.endIssueDate,
+        offset: params.offset,
+        limit: params.limit,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(deals, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_deal': {
-        const params = schemas.GetDealSchema.parse(args);
-        const companyId = getCompanyId(params.companyId);
-        const deal = await freeeClient.getDeal(companyId, params.dealId);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(deal, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_get_deal': {
+      const params = schemas.GetDealSchema.parse(args);
+      const companyId = getCompanyId(params.companyId);
+      const deal = await freeeClient.getDeal(companyId, params.dealId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(deal, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_create_deal': {
-        const params = schemas.CreateDealSchema.parse(args);
-        const companyId = getCompanyId(params.companyId);
-        const deal = await freeeClient.createDeal(companyId, {
-          issue_date: params.issueDate,
-          type: params.type,
-          partner_id: params.partnerId,
-          due_date: params.dueDate,
-          ref_number: params.refNumber,
-          amount: params.details.reduce((sum, d) => sum + d.amount, 0),
-          status: 'unsettled',
-          details: params.details.map(d => ({
-            account_item_id: d.accountItemId,
-            tax_code: d.taxCode,
-            amount: d.amount,
-            description: d.description,
-            section_id: d.sectionId,
-            tag_ids: d.tagIds,
-          })),
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(deal, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_create_deal': {
+      const params = schemas.CreateDealSchema.parse(args);
+      const companyId = getCompanyId(params.companyId);
+      const deal = await freeeClient.createDeal(companyId, {
+        issue_date: params.issueDate,
+        type: params.type,
+        partner_id: params.partnerId,
+        due_date: params.dueDate,
+        ref_number: params.refNumber,
+        amount: params.details.reduce((sum, d) => sum + d.amount, 0),
+        status: 'unsettled',
+        details: params.details.map(d => ({
+          account_item_id: d.accountItemId,
+          tax_code: d.taxCode,
+          amount: d.amount,
+          description: d.description,
+          section_id: d.sectionId,
+          tag_ids: d.tagIds,
+        })),
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(deal, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Account Item tools
-      case 'freee_get_account_items': {
-        const params = schemas.GetAccountItemsSchema.parse(args);
-        const items = await freeeClient.getAccountItems(
-          getCompanyId(params.companyId),
-          params.accountCategory
-        );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(items, null, 2),
-            },
-          ],
-        };
-      }
+    // Account Item tools
+    case 'freee_get_account_items': {
+      const params = schemas.GetAccountItemsSchema.parse(args);
+      const items = await freeeClient.getAccountItems(
+        getCompanyId(params.companyId),
+        params.accountCategory
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(items, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Partner tools
-      case 'freee_get_partners': {
-        const params = schemas.GetPartnersSchema.parse(args);
-        const partners = await freeeClient.getPartners(getCompanyId(params.companyId), {
-          name: params.name,
-          shortcut1: params.shortcut1,
-          offset: params.offset,
-          limit: params.limit,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(partners, null, 2),
-            },
-          ],
-        };
-      }
+    // Partner tools
+    case 'freee_get_partners': {
+      const params = schemas.GetPartnersSchema.parse(args);
+      const partners = await freeeClient.getPartners(getCompanyId(params.companyId), {
+        name: params.name,
+        shortcut1: params.shortcut1,
+        offset: params.offset,
+        limit: params.limit,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(partners, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_create_partner': {
-        const params = schemas.CreatePartnerSchema.parse(args);
-        const partner = await freeeClient.createPartner(getCompanyId(params.companyId), {
-          name: params.name,
-          shortcut1: params.shortcut1,
-          shortcut2: params.shortcut2,
-          long_name: params.longName,
-          name_kana: params.nameKana,
-          country_code: params.countryCode,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(partner, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_create_partner': {
+      const params = schemas.CreatePartnerSchema.parse(args);
+      const partner = await freeeClient.createPartner(getCompanyId(params.companyId), {
+        name: params.name,
+        shortcut1: params.shortcut1,
+        shortcut2: params.shortcut2,
+        long_name: params.longName,
+        name_kana: params.nameKana,
+        country_code: params.countryCode,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(partner, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Section tools
-      case 'freee_get_sections': {
-        const params = schemas.GetSectionsSchema.parse(args);
-        const sections = await freeeClient.getSections(getCompanyId(params.companyId));
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(sections, null, 2),
-            },
-          ],
-        };
-      }
+    // Section tools
+    case 'freee_get_sections': {
+      const params = schemas.GetSectionsSchema.parse(args);
+      const sections = await freeeClient.getSections(getCompanyId(params.companyId));
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(sections, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Tag tools
-      case 'freee_get_tags': {
-        const params = schemas.GetTagsSchema.parse(args);
-        const tags = await freeeClient.getTags(getCompanyId(params.companyId));
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(tags, null, 2),
-            },
-          ],
-        };
-      }
+    // Tag tools
+    case 'freee_get_tags': {
+      const params = schemas.GetTagsSchema.parse(args);
+      const tags = await freeeClient.getTags(getCompanyId(params.companyId));
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(tags, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Invoice tools
-      case 'freee_get_invoices': {
-        const params = schemas.GetInvoicesSchema.parse(args);
-        const invoices = await freeeClient.getInvoices(getCompanyId(params.companyId), {
-          partner_id: params.partnerId,
-          invoice_status: params.invoiceStatus,
-          payment_status: params.paymentStatus,
-          start_issue_date: params.startIssueDate,
-          end_issue_date: params.endIssueDate,
-          offset: params.offset,
-          limit: params.limit,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(invoices, null, 2),
-            },
-          ],
-        };
-      }
+    // Invoice tools
+    case 'freee_get_invoices': {
+      const params = schemas.GetInvoicesSchema.parse(args);
+      const invoices = await freeeClient.getInvoices(getCompanyId(params.companyId), {
+        partner_id: params.partnerId,
+        invoice_status: params.invoiceStatus,
+        payment_status: params.paymentStatus,
+        start_issue_date: params.startIssueDate,
+        end_issue_date: params.endIssueDate,
+        offset: params.offset,
+        limit: params.limit,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(invoices, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_create_invoice': {
-        const params = schemas.CreateInvoiceSchema.parse(args);
-        const invoice = await freeeClient.createInvoice(getCompanyId(params.companyId), {
-          issue_date: params.issueDate,
-          partner_id: params.partnerId,
-          due_date: params.dueDate,
-          title: params.title,
-          invoice_status: params.invoiceStatus,
-          total_amount: params.invoiceLines.reduce(
-            (sum, line) => sum + line.quantity * line.unitPrice,
-            0
-          ),
-          invoice_lines: params.invoiceLines.map(line => ({
-            name: line.name,
-            quantity: line.quantity,
-            unit_price: line.unitPrice,
-            amount: line.quantity * line.unitPrice,
-            description: line.description,
-            tax_code: line.taxCode,
-            account_item_id: line.accountItemId,
-          })),
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(invoice, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_create_invoice': {
+      const params = schemas.CreateInvoiceSchema.parse(args);
+      const invoice = await freeeClient.createInvoice(getCompanyId(params.companyId), {
+        issue_date: params.issueDate,
+        partner_id: params.partnerId,
+        due_date: params.dueDate,
+        title: params.title,
+        invoice_status: params.invoiceStatus,
+        total_amount: params.invoiceLines.reduce(
+          (sum, line) => sum + line.quantity * line.unitPrice,
+          0
+        ),
+        invoice_lines: params.invoiceLines.map(line => ({
+          name: line.name,
+          quantity: line.quantity,
+          unit_price: line.unitPrice,
+          amount: line.quantity * line.unitPrice,
+          description: line.description,
+          tax_code: line.taxCode,
+          account_item_id: line.accountItemId,
+        })),
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(invoice, null, 2),
+          },
+        ],
+      };
+    }
 
-      // Report tools
-      case 'freee_get_trial_balance': {
-        const params = schemas.GetTrialBalanceSchema.parse(args);
-        const trialBalance = await freeeClient.getTrialBalance(getCompanyId(params.companyId), {
-          fiscal_year: params.fiscalYear,
-          start_month: params.startMonth,
-          end_month: params.endMonth,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(trialBalance, null, 2),
-            },
-          ],
-        };
-      }
+    // Report tools
+    case 'freee_get_trial_balance': {
+      const params = schemas.GetTrialBalanceSchema.parse(args);
+      const trialBalance = await freeeClient.getTrialBalance(getCompanyId(params.companyId), {
+        fiscal_year: params.fiscalYear,
+        start_month: params.startMonth,
+        end_month: params.endMonth,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(trialBalance, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_profit_loss': {
-        const params = schemas.GetProfitLossSchema.parse(args);
-        const profitLoss = await freeeClient.getProfitLoss(getCompanyId(params.companyId), {
-          fiscal_year: params.fiscalYear,
-          start_month: params.startMonth,
-          end_month: params.endMonth,
-          breakdown_display_type: params.breakdownDisplayType,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(profitLoss, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_get_profit_loss': {
+      const params = schemas.GetProfitLossSchema.parse(args);
+      const profitLoss = await freeeClient.getProfitLoss(getCompanyId(params.companyId), {
+        fiscal_year: params.fiscalYear,
+        start_month: params.startMonth,
+        end_month: params.endMonth,
+        breakdown_display_type: params.breakdownDisplayType,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(profitLoss, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_balance_sheet': {
-        const params = schemas.GetBalanceSheetSchema.parse(args);
-        const balanceSheet = await freeeClient.getBalanceSheet(getCompanyId(params.companyId), {
-          fiscal_year: params.fiscalYear,
-          start_month: params.startMonth,
-          end_month: params.endMonth,
-          breakdown_display_type: params.breakdownDisplayType,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(balanceSheet, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_get_balance_sheet': {
+      const params = schemas.GetBalanceSheetSchema.parse(args);
+      const balanceSheet = await freeeClient.getBalanceSheet(getCompanyId(params.companyId), {
+        fiscal_year: params.fiscalYear,
+        start_month: params.startMonth,
+        end_month: params.endMonth,
+        breakdown_display_type: params.breakdownDisplayType,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(balanceSheet, null, 2),
+          },
+        ],
+      };
+    }
 
-      case 'freee_get_cash_flow': {
-        const params = schemas.GetCashFlowSchema.parse(args);
-        const cashFlow = await freeeClient.getCashFlow(getCompanyId(params.companyId), {
-          fiscal_year: params.fiscalYear,
-          start_month: params.startMonth,
-          end_month: params.endMonth,
-        });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(cashFlow, null, 2),
-            },
-          ],
-        };
-      }
+    case 'freee_get_cash_flow': {
+      const params = schemas.GetCashFlowSchema.parse(args);
+      const cashFlow = await freeeClient.getCashFlow(getCompanyId(params.companyId), {
+        fiscal_year: params.fiscalYear,
+        start_month: params.startMonth,
+        end_month: params.endMonth,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(cashFlow, null, 2),
+          },
+        ],
+      };
+    }
 
-      default:
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+    default:
+      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
     }
   } catch (error) {
     if (error instanceof McpError) {
