@@ -90,18 +90,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Company tools
       {
         name: 'freee_get_companies',
-        description: 'Get list of accessible companies',
+        description: 'Get list of accessible companies - Retrieves all companies linked to your freee account in one call. Essential first step to get company IDs for subsequent API calls. Cache results as company list rarely changes.',
         inputSchema: jsonSchemas.GetCompaniesSchema,
       },
       {
         name: 'freee_get_company',
-        description: 'Get specific company details',
+        description: 'Get specific company details - Retrieves company master data including fiscal year settings. Use this to understand accounting periods for report APIs. One-time call per session is usually sufficient.',
         inputSchema: jsonSchemas.GetCompanySchema,
       },
       // Deal tools
       {
         name: 'freee_get_deals',
-        description: 'Get list of deals (transactions)',
+        description: 'Get list of deals (transactions) - Use with date filters and pagination for efficiency. For financial analysis, prefer aggregated report APIs (profit_loss, balance_sheet) which process thousands of transactions server-side. Only use for detailed transaction inspection.',
         inputSchema: jsonSchemas.GetDealsSchema,
       },
       {
@@ -117,13 +117,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Account Item tools
       {
         name: 'freee_get_account_items',
-        description: 'Get list of account items (勘定科目)',
+        description: 'Get list of account items - Retrieves chart of accounts efficiently in one call. Use this master data for mapping and filtering in reports. Cached results recommended as account structure rarely changes.',
         inputSchema: jsonSchemas.GetAccountItemsSchema,
       },
       // Partner tools
       {
         name: 'freee_get_partners',
-        description: 'Get list of partners (取引先)',
+        description: 'Get list of partners - Retrieves customer/vendor master data efficiently. For partner-based analysis, use profit_loss API with partner breakdown instead of aggregating individual transactions. Cache results as partner data changes infrequently.',
         inputSchema: jsonSchemas.GetPartnersSchema,
       },
       {
@@ -134,19 +134,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Section tools
       {
         name: 'freee_get_sections',
-        description: 'Get list of sections (部門)',
+        description: 'Get list of sections (departments/divisions) - Retrieves organizational units for segment reporting. Use with profit_loss breakdown_display_type="section" for departmental P&L analysis in one API call.',
         inputSchema: jsonSchemas.GetSectionsSchema,
       },
       // Tag tools
       {
         name: 'freee_get_tags',
-        description: 'Get list of tags (メモタグ)',
+        description: 'Get list of tags - Retrieves custom classification tags. For tag-based analysis, use profit_loss API with tag breakdown for efficient aggregation. Useful for project/campaign tracking.',
         inputSchema: jsonSchemas.GetTagsSchema,
       },
       // Invoice tools
       {
         name: 'freee_get_invoices',
-        description: 'Get list of invoices',
+        description: 'Get list of invoices - Retrieves invoice data with filtering options. For revenue analysis, prefer profit_loss API with partner breakdown. Use this for specific invoice management and AR tracking.',
         inputSchema: jsonSchemas.GetInvoicesSchema,
       },
       {
@@ -157,22 +157,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Report tools
       {
         name: 'freee_get_trial_balance',
-        description: 'Get trial balance report (試算表) - Efficiently get aggregated account balances without processing individual transactions',
+        description: 'Get trial balance report - Efficiently retrieves aggregated account balances for all accounts in one API call. Use for financial analysis, balance verification, and period comparisons without processing individual transactions. Supports monthly/quarterly/annual periods.',
         inputSchema: jsonSchemas.GetTrialBalanceSchema,
       },
       {
         name: 'freee_get_profit_loss',
-        description: 'Get profit and loss statement (損益計算書) - Efficiently get operating profit, revenue, and expenses in a single API call instead of aggregating thousands of transactions',
+        description: 'Get profit and loss statement - Most efficient for profitability analysis. Returns revenue, COGS, operating profit, and net income in one API call. Use breakdown_display_type for segment analysis (partner/section/item/tag). Ideal for monthly trends, YoY comparisons, and KPI dashboards instead of aggregating thousands of transactions.',
         inputSchema: jsonSchemas.GetProfitLossSchema,
       },
       {
         name: 'freee_get_balance_sheet',
-        description: 'Get balance sheet (貸借対照表) - Efficiently get assets, liabilities, and equity data in aggregated format',
+        description: 'Get balance sheet - Efficiently retrieves financial position with assets, liabilities, and equity pre-aggregated. Use for liquidity ratios, solvency analysis, and working capital calculations. Single API call replaces complex transaction aggregation.',
         inputSchema: jsonSchemas.GetBalanceSheetSchema,
       },
       {
         name: 'freee_get_cash_flow',
-        description: 'Get cash flow statement (キャッシュフロー計算書) - NOT AVAILABLE: freee API does not provide cash flow endpoint',
+        description: 'Get cash flow statement - NOT AVAILABLE: freee API does not provide a cash flow endpoint. Calculate cash flow from P&L and balance sheet changes instead.',
         inputSchema: jsonSchemas.GetCashFlowSchema,
       },
     ],
