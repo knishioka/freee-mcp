@@ -34,11 +34,13 @@ async function main() {
       });
       
       const useExisting = await new Promise((resolve) => 
-        rl.question('Use existing tokens? (y/n): ', resolve)
+        rl.question('Use existing tokens? (Y/n): ', resolve)
       );
       rl.close();
       
-      if (useExisting.toLowerCase() === 'y') {
+      if (useExisting.toLowerCase() === 'n') {
+        // Continue to new authentication
+      } else {
         console.log('\nExisting tokens retained. Setup complete!');
         process.exit(0);
       }
@@ -58,6 +60,39 @@ async function main() {
   
   const question = (query) => new Promise((resolve) => rl.question(query, resolve));
   
+  const hiddenQuestion = (query) => new Promise((resolve) => {
+    process.stdout.write(query);
+    const stdin = process.stdin;
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    
+    let input = '';
+    const onData = (char) => {
+      if (char === '\n' || char === '\r' || char === '\u0004') {
+        stdin.setRawMode(false);
+        stdin.pause();
+        stdin.removeListener('data', onData);
+        process.stdout.write('\n');
+        resolve(input);
+      } else if (char === '\u0003') {
+        // Handle Ctrl+C
+        process.exit();
+      } else if (char === '\u007f' || char === '\b') {
+        // Handle backspace
+        if (input.length > 0) {
+          input = input.slice(0, -1);
+          process.stdout.write('\b \b');
+        }
+      } else {
+        input += char;
+        process.stdout.write('*');
+      }
+    };
+    
+    stdin.on('data', onData);
+  });
+  
   try {
     if (clientId && clientSecret) {
       console.log('Using credentials from .env file');
@@ -65,7 +100,7 @@ async function main() {
     } else {
       console.log('No .env file found or credentials missing.');
       clientId = await question('Enter your freee Client ID: ');
-      clientSecret = await question('Enter your freee Client Secret: ');
+      clientSecret = await hiddenQuestion('Enter your freee Client Secret: ');
     }
     
     // Generate auth URL
@@ -83,7 +118,7 @@ async function main() {
     }
     
     console.log('\nAfter authorizing, you will see an authorization code.');
-    const authCode = await question('Enter the authorization code: ');
+    const authCode = await hiddenQuestion('Enter the authorization code: ');
     
     // Exchange for tokens
     console.log('\nExchanging authorization code for tokens...');
