@@ -99,7 +99,37 @@ For other MCP clients, adapt the configuration format as needed:
 
 ## Usage
 
-### Authentication Flow
+### Authentication Methods
+
+#### Method 1: Using Setup Script (Recommended)
+
+Run the interactive setup script:
+```bash
+npm run setup-auth
+```
+
+This script will:
+1. Open the authorization URL in your browser
+2. Wait for you to authorize and get the code
+3. Exchange the code for tokens immediately
+4. Save tokens to `tokens.json` or display environment variables
+
+#### Method 2: Environment Variables
+
+Add these to your Claude Desktop configuration:
+```json
+{
+  "env": {
+    "FREEE_CLIENT_ID": "your_client_id",
+    "FREEE_CLIENT_SECRET": "your_client_secret",
+    "FREEE_ACCESS_TOKEN": "your_access_token",
+    "FREEE_REFRESH_TOKEN": "your_refresh_token",
+    "FREEE_COMPANY_ID": "your_company_id"
+  }
+}
+```
+
+#### Method 3: Manual Flow (Not Recommended)
 
 1. Get the authorization URL:
 ```
@@ -112,6 +142,8 @@ Use tool: freee_get_auth_url
 ```
 Use tool: freee_get_access_token with code: "your_auth_code"
 ```
+
+Note: The authorization code expires quickly, so this method often fails.
 
 ### Available Tools
 

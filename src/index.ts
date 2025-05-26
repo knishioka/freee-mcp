@@ -518,6 +518,23 @@ async function main() {
   // Load saved tokens
   await tokenManager.loadTokens();
   
+  // Check for environment variable tokens
+  const envAccessToken = process.env.FREEE_ACCESS_TOKEN;
+  const envRefreshToken = process.env.FREEE_REFRESH_TOKEN;
+  const envCompanyId = process.env.FREEE_COMPANY_ID;
+  
+  if (envAccessToken && envRefreshToken && envCompanyId) {
+    console.error('Setting tokens from environment variables...');
+    await tokenManager.setToken(parseInt(envCompanyId), {
+      access_token: envAccessToken,
+      refresh_token: envRefreshToken,
+      expires_in: 86400, // 24 hours
+      token_type: 'Bearer',
+      scope: 'read write',
+      created_at: Math.floor(Date.now() / 1000),
+    });
+  }
+  
   // Create transport
   const transport = new StdioServerTransport();
   
