@@ -336,12 +336,12 @@ export class FreeeClient {
     fiscal_year: number;
     start_month: number;
     end_month: number;
-  }): Promise<FreeeTrialBalance[]> {
-    const response = await this.api.get<{ trial_balance: FreeeTrialBalance[] }>(
+  }): Promise<FreeeTrialBalance> {
+    const response = await this.api.get<{ trial_bs: FreeeTrialBalance }>(
       '/reports/trial_bs',
       { params: { company_id: companyId, ...params } }
     );
-    return response.data.trial_balance;
+    return response.data.trial_bs;
   }
 
   // Profit & Loss Statement methods
@@ -350,8 +350,8 @@ export class FreeeClient {
     start_month: number;
     end_month: number;
     breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
-  }): Promise<FreeeTrialBalance[]> {
-    const response = await this.api.get<{ trial_pl: FreeeTrialBalance[] }>(
+  }): Promise<FreeeTrialBalance> {
+    const response = await this.api.get<{ trial_pl: FreeeTrialBalance }>(
       '/reports/trial_pl',
       { params: { company_id: companyId, ...params } }
     );
@@ -364,24 +364,13 @@ export class FreeeClient {
     start_month: number;
     end_month: number;
     breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
-  }): Promise<FreeeTrialBalance[]> {
-    const response = await this.api.get<{ trial_bs: FreeeTrialBalance[] }>(
+  }): Promise<FreeeTrialBalance> {
+    const response = await this.api.get<{ trial_bs: FreeeTrialBalance }>(
       '/reports/trial_bs',
       { params: { company_id: companyId, ...params } }
     );
     return response.data.trial_bs;
   }
 
-  // Cash Flow Statement methods
-  async getCashFlow(companyId: number, params: {
-    fiscal_year: number;
-    start_month: number;
-    end_month: number;
-  }): Promise<FreeeTrialBalance[]> {
-    const response = await this.api.get<{ trial_cf: FreeeTrialBalance[] }>(
-      '/reports/trial_cf',
-      { params: { company_id: companyId, ...params } }
-    );
-    return response.data.trial_cf;
-  }
+  // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
 }

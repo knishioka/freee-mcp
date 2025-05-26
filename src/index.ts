@@ -172,7 +172,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'freee_get_cash_flow',
-        description: 'Get cash flow statement (キャッシュフロー計算書) - Efficiently get operating, investing, and financing cash flows in aggregated format',
+        description: 'Get cash flow statement (キャッシュフロー計算書) - NOT AVAILABLE: freee API does not provide cash flow endpoint',
         inputSchema: jsonSchemas.GetCashFlowSchema,
       },
     ],
@@ -576,20 +576,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case 'freee_get_cash_flow': {
-      const params = schemas.GetCashFlowSchema.parse(args);
-      const cashFlow = await freeeClient.getCashFlow(getCompanyId(params.companyId), {
-        fiscal_year: params.fiscalYear,
-        start_month: params.startMonth,
-        end_month: params.endMonth,
-      });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(cashFlow, null, 2),
-          },
-        ],
-      };
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        'Cash flow statement API is not available in freee API. Please use transaction data to calculate cash flow.'
+      );
     }
 
     default:

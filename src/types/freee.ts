@@ -104,18 +104,25 @@ export interface FreeeInvoiceLine {
   account_item_id?: number;
 }
 
-export interface FreeeTrialBalance {
-  company_id: number;
-  fiscal_year: number;
-  start_month: number;
-  end_month: number;
+export interface FreeeTrialBalanceItem {
+  account_item_id?: number;
   account_item_name: string;
+  account_category_name?: string;
   hierarchy_level: number;
   opening_balance: number;
   debit_amount: number;
   credit_amount: number;
   closing_balance: number;
   composition_ratio?: number;
+}
+
+export interface FreeeTrialBalance {
+  company_id: number;
+  fiscal_year: number;
+  start_month: number;
+  end_month: number;
+  created_at: string;
+  balances: FreeeTrialBalanceItem[];
 }
 
 export interface FreeeApiError {
