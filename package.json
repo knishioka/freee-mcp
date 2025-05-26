@@ -24,8 +24,12 @@
     "accounting",
     "api"
   ],
-  "author": "",
+  "author": "knishioka",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.6.0",
     "axios": "^1.6.5",
@@ -39,7 +43,8 @@
     "eslint": "^8.56.0",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
-    "lint-staged": "^16.0.0",
+    "lint-staged": "^15.2.10",
+    "ts-jest": "^29.3.4",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },
