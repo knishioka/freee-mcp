@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -12,6 +14,7 @@ import dotenv from 'dotenv';
 import { FreeeClient } from './api/freeeClient.js';
 import { TokenManager } from './auth/tokenManager.js';
 import * as schemas from './schemas.js';
+import * as jsonSchemas from './jsonSchemas.js';
 
 // Load environment variables
 dotenv.config();
@@ -59,90 +62,90 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'freee_get_auth_url',
         description: 'Get the authorization URL for freee OAuth flow',
-        inputSchema: schemas.AuthorizeSchema,
+        inputSchema: jsonSchemas.AuthorizeSchema,
       },
       {
         name: 'freee_get_access_token',
         description: 'Exchange authorization code for access token',
-        inputSchema: schemas.GetTokenSchema,
+        inputSchema: jsonSchemas.GetTokenSchema,
       },
       {
         name: 'freee_set_company_token',
         description: 'Manually set access token for a specific company',
-        inputSchema: schemas.SetCompanyTokenSchema,
+        inputSchema: jsonSchemas.SetCompanyTokenSchema,
       },
       // Company tools
       {
         name: 'freee_get_companies',
         description: 'Get list of accessible companies',
-        inputSchema: schemas.GetCompaniesSchema,
+        inputSchema: jsonSchemas.GetCompaniesSchema,
       },
       {
         name: 'freee_get_company',
         description: 'Get specific company details',
-        inputSchema: schemas.GetCompanySchema,
+        inputSchema: jsonSchemas.GetCompanySchema,
       },
       // Deal tools
       {
         name: 'freee_get_deals',
         description: 'Get list of deals (transactions)',
-        inputSchema: schemas.GetDealsSchema,
+        inputSchema: jsonSchemas.GetDealsSchema,
       },
       {
         name: 'freee_get_deal',
         description: 'Get specific deal details',
-        inputSchema: schemas.GetDealSchema,
+        inputSchema: jsonSchemas.GetDealSchema,
       },
       {
         name: 'freee_create_deal',
         description: 'Create a new deal (transaction)',
-        inputSchema: schemas.CreateDealSchema,
+        inputSchema: jsonSchemas.CreateDealSchema,
       },
       // Account Item tools
       {
         name: 'freee_get_account_items',
         description: 'Get list of account items (勘定科目)',
-        inputSchema: schemas.GetAccountItemsSchema,
+        inputSchema: jsonSchemas.GetAccountItemsSchema,
       },
       // Partner tools
       {
         name: 'freee_get_partners',
         description: 'Get list of partners (取引先)',
-        inputSchema: schemas.GetPartnersSchema,
+        inputSchema: jsonSchemas.GetPartnersSchema,
       },
       {
         name: 'freee_create_partner',
         description: 'Create a new partner',
-        inputSchema: schemas.CreatePartnerSchema,
+        inputSchema: jsonSchemas.CreatePartnerSchema,
       },
       // Section tools
       {
         name: 'freee_get_sections',
         description: 'Get list of sections (部門)',
-        inputSchema: schemas.GetSectionsSchema,
+        inputSchema: jsonSchemas.GetSectionsSchema,
       },
       // Tag tools
       {
         name: 'freee_get_tags',
         description: 'Get list of tags (メモタグ)',
-        inputSchema: schemas.GetTagsSchema,
+        inputSchema: jsonSchemas.GetTagsSchema,
       },
       // Invoice tools
       {
         name: 'freee_get_invoices',
         description: 'Get list of invoices',
-        inputSchema: schemas.GetInvoicesSchema,
+        inputSchema: jsonSchemas.GetInvoicesSchema,
       },
       {
         name: 'freee_create_invoice',
         description: 'Create a new invoice',
-        inputSchema: schemas.CreateInvoiceSchema,
+        inputSchema: jsonSchemas.CreateInvoiceSchema,
       },
       // Report tools
       {
         name: 'freee_get_trial_balance',
         description: 'Get trial balance report',
-        inputSchema: schemas.GetTrialBalanceSchema,
+        inputSchema: jsonSchemas.GetTrialBalanceSchema,
       },
     ],
   };

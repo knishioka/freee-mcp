@@ -4,6 +4,9 @@
   "description": "MCP server for freee accounting API integration",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "mcp-server-freee": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
