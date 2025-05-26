@@ -157,22 +157,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       // Report tools
       {
         name: 'freee_get_trial_balance',
-        description: 'Get trial balance report',
+        description: 'Get trial balance report (試算表) - Efficiently get aggregated account balances without processing individual transactions',
         inputSchema: jsonSchemas.GetTrialBalanceSchema,
       },
       {
         name: 'freee_get_profit_loss',
-        description: 'Get profit and loss statement (損益計算書)',
+        description: 'Get profit and loss statement (損益計算書) - Efficiently get operating profit, revenue, and expenses in a single API call instead of aggregating thousands of transactions',
         inputSchema: jsonSchemas.GetProfitLossSchema,
       },
       {
         name: 'freee_get_balance_sheet',
-        description: 'Get balance sheet (貸借対照表)',
+        description: 'Get balance sheet (貸借対照表) - Efficiently get assets, liabilities, and equity data in aggregated format',
         inputSchema: jsonSchemas.GetBalanceSheetSchema,
       },
       {
         name: 'freee_get_cash_flow',
-        description: 'Get cash flow statement (キャッシュフロー計算書)',
+        description: 'Get cash flow statement (キャッシュフロー計算書) - Efficiently get operating, investing, and financing cash flows in aggregated format',
         inputSchema: jsonSchemas.GetCashFlowSchema,
       },
     ],
