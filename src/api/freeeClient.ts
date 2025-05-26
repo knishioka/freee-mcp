@@ -49,12 +49,23 @@ export class FreeeClient {
     // Add request interceptor to add auth token
     this.api.interceptors.request.use(async (config) => {
       const companyId = config.params?.company_id;
+      let token;
+      
       if (companyId) {
-        const token = this.tokenManager.getToken(companyId);
-        if (token && !this.tokenManager.isTokenExpired(token)) {
-          config.headers.Authorization = `Bearer ${token.access_token}`;
+        // Use company-specific token
+        token = this.tokenManager.getToken(companyId);
+      } else {
+        // For endpoints that don't require company_id, use any available token
+        const companyIds = this.tokenManager.getAllCompanyIds();
+        if (companyIds.length > 0) {
+          token = this.tokenManager.getToken(companyIds[0]);
         }
       }
+      
+      if (token && !this.tokenManager.isTokenExpired(token)) {
+        config.headers.Authorization = `Bearer ${token.access_token}`;
+      }
+      
       return config;
     });
 

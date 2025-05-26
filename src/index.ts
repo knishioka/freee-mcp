@@ -215,18 +215,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const params = schemas.GetTokenSchema.parse(args);
         const tokenResponse = await freeeClient.getAccessToken(params.code);
         
-        // Get companies to store token
+        // Temporarily store token with a dummy company ID to make the API call
+        await tokenManager.setToken(0, tokenResponse);
+        
+        // Get companies to store token properly
         const companies = await freeeClient.getCompanies();
+        
+        // Remove the temporary token
+        await tokenManager.removeToken(0);
+        
         if (companies.length > 0) {
-          // Store token for the first company (or you could let user choose)
-          await tokenManager.setToken(companies[0].id, tokenResponse);
+          // Store token for all companies
+          for (const company of companies) {
+            await tokenManager.setToken(company.id, tokenResponse);
+          }
         }
         
         return {
           content: [
             {
               type: 'text',
-              text: `Access token obtained successfully. Token stored for ${companies.length} companies.`,
+              text: `Access token obtained successfully. Token stored for ${companies.length} companies: ${companies.map(c => c.display_name).join(', ')}`,
             },
           ],
         };
