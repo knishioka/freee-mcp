@@ -12,6 +12,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "setup-auth": "node scripts/setup-auth.js",
