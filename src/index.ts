@@ -23,6 +23,7 @@ const clientId = process.env.FREEE_CLIENT_ID;
 const clientSecret = process.env.FREEE_CLIENT_SECRET;
 const redirectUri = process.env.FREEE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob';
 const tokenStoragePath = process.env.TOKEN_STORAGE_PATH;
+const defaultCompanyId = process.env.FREEE_DEFAULT_COMPANY_ID ? parseInt(process.env.FREEE_DEFAULT_COMPANY_ID) : undefined;
 
 if (!clientId || !clientSecret) {
   throw new Error('FREEE_CLIENT_ID and FREEE_CLIENT_SECRET must be set in environment variables');
@@ -45,6 +46,18 @@ const server = new Server(
     },
   }
 );
+
+// Helper function to get company ID with default fallback
+function getCompanyId(providedId?: number): number {
+  const companyId = providedId || defaultCompanyId;
+  if (!companyId) {
+    throw new McpError(
+      ErrorCode.InvalidParams, 
+      'Company ID is required. Either set FREEE_DEFAULT_COMPANY_ID environment variable or provide companyId parameter.'
+    );
+  }
+  return companyId;
+}
 
 // Helper function to format errors
 function formatError(error: unknown): string {
@@ -277,7 +290,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'freee_get_company': {
         const params = schemas.GetCompanySchema.parse(args);
-        const company = await freeeClient.getCompany(params.companyId);
+        const companyId = getCompanyId(params.companyId);
+        const company = await freeeClient.getCompany(companyId);
         return {
           content: [
             {
@@ -291,7 +305,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Deal tools
       case 'freee_get_deals': {
         const params = schemas.GetDealsSchema.parse(args);
-        const deals = await freeeClient.getDeals(params.companyId, {
+        const companyId = getCompanyId(params.companyId);
+        const deals = await freeeClient.getDeals(companyId, {
           partner_id: params.partnerId,
           account_item_id: params.accountItemId,
           start_issue_date: params.startIssueDate,
@@ -311,7 +326,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'freee_get_deal': {
         const params = schemas.GetDealSchema.parse(args);
-        const deal = await freeeClient.getDeal(params.companyId, params.dealId);
+        const companyId = getCompanyId(params.companyId);
+        const deal = await freeeClient.getDeal(companyId, params.dealId);
         return {
           content: [
             {
@@ -324,7 +340,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'freee_create_deal': {
         const params = schemas.CreateDealSchema.parse(args);
-        const deal = await freeeClient.createDeal(params.companyId, {
+        const companyId = getCompanyId(params.companyId);
+        const deal = await freeeClient.createDeal(companyId, {
           issue_date: params.issueDate,
           type: params.type,
           partner_id: params.partnerId,
@@ -355,7 +372,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'freee_get_account_items': {
         const params = schemas.GetAccountItemsSchema.parse(args);
         const items = await freeeClient.getAccountItems(
-          params.companyId,
+          getCompanyId(params.companyId),
           params.accountCategory
         );
         return {
@@ -371,7 +388,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Partner tools
       case 'freee_get_partners': {
         const params = schemas.GetPartnersSchema.parse(args);
-        const partners = await freeeClient.getPartners(params.companyId, {
+        const partners = await freeeClient.getPartners(getCompanyId(params.companyId), {
           name: params.name,
           shortcut1: params.shortcut1,
           offset: params.offset,
@@ -389,7 +406,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'freee_create_partner': {
         const params = schemas.CreatePartnerSchema.parse(args);
-        const partner = await freeeClient.createPartner(params.companyId, {
+        const partner = await freeeClient.createPartner(getCompanyId(params.companyId), {
           name: params.name,
           shortcut1: params.shortcut1,
           shortcut2: params.shortcut2,
@@ -410,7 +427,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Section tools
       case 'freee_get_sections': {
         const params = schemas.GetSectionsSchema.parse(args);
-        const sections = await freeeClient.getSections(params.companyId);
+        const sections = await freeeClient.getSections(getCompanyId(params.companyId));
         return {
           content: [
             {
@@ -424,7 +441,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Tag tools
       case 'freee_get_tags': {
         const params = schemas.GetTagsSchema.parse(args);
-        const tags = await freeeClient.getTags(params.companyId);
+        const tags = await freeeClient.getTags(getCompanyId(params.companyId));
         return {
           content: [
             {
@@ -438,7 +455,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Invoice tools
       case 'freee_get_invoices': {
         const params = schemas.GetInvoicesSchema.parse(args);
-        const invoices = await freeeClient.getInvoices(params.companyId, {
+        const invoices = await freeeClient.getInvoices(getCompanyId(params.companyId), {
           partner_id: params.partnerId,
           invoice_status: params.invoiceStatus,
           payment_status: params.paymentStatus,
@@ -459,7 +476,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'freee_create_invoice': {
         const params = schemas.CreateInvoiceSchema.parse(args);
-        const invoice = await freeeClient.createInvoice(params.companyId, {
+        const invoice = await freeeClient.createInvoice(getCompanyId(params.companyId), {
           issue_date: params.issueDate,
           partner_id: params.partnerId,
           due_date: params.dueDate,
@@ -492,7 +509,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Report tools
       case 'freee_get_trial_balance': {
         const params = schemas.GetTrialBalanceSchema.parse(args);
-        const trialBalance = await freeeClient.getTrialBalance(params.companyId, {
+        const trialBalance = await freeeClient.getTrialBalance(getCompanyId(params.companyId), {
           fiscal_year: params.fiscalYear,
           start_month: params.startMonth,
           end_month: params.endMonth,

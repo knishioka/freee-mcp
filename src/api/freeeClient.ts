@@ -48,9 +48,17 @@ export class FreeeClient {
 
     // Add request interceptor to add auth token
     this.api.interceptors.request.use(async (config) => {
-      const companyId = config.params?.company_id;
-      let token;
+      let companyId = config.params?.company_id;
       
+      // Try to extract company_id from URL if not in params
+      if (!companyId && config.url) {
+        const companyMatch = config.url.match(/\/companies\/(\d+)/);
+        if (companyMatch) {
+          companyId = parseInt(companyMatch[1]);
+        }
+      }
+      
+      let token;
       if (companyId) {
         // Use company-specific token
         token = this.tokenManager.getToken(companyId);
@@ -79,7 +87,24 @@ export class FreeeClient {
   private async handleApiError(error: AxiosError): Promise<never> {
     if (error.response?.status === 401) {
       // Token might be expired, try to refresh
-      const companyId = error.config?.params?.company_id;
+      let companyId = error.config?.params?.company_id;
+      
+      // Try to extract company_id from URL if not in params
+      if (!companyId && error.config?.url) {
+        const companyMatch = error.config.url.match(/\/companies\/(\d+)/);
+        if (companyMatch) {
+          companyId = parseInt(companyMatch[1]);
+        }
+      }
+      
+      // If no company_id in params or URL, try to get the first available company
+      if (!companyId) {
+        const companyIds = this.tokenManager.getAllCompanyIds();
+        if (companyIds.length > 0) {
+          companyId = companyIds[0];
+        }
+      }
+      
       if (companyId) {
         const token = this.tokenManager.getToken(companyId);
         if (token?.refresh_token) {
@@ -87,7 +112,8 @@ export class FreeeClient {
             await this.refreshToken(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
-              return this.api.request(error.config);
+              const retryResult = await this.api.request(error.config);
+              return retryResult as never;
             }
           } catch (refreshError) {
             // Refresh failed, remove token

@@ -56,10 +56,10 @@ export const GetCompanySchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 // Deal schemas
@@ -68,7 +68,7 @@ export const GetDealsSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     partnerId: { 
       type: 'number', 
@@ -97,7 +97,7 @@ export const GetDealsSchema = {
       maximum: 100 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 export const GetDealSchema = {
@@ -105,14 +105,14 @@ export const GetDealSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     dealId: { 
       type: 'number', 
       description: 'Deal ID' 
     }
   },
-  required: ['companyId', 'dealId']
+  required: ['dealId']
 };
 
 export const CreateDealSchema = {
@@ -120,7 +120,7 @@ export const CreateDealSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     issueDate: { 
       type: 'string', 
@@ -179,7 +179,7 @@ export const CreateDealSchema = {
       }
     }
   },
-  required: ['companyId', 'issueDate', 'type', 'details']
+  required: ['issueDate', 'type', 'details']
 };
 
 // Account Item schemas
@@ -188,14 +188,14 @@ export const GetAccountItemsSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     accountCategory: { 
       type: 'string', 
       description: 'Account category to filter by' 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 // Partner schemas
@@ -204,7 +204,7 @@ export const GetPartnersSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     name: { 
       type: 'string', 
@@ -225,7 +225,7 @@ export const GetPartnersSchema = {
       maximum: 100 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 export const CreatePartnerSchema = {
@@ -233,7 +233,7 @@ export const CreatePartnerSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     name: { 
       type: 'string', 
@@ -260,7 +260,7 @@ export const CreatePartnerSchema = {
       description: 'Country code' 
     }
   },
-  required: ['companyId', 'name']
+  required: ['name']
 };
 
 // Section schemas
@@ -269,10 +269,10 @@ export const GetSectionsSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 // Tag schemas
@@ -281,10 +281,10 @@ export const GetTagsSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 // Invoice schemas
@@ -293,7 +293,7 @@ export const GetInvoicesSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     partnerId: { 
       type: 'number', 
@@ -326,7 +326,7 @@ export const GetInvoicesSchema = {
       maximum: 100 
     }
   },
-  required: ['companyId']
+  required: []
 };
 
 export const CreateInvoiceSchema = {
@@ -334,7 +334,7 @@ export const CreateInvoiceSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     issueDate: { 
       type: 'string', 
@@ -392,7 +392,7 @@ export const CreateInvoiceSchema = {
       }
     }
   },
-  required: ['companyId', 'issueDate', 'partnerId', 'invoiceStatus', 'invoiceLines']
+  required: ['issueDate', 'partnerId', 'invoiceStatus', 'invoiceLines']
 };
 
 // Trial Balance schemas
@@ -401,7 +401,7 @@ export const GetTrialBalanceSchema = {
   properties: {
     companyId: { 
       type: 'number', 
-      description: 'Company ID' 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
     },
     fiscalYear: { 
       type: 'number', 
@@ -420,5 +420,5 @@ export const GetTrialBalanceSchema = {
       maximum: 12 
     }
   },
-  required: ['companyId', 'fiscalYear', 'startMonth', 'endMonth']
+  required: ['fiscalYear', 'startMonth', 'endMonth']
 };

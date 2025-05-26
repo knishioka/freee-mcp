@@ -83,7 +83,8 @@ TOKEN_STORAGE_PATH=./tokens.json
          "env": {
            "FREEE_CLIENT_ID": "your_client_id_here",
            "FREEE_CLIENT_SECRET": "your_client_secret_here",
-           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json"
+           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json",
+           "FREEE_DEFAULT_COMPANY_ID": "3260106"  // Optional: Set default company ID
          }
        }
      }
@@ -157,6 +158,36 @@ Use tool: freee_get_access_token with code: "your_auth_code"
 ```
 
 Note: The authorization code expires quickly, so this method often fails.
+
+### Handling Multiple Companies
+
+freee MCP supports multiple companies (事業所). When you authenticate, the server automatically obtains access to all companies associated with your freee account.
+
+#### Setting a Default Company
+
+To avoid specifying `companyId` for every API call, you can set a default company ID:
+
+```json
+{
+  "env": {
+    "FREEE_DEFAULT_COMPANY_ID": "3260106"  // Your default company ID
+  }
+}
+```
+
+To find your company IDs, use the `freee_get_companies` tool after authentication.
+
+#### Using Multiple Companies
+
+If you don't set a default company ID, you must specify `companyId` for each API call:
+
+```
+// With default company ID set:
+Use tool: freee_get_deals
+
+// Without default company ID:
+Use tool: freee_get_deals with companyId: 3260106
+```
 
 ### Available Tools
 

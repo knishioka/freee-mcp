@@ -11,6 +11,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Type Check**: `npm run typecheck` - Performs TypeScript type checking without emitting files
 - **Test**: `npm test` - Runs the Jest test suite
 
+## Recent Changes
+
+### Multiple Company Support (2025/1/26)
+- Added `FREEE_DEFAULT_COMPANY_ID` environment variable support
+- Made `companyId` parameter optional in all tools
+- If no `companyId` is provided, tools will use the default company ID
+- If neither is provided, tools will return an error with clear instructions
+
 ## Architecture Overview
 
 This is a Model Context Protocol (MCP) server that integrates with the freee accounting API. The architecture follows a modular design:
@@ -65,3 +73,4 @@ Required environment variables:
 - `FREEE_CLIENT_SECRET`: OAuth application client secret
 - `FREEE_REDIRECT_URI`: OAuth redirect URI (default: `urn:ietf:wg:oauth:2.0:oob`)
 - `TOKEN_STORAGE_PATH`: Path to store OAuth tokens (optional)
+- `FREEE_DEFAULT_COMPANY_ID`: Default company ID to use when not specified (optional)
