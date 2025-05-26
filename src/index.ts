@@ -35,7 +35,7 @@ const freeeClient = new FreeeClient(clientId, clientSecret, redirectUri, tokenMa
 // Create MCP server
 const server = new Server(
   {
-    name: 'freee-mcp-server',
+    name: 'freee-mcp',
     version: '0.1.0',
   },
   {

@@ -1,11 +1,11 @@
 {
-  "name": "@datainformed/mcp-server-freee",
+  "name": "@datainformed/freee-mcp",
   "version": "0.1.0",
   "description": "MCP server for freee accounting API integration",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "mcp-server-freee": "dist/index.js"
+    "freee-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
