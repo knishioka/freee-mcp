@@ -22,9 +22,10 @@ A Model Context Protocol (MCP) server that provides integration with freee accou
 
 ## Installation
 
-1. Clone the repository and navigate to the project directory:
+1. Clone the repository:
 ```bash
-cd mcp-server-freee
+git clone https://github.com/knishioka/freee-mcp.git
+cd freee-mcp
 ```
 
 2. Install dependencies:
@@ -32,12 +33,17 @@ cd mcp-server-freee
 npm install
 ```
 
-3. Copy the environment example file and configure it:
+3. Build the TypeScript code:
+```bash
+npm run build
+```
+
+4. Copy the environment example file and configure it:
 ```bash
 cp .env.example .env
 ```
 
-4. Edit `.env` with your freee API credentials:
+5. Edit `.env` with your freee API credentials:
 ```
 FREEE_CLIENT_ID=your_client_id_here
 FREEE_CLIENT_SECRET=your_client_secret_here
@@ -59,11 +65,7 @@ TOKEN_STORAGE_PATH=./tokens.json
 
 #### Claude Desktop Configuration
 
-1. **Build the server first:**
-   ```bash
-   npm install
-   npm run build
-   ```
+1. **Ensure the server is built** (see Installation step 3 above)
 
 2. **Locate the configuration file:**
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
