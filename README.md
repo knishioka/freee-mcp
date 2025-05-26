@@ -88,7 +88,7 @@ TOKEN_STORAGE_PATH=./tokens.json
            "FREEE_CLIENT_ID": "your_client_id_here",
            "FREEE_CLIENT_SECRET": "your_client_secret_here",
            "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json",
-           "FREEE_DEFAULT_COMPANY_ID": "3260106"  // Optional: Set default company ID
+           "FREEE_DEFAULT_COMPANY_ID": "123456"  // Optional: Set default company ID
          }
        }
      }
@@ -174,7 +174,7 @@ To avoid specifying `companyId` for every API call, you can set a default compan
 ```json
 {
   "env": {
-    "FREEE_DEFAULT_COMPANY_ID": "3260106"  // Your default company ID
+    "FREEE_DEFAULT_COMPANY_ID": "123456"  // Your default company ID
   }
 }
 ```
@@ -190,7 +190,7 @@ If you don't set a default company ID, you must specify `companyId` for each API
 Use tool: freee_get_deals
 
 // Without default company ID:
-Use tool: freee_get_deals with companyId: 3260106
+Use tool: freee_get_deals with companyId: 123456
 ```
 
 ### Available Tools
