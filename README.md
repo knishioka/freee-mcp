@@ -11,16 +11,16 @@ A Model Context Protocol (MCP) server that provides integration with freee accou
 - OAuth 2.0 authentication flow support
 - Company management
 - Transaction (Deal) operations
-- Account items (勘定科目) management
-- Partner (取引先) management
-- Sections (部門) and Tags (メモタグ)
+- Account items management
+- Partner management
+- Sections and Tags
 - Invoice creation and management
 - Trial balance reports
 - Token persistence and automatic refresh
 
 ## Prerequisites
 
-- Node.js 18 or higher
+- Node.js 20 or higher
 - freee API credentials (Client ID and Client Secret)
 - freee account with API access
 
@@ -165,7 +165,7 @@ Note: The authorization code expires quickly, so this method often fails.
 
 ### Handling Multiple Companies
 
-freee MCP supports multiple companies (事業所). When you authenticate, the server automatically obtains access to all companies associated with your freee account.
+freee MCP supports multiple companies. When you authenticate, the server automatically obtains access to all companies associated with your freee account.
 
 #### Setting a Default Company
 
@@ -210,51 +210,51 @@ Use tool: freee_get_deals with companyId: 3260106
 - `freee_create_deal` - Create new transaction
 
 #### Master Data
-- `freee_get_account_items` - List account items (勘定科目)
-- `freee_get_partners` - List partners (取引先)
+- `freee_get_account_items` - List account items
+- `freee_get_partners` - List partners
 - `freee_create_partner` - Create new partner
-- `freee_get_sections` - List sections (部門)
-- `freee_get_tags` - List tags (メモタグ)
+- `freee_get_sections` - List sections
+- `freee_get_tags` - List tags
 
 #### Invoice Operations
 - `freee_get_invoices` - List invoices
 - `freee_create_invoice` - Create new invoice
 
 #### Reports
-- `freee_get_trial_balance` - Get trial balance report (試算表)
-- `freee_get_profit_loss` - Get profit and loss statement (損益計算書) - **営業利益に最適！**
-- `freee_get_balance_sheet` - Get balance sheet (貸借対照表)  
-- `freee_get_cash_flow` - Get cash flow statement (キャッシュフロー計算書)
+- `freee_get_trial_balance` - Get trial balance report
+- `freee_get_profit_loss` - Get profit and loss statement - **Optimal for operating profit!**
+- `freee_get_balance_sheet` - Get balance sheet
+- `freee_get_cash_flow` - Get cash flow statement
 
-### 効率的な営業利益の取得方法
+### Efficient Operating Profit Retrieval
 
-個別取引を大量に取得する代わりに、**損益計算書API (`freee_get_profit_loss`)** を使用することで、1回のAPI呼び出しで営業利益を含む財務データを取得できます。
+Instead of retrieving large amounts of individual transactions, use the **Profit & Loss API (`freee_get_profit_loss`)** to get financial data including operating profit with a single API call.
 
 ```
-# 例：2024年度の営業利益を取得
+# Example: Get operating profit for fiscal year 2024
 Use tool: freee_get_profit_loss
 Parameters:
 - fiscalYear: 2024
-- startMonth: 4    # 期首月
-- endMonth: 3      # 期末月
+- startMonth: 4    # Start of fiscal year
+- endMonth: 3      # End of fiscal year
 ```
 
-このAPIは以下の情報を集計済みで返します：
-- 売上高
-- 売上原価  
-- 売上総利益
-- 販売費及び一般管理費
-- **営業利益** ← ここ！
-- 営業外収益・費用
-- 経常利益
-- 特別損益
-- 当期純利益
+This API returns pre-aggregated information including:
+- Revenue
+- Cost of goods sold
+- Gross profit
+- Selling, general & administrative expenses
+- **Operating profit** ← Here!
+- Non-operating income/expenses
+- Ordinary profit
+- Extraordinary gains/losses
+- Net income
 
-### 使用例
+### Usage Examples
 
-#### 営業利益の月次推移を確認
+#### Check Monthly Operating Profit Trends
 ```
-# 2024年4月から6月の営業利益
+# Operating profit from April to June 2024
 Use tool: freee_get_profit_loss
 Parameters:
 - fiscalYear: 2024
@@ -262,16 +262,16 @@ Parameters:
 - endMonth: 6
 ```
 
-#### 前年同期比較のための営業利益取得
+#### Get Operating Profit for Year-over-Year Comparison
 ```
-# 今期（2024年度）
+# Current period (FY2024)
 Use tool: freee_get_profit_loss
 Parameters:
 - fiscalYear: 2024
 - startMonth: 4
 - endMonth: 9
 
-# 前期（2023年度）
+# Previous period (FY2023)
 Use tool: freee_get_profit_loss  
 Parameters:
 - fiscalYear: 2023
@@ -279,26 +279,26 @@ Parameters:
 - endMonth: 9
 ```
 
-#### 取引先別営業利益分析
+#### Partner-wise Operating Profit Analysis
 ```
 Use tool: freee_get_profit_loss
 Parameters:
 - fiscalYear: 2024
 - startMonth: 4
 - endMonth: 12
-- breakdownDisplayType: "partner"  # 取引先別内訳
+- breakdownDisplayType: "partner"  # Breakdown by partner
 ```
 
-### パフォーマンス比較
+### Performance Comparison
 
-| 方法 | API呼び出し数 | データ処理 | レート制限への影響 |
-|------|-------------|-----------|-----------------|
-| **個別取引集計** | 数千〜数万回 | クライアント側で集計必要 | 高リスク（制限に達する可能性） |
-| **損益計算書API** | **1回** | **サーバー側で完了済み** | **最小リスク** |
+| Method | API Calls | Data Processing | Rate Limit Impact |
+|--------|-----------|----------------|------------------|
+| **Individual Transaction Aggregation** | Thousands to tens of thousands | Client-side aggregation required | High risk (may hit limits) |
+| **Profit & Loss API** | **1 call** | **Server-side pre-aggregated** | **Minimal risk** |
 
-#### 具体例：年間営業利益取得の場合
-- 従来方法：取引数1万件 → API呼び出し1万回 → レート制限の27%消費
-- **効率的方法：`freee_get_profit_loss` → API呼び出し1回 → レート制限の0.03%消費**
+#### Concrete Example: Annual Operating Profit Retrieval
+- Traditional method: 10,000 transactions → 10,000 API calls → 27% of rate limit consumed
+- **Efficient method: `freee_get_profit_loss` → 1 API call → 0.03% of rate limit consumed**
 
 ## Development
 
