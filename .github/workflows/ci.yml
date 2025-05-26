@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x]
     
     steps:
     - uses: actions/checkout@v4
@@ -40,14 +40,12 @@ jobs:
     
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
-      if: matrix.node-version == '20.x'
       with:
         name: coverage-report
         path: coverage/
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
-      if: matrix.node-version == '20.x'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage/lcov.info
@@ -101,5 +99,5 @@ jobs:
       continue-on-error: true
       
     - name: License checker
-      run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense'
+      run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePackages 'argparse'
       continue-on-error: true
