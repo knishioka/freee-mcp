@@ -160,6 +160,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: 'Get trial balance report',
         inputSchema: jsonSchemas.GetTrialBalanceSchema,
       },
+      {
+        name: 'freee_get_profit_loss',
+        description: 'Get profit and loss statement (損益計算書)',
+        inputSchema: jsonSchemas.GetProfitLossSchema,
+      },
+      {
+        name: 'freee_get_balance_sheet',
+        description: 'Get balance sheet (貸借対照表)',
+        inputSchema: jsonSchemas.GetBalanceSheetSchema,
+      },
+      {
+        name: 'freee_get_cash_flow',
+        description: 'Get cash flow statement (キャッシュフロー計算書)',
+        inputSchema: jsonSchemas.GetCashFlowSchema,
+      },
     ],
   };
 });
@@ -519,6 +534,59 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify(trialBalance, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'freee_get_profit_loss': {
+        const params = schemas.GetProfitLossSchema.parse(args);
+        const profitLoss = await freeeClient.getProfitLoss(getCompanyId(params.companyId), {
+          fiscal_year: params.fiscalYear,
+          start_month: params.startMonth,
+          end_month: params.endMonth,
+          breakdown_display_type: params.breakdownDisplayType,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(profitLoss, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'freee_get_balance_sheet': {
+        const params = schemas.GetBalanceSheetSchema.parse(args);
+        const balanceSheet = await freeeClient.getBalanceSheet(getCompanyId(params.companyId), {
+          fiscal_year: params.fiscalYear,
+          start_month: params.startMonth,
+          end_month: params.endMonth,
+          breakdown_display_type: params.breakdownDisplayType,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(balanceSheet, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'freee_get_cash_flow': {
+        const params = schemas.GetCashFlowSchema.parse(args);
+        const cashFlow = await freeeClient.getCashFlow(getCompanyId(params.companyId), {
+          fiscal_year: params.fiscalYear,
+          start_month: params.startMonth,
+          end_month: params.endMonth,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(cashFlow, null, 2),
             },
           ],
         };

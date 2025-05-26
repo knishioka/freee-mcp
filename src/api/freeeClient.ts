@@ -70,8 +70,31 @@ export class FreeeClient {
         }
       }
       
-      if (token && !this.tokenManager.isTokenExpired(token)) {
-        config.headers.Authorization = `Bearer ${token.access_token}`;
+      if (token) {
+        const expiryStatus = this.tokenManager.getTokenExpiryStatus(token);
+        
+        if (expiryStatus.status === 'expired') {
+          console.error(`Token for company ${companyId} has expired. Attempting refresh...`);
+          if (token.refresh_token) {
+            try {
+              await this.refreshToken(companyId || this.tokenManager.getAllCompanyIds()[0], token.refresh_token);
+              const refreshedToken = this.tokenManager.getToken(companyId || this.tokenManager.getAllCompanyIds()[0]);
+              if (refreshedToken) {
+                config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
+              }
+            } catch (error) {
+              console.error('Pre-request token refresh failed:', error);
+              throw new Error('Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.');
+            }
+          } else {
+            throw new Error('Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.');
+          }
+        } else if (expiryStatus.status === 'near_expiry') {
+          console.error(`Token for company ${companyId} expires in ${expiryStatus.remainingMinutes} minutes`);
+          config.headers.Authorization = `Bearer ${token.access_token}`;
+        } else {
+          config.headers.Authorization = `Bearer ${token.access_token}`;
+        }
       }
       
       return config;
@@ -86,6 +109,12 @@ export class FreeeClient {
 
   private async handleApiError(error: AxiosError): Promise<never> {
     if (error.response?.status === 401) {
+      // Check for specific freee API error codes
+      const errorData = error.response?.data as any;
+      const isExpiredToken = errorData?.code === 'expired_access_token';
+      
+      console.error(`401 Error: ${isExpiredToken ? 'Token expired' : 'Unauthorized'}`);
+      
       // Token might be expired, try to refresh
       let companyId = error.config?.params?.company_id;
       
@@ -109,17 +138,29 @@ export class FreeeClient {
         const token = this.tokenManager.getToken(companyId);
         if (token?.refresh_token) {
           try {
+            console.error(`Attempting token refresh for company ${companyId}...`);
             await this.refreshToken(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
+              console.error('Retrying original request with new token...');
               const retryResult = await this.api.request(error.config);
               return retryResult as never;
             }
-          } catch (refreshError) {
+          } catch (refreshError: any) {
+            console.error('Token refresh failed:', refreshError.response?.data || refreshError.message);
             // Refresh failed, remove token
             await this.tokenManager.removeToken(companyId);
+            
+            // If refresh token is also invalid, suggest re-authentication
+            if (refreshError.response?.data?.error === 'invalid_grant') {
+              throw new Error('Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.');
+            }
           }
+        } else {
+          console.error('No refresh token available for token refresh');
         }
+      } else {
+        console.error('No company ID found for token refresh');
       }
     }
 
@@ -298,6 +339,47 @@ export class FreeeClient {
   }): Promise<FreeeTrialBalance[]> {
     const response = await this.api.get<{ trial_balance: FreeeTrialBalance[] }>(
       '/reports/trial_bs',
+      { params: { company_id: companyId, ...params } }
+    );
+    return response.data.trial_balance;
+  }
+
+  // Profit & Loss Statement methods
+  async getProfitLoss(companyId: number, params: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+    breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
+  }): Promise<FreeeTrialBalance[]> {
+    const response = await this.api.get<{ trial_balance: FreeeTrialBalance[] }>(
+      '/reports/trial_pl',
+      { params: { company_id: companyId, ...params } }
+    );
+    return response.data.trial_balance;
+  }
+
+  // Balance Sheet methods  
+  async getBalanceSheet(companyId: number, params: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+    breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
+  }): Promise<FreeeTrialBalance[]> {
+    const response = await this.api.get<{ trial_balance: FreeeTrialBalance[] }>(
+      '/reports/trial_bs',
+      { params: { company_id: companyId, ...params } }
+    );
+    return response.data.trial_balance;
+  }
+
+  // Cash Flow Statement methods
+  async getCashFlow(companyId: number, params: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+  }): Promise<FreeeTrialBalance[]> {
+    const response = await this.api.get<{ trial_balance: FreeeTrialBalance[] }>(
+      '/reports/trial_cf',
       { params: { company_id: companyId, ...params } }
     );
     return response.data.trial_balance;

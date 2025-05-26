@@ -217,7 +217,34 @@ Use tool: freee_get_deals with companyId: 3260106
 - `freee_create_invoice` - Create new invoice
 
 #### Reports
-- `freee_get_trial_balance` - Get trial balance report
+- `freee_get_trial_balance` - Get trial balance report (試算表)
+- `freee_get_profit_loss` - Get profit and loss statement (損益計算書) - **営業利益に最適！**
+- `freee_get_balance_sheet` - Get balance sheet (貸借対照表)  
+- `freee_get_cash_flow` - Get cash flow statement (キャッシュフロー計算書)
+
+### 効率的な営業利益の取得方法
+
+個別取引を大量に取得する代わりに、**損益計算書API (`freee_get_profit_loss`)** を使用することで、1回のAPI呼び出しで営業利益を含む財務データを取得できます。
+
+```
+# 例：2024年度の営業利益を取得
+Use tool: freee_get_profit_loss
+Parameters:
+- fiscalYear: 2024
+- startMonth: 4    # 期首月
+- endMonth: 3      # 期末月
+```
+
+このAPIは以下の情報を集計済みで返します：
+- 売上高
+- 売上原価  
+- 売上総利益
+- 販売費及び一般管理費
+- **営業利益** ← ここ！
+- 営業外収益・費用
+- 経常利益
+- 特別損益
+- 当期純利益
 
 ## Development
 

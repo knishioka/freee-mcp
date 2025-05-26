@@ -127,3 +127,27 @@ export const GetTrialBalanceSchema = z.object({
   startMonth: z.number().min(1).max(12),
   endMonth: z.number().min(1).max(12),
 });
+
+// Report schemas for financial statements
+export const GetProfitLossSchema = z.object({
+  companyId: z.number().optional(),
+  fiscalYear: z.number(),
+  startMonth: z.number().min(1).max(12),
+  endMonth: z.number().min(1).max(12),
+  breakdownDisplayType: z.enum(['partner', 'item', 'section', 'tag']).optional(),
+});
+
+export const GetBalanceSheetSchema = z.object({
+  companyId: z.number().optional(),
+  fiscalYear: z.number(),
+  startMonth: z.number().min(1).max(12),
+  endMonth: z.number().min(1).max(12),
+  breakdownDisplayType: z.enum(['partner', 'item', 'section', 'tag']).optional(),
+});
+
+export const GetCashFlowSchema = z.object({
+  companyId: z.number().optional(),
+  fiscalYear: z.number(),
+  startMonth: z.number().min(1).max(12),
+  endMonth: z.number().min(1).max(12),
+});

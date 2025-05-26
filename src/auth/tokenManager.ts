@@ -65,6 +65,26 @@ export class TokenManager {
     return token.expires_at <= now + 300;
   }
 
+  isTokenNearExpiry(token: TokenData): boolean {
+    const now = Math.floor(Date.now() / 1000);
+    // Check if token expires within 30 minutes
+    return token.expires_at <= now + 1800;
+  }
+
+  getTokenExpiryStatus(token: TokenData): { status: 'valid' | 'near_expiry' | 'expired'; remainingMinutes: number } {
+    const now = Math.floor(Date.now() / 1000);
+    const remainingSeconds = token.expires_at - now;
+    const remainingMinutes = Math.floor(remainingSeconds / 60);
+    
+    if (remainingSeconds <= 0) {
+      return { status: 'expired', remainingMinutes: 0 };
+    } else if (remainingMinutes <= 30) {
+      return { status: 'near_expiry', remainingMinutes };
+    } else {
+      return { status: 'valid', remainingMinutes };
+    }
+  }
+
   async removeToken(companyId: number): Promise<void> {
     this.tokens.delete(companyId);
     await this.saveTokens();

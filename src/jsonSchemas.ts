@@ -422,3 +422,95 @@ export const GetTrialBalanceSchema = {
   },
   required: ['fiscalYear', 'startMonth', 'endMonth']
 };
+
+// Financial Report schemas
+export const GetProfitLossSchema = {
+  type: 'object',
+  properties: {
+    companyId: { 
+      type: 'number', 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
+    },
+    fiscalYear: { 
+      type: 'number', 
+      description: 'Fiscal year' 
+    },
+    startMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'Start month (1-12)' 
+    },
+    endMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'End month (1-12)' 
+    },
+    breakdownDisplayType: {
+      type: 'string',
+      enum: ['partner', 'item', 'section', 'tag'],
+      description: 'Breakdown display type (optional)'
+    }
+  },
+  required: ['fiscalYear', 'startMonth', 'endMonth']
+};
+
+export const GetBalanceSheetSchema = {
+  type: 'object',
+  properties: {
+    companyId: { 
+      type: 'number', 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
+    },
+    fiscalYear: { 
+      type: 'number', 
+      description: 'Fiscal year' 
+    },
+    startMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'Start month (1-12)' 
+    },
+    endMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'End month (1-12)' 
+    },
+    breakdownDisplayType: {
+      type: 'string',
+      enum: ['partner', 'item', 'section', 'tag'],
+      description: 'Breakdown display type (optional)'
+    }
+  },
+  required: ['fiscalYear', 'startMonth', 'endMonth']
+};
+
+export const GetCashFlowSchema = {
+  type: 'object',
+  properties: {
+    companyId: { 
+      type: 'number', 
+      description: 'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)' 
+    },
+    fiscalYear: { 
+      type: 'number', 
+      description: 'Fiscal year' 
+    },
+    startMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'Start month (1-12)' 
+    },
+    endMonth: { 
+      type: 'number', 
+      minimum: 1, 
+      maximum: 12, 
+      description: 'End month (1-12)' 
+    }
+  },
+  required: ['fiscalYear', 'startMonth', 'endMonth']
+};
