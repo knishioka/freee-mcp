@@ -1,5 +1,9 @@
 # MCP Server for freee Accounting API
 
+[![CI](https://github.com/knishioka/freee-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/knishioka/freee-mcp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/knishioka/freee-mcp/branch/main/graph/badge.svg)](https://codecov.io/gh/knishioka/freee-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Model Context Protocol (MCP) server that provides integration with freee accounting software API, enabling AI assistants to interact with accounting data.
 
 ## Features

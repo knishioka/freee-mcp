@@ -1,0 +1,40 @@
+codecov:
+  require_ci_to_pass: true
+  
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+  
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 5%
+        paths:
+          - "src/"
+          
+    patch:
+      default:
+        target: 80%
+        threshold: 10%
+        
+parsers:
+  gcov:
+    branch_detection:
+      conditional: true
+      loop: true
+      method: false
+      macro: false
+      
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+  
+ignore:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "src/__tests__/**"
+  - "scripts/**"
+  - "*.config.js"

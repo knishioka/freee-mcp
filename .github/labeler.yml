@@ -1,0 +1,42 @@
+# Label configuration for PR Labeler
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.spec.ts'
+      - 'jest.config.js'
+      - 'src/__tests__/**'
+
+github-actions:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'package-lock.json'
+
+api:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/api/**'
+
+auth:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/auth/**'
+
+types:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/types/**'
+      - '**/*.d.ts'
