@@ -6,8 +6,12 @@ import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env file
+dotenv.config();
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -20,9 +24,40 @@ async function main() {
   console.log('freee MCP Authentication Setup');
   console.log('==============================\n');
 
-  // Get credentials
-  const clientId = await question('Enter your freee Client ID: ');
-  const clientSecret = await question('Enter your freee Client Secret: ');
+  // Check for existing tokens
+  const tokenPath = process.env.TOKEN_STORAGE_PATH || path.join(process.cwd(), 'tokens.json');
+  let existingTokens = false;
+  
+  try {
+    await fs.access(tokenPath);
+    const data = await fs.readFile(tokenPath, 'utf-8');
+    const tokens = JSON.parse(data);
+    if (tokens.length > 0) {
+      existingTokens = true;
+      console.log(`Found existing tokens at: ${tokenPath}`);
+      const useExisting = await question('Use existing tokens? (y/n): ');
+      if (useExisting.toLowerCase() === 'y') {
+        console.log('\nExisting tokens retained. Setup complete!');
+        rl.close();
+        return;
+      }
+    }
+  } catch (e) {
+    // No existing tokens
+  }
+
+  // Get credentials from env or prompt
+  let clientId = process.env.FREEE_CLIENT_ID;
+  let clientSecret = process.env.FREEE_CLIENT_SECRET;
+  
+  if (clientId && clientSecret) {
+    console.log('Using credentials from .env file');
+    console.log(`Client ID: ${clientId.substring(0, 10)}...`);
+  } else {
+    console.log('No .env file found or credentials missing.');
+    clientId = await question('Enter your freee Client ID: ');
+    clientSecret = await question('Enter your freee Client Secret: ');
+  }
   
   // Generate auth URL
   const authUrl = `https://accounts.secure.freee.co.jp/public_api/authorize?client_id=${clientId}&redirect_uri=urn:ietf:wg:oauth:2.0:oob&response_type=code`;
@@ -101,7 +136,7 @@ async function main() {
         }
       ]];
       
-      const filePath = path.join(process.cwd(), 'tokens.json');
+      const filePath = tokenPath;
       await fs.writeFile(filePath, JSON.stringify(tokenData, null, 2));
       console.log(`\nTokens saved to: ${filePath}`);
     }
