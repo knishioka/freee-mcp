@@ -1,0 +1,197 @@
+# Gitleaks configuration for freee-mcp
+# This file configures secret detection rules to prevent exposure of sensitive data
+title = "freee-mcp Gitleaks Config"
+
+# freee API Client ID detection
+[[rules]]
+id = "freee-client-id"
+description = "freee OAuth Client ID"
+regex = '''(?i)(freee[_-]?client[_-]?id|client[_-]?id)\s*[:=]\s*['"]{0,1}([a-f0-9]{40,64})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_CLIENT_ID",
+    "freee_client_id",
+    "client_id",
+    "clientId"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee API Client Secret detection
+[[rules]]
+id = "freee-client-secret"
+description = "freee OAuth Client Secret"
+regex = '''(?i)(freee[_-]?client[_-]?secret|client[_-]?secret)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/]{40,128}={0,2})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_CLIENT_SECRET",
+    "freee_client_secret",
+    "client_secret",
+    "clientSecret"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee API Access Token detection
+[[rules]]
+id = "freee-access-token"
+description = "freee API Access Token"
+regex = '''(?i)(freee[_-]?access[_-]?token|access[_-]?token)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/]{50,200}={0,2})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_ACCESS_TOKEN",
+    "freee_access_token",
+    "access_token",
+    "accessToken"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee API Refresh Token detection
+[[rules]]
+id = "freee-refresh-token"
+description = "freee API Refresh Token"
+regex = '''(?i)(freee[_-]?refresh[_-]?token|refresh[_-]?token)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/]{50,200}={0,2})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_REFRESH_TOKEN",
+    "freee_refresh_token",
+    "refresh_token",
+    "refreshToken"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee Base64 encoded token data
+[[rules]]
+id = "freee-token-data-base64"
+description = "freee Base64 encoded token data"
+regex = '''(?i)(freee[_-]?token[_-]?data[_-]?base64)\s*[:=]\s*['"]{0,1}([A-Za-z0-9+/]{100,}={0,2})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_TOKEN_DATA_BASE64",
+    "freee_token_data_base64"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Generic OAuth token patterns
+[[rules]]
+id = "oauth-bearer-token"
+description = "OAuth Bearer Token"
+regex = '''(?i)(bearer\s+)([a-zA-Z0-9+/]{30,}={0,2})'''
+secretGroup = 2
+keywords = [
+    "Bearer",
+    "bearer"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# JWT tokens
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[A-Za-z0-9+/]*\.eyJ[A-Za-z0-9+/]*\.[A-Za-z0-9+/_-]*'''
+keywords = [
+    "eyJ"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Generic encryption keys
+[[rules]]
+id = "encryption-key"
+description = "Encryption Key"
+regex = '''(?i)(encryption[_-]?key|secret[_-]?key|crypto[_-]?key)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/]{32,}={0,2})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_TOKEN_ENCRYPTION_KEY",
+    "encryption_key",
+    "secret_key",
+    "crypto_key"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# API endpoints with embedded credentials
+[[rules]]
+id = "api-url-with-credentials"
+description = "API URL with embedded credentials"
+regex = '''https?://[a-zA-Z0-9]+:[a-zA-Z0-9]+@[a-zA-Z0-9.-]+'''
+keywords = [
+    "https://",
+    "http://"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Private keys (PEM format)
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN[A-Z ]*PRIVATE KEY-----'''
+keywords = [
+    "BEGIN",
+    "PRIVATE",
+    "KEY"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt|pem|key)$'''
+
+# AWS credentials (common in JS/TS projects)
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''AKIA[0-9A-Z]{16}'''
+keywords = [
+    "AKIA"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Database connection strings
+[[rules]]
+id = "database-connection-string"
+description = "Database Connection String"
+regex = '''(?i)(postgres|mysql|mongodb)://[a-zA-Z0-9]+:[a-zA-Z0-9]+@[a-zA-Z0-9.-]+'''
+keywords = [
+    "postgres://",
+    "mysql://",
+    "mongodb://"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Allowlist rules for documentation and examples
+[allowlist]
+# Allow example values in documentation
+paths = [
+    '''.*\.md''',  # Markdown files may contain example values
+]
+regexes = [
+    '''your-client-id''',
+    '''your-client-secret''',
+    '''example-token''',
+    '''dummy-token''',
+    '''test-token''',
+    '''placeholder''',
+    '''XXXXXXXX''',
+    '''[CLIENT_ID]''',
+    '''[CLIENT_SECRET]''',
+    '''<your-.*>''',
+    '''\$\{.*\}''',  # Environment variable placeholders
+    '''process\.env\.''',  # Environment variable references in code
+]
+
+# Allow common test and placeholder patterns
+regexes_content = [
+    '''freee_client_id.*test''',
+    '''freee_client_secret.*test''',
+    '''client_id.*mock''',
+    '''client_secret.*mock''',
+    '''FREEE_CLIENT_ID.*your-client-id''',
+    '''FREEE_CLIENT_SECRET.*your-client-secret''',
+]
+
+# Global settings
+[extend]
+# Use default gitleaks rules in addition to custom ones
+useDefault = true
+
+# Scanning options
+[scanning]
+# Scan history
+history = true
+# Maximum file size to scan (in bytes)
+max-file-size = 1048576  # 1MB
+# Maximum archive depth for zip/tar files
+max-archive-depth = 3

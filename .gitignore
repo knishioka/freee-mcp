@@ -11,6 +11,8 @@ dist/
 
 # Token storage
 tokens.json
+tokens.enc
+*.enc
 
 # IDE
 .vscode/
@@ -40,3 +42,8 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Security scan results
+results.sarif
+results.json
+gitleaks-report.json

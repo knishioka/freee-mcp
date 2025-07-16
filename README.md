@@ -348,6 +348,21 @@ The server provides detailed error messages for:
 - Set restrictive file permissions (600) on token storage files
 - Use absolute paths for token storage outside project directory
 
+### Secret Detection with Gitleaks
+
+This project uses [Gitleaks](https://gitleaks.io/) to prevent accidental exposure of sensitive data:
+
+- **Pre-commit Hook**: Automatically scans for secrets before each commit
+- **CI/CD Integration**: GitHub Actions runs security scans on all PRs
+- **Custom Rules**: Detects freee-specific credentials (Client ID, Secret, tokens)
+- **Manual Scanning**: Run `npm run gitleaks` to check for secrets locally
+
+**Available Commands:**
+```bash
+npm run gitleaks        # Scan for secrets (non-blocking)
+npm run gitleaks:ci     # Scan for secrets (CI mode, blocks on findings)
+```
+
 ### Comprehensive Security Documentation
 
 For detailed security best practices, OAuth implementation guidelines, and Claude Desktop specific considerations, see our [MCP Authentication Guide](./MCP_AUTHENTICATION.md).

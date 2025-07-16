@@ -128,9 +128,16 @@ This is a Model Context Protocol (MCP) server that integrates with the freee acc
 
 ### Key Design Patterns
 
-- **Token Management**: Tokens are automatically refreshed 5 minutes before expiry
+- **Token Management**: 
+  - Tokens are encrypted using AES-256-GCM before storage
+  - File permissions automatically set to 0600 for security
+  - Automatic refresh 5 minutes before expiry
+  - Support for multiple storage backends (file, environment variables)
 - **Company Context**: Most operations require a `companyId` parameter (with optional default)
-- **Error Recovery**: Failed auth attempts trigger token refresh before retry
+- **Error Recovery**: 
+  - Failed auth attempts trigger token refresh before retry
+  - Clear error messages guide users through re-authentication
+  - Handles single-use refresh token limitations gracefully
 - **Tool Organization**: Tools are grouped by resource type (auth, company, deal, reports, etc.)
 - **Efficiency Focus**: Financial reports provide aggregated data to avoid processing thousands of transactions
 - **API Rate Limiting**: Report APIs minimize API calls for better performance and rate limit compliance
@@ -148,8 +155,10 @@ Required environment variables:
 - `FREEE_CLIENT_ID`: OAuth application client ID
 - `FREEE_CLIENT_SECRET`: OAuth application client secret
 - `FREEE_REDIRECT_URI`: OAuth redirect URI (default: `urn:ietf:wg:oauth:2.0:oob`)
-- `TOKEN_STORAGE_PATH`: Path to store OAuth tokens (optional)
+- `TOKEN_STORAGE_PATH`: Path to store OAuth tokens (optional, defaults to platform-specific secure location)
 - `FREEE_DEFAULT_COMPANY_ID`: Default company ID to use when not specified (optional)
+- `FREEE_TOKEN_ENCRYPTION_KEY`: Custom encryption key for token storage (optional)
+- `FREEE_TOKEN_DATA_BASE64`: Base64 encoded token data for environments with restricted file access (optional)
 
 ## Troubleshooting Guide
 
@@ -159,6 +168,8 @@ Required environment variables:
 - **Invalid Grant Error**: Refresh tokens are single-use in freee API. Re-run `npm run setup-auth` to get new tokens
 - **Token Expiry**: Server automatically refreshes tokens 5 minutes before expiration. Check token file timestamps
 - **Multiple Companies**: Ensure you're using the correct company ID or set `FREEE_DEFAULT_COMPANY_ID`
+- **File Access Issues**: For Claude Desktop or restricted environments, use `FREEE_TOKEN_DATA_BASE64` environment variable
+- **Security Warnings**: Token files require 0600 permissions - the server will fix this automatically
 
 #### CI/CD Failures
 - **Missing Jest Types**: Ensure `@types/jest` is installed for TypeScript test compilation
@@ -182,6 +193,12 @@ Required environment variables:
 - **Slow Profit Calculations**: Use `freee_get_profit_loss` API (1 call) instead of aggregating transactions (thousands of calls)
 - **Memory Usage**: Mock file system operations in tests to avoid creating actual files
 - **Rate Limit Consumption**: Monitor API usage - financial reports consume minimal rate limits vs individual queries
+
+#### Secret Detection (Gitleaks)
+- **Automated Scanning**: Pre-commit hooks and CI/CD integration prevent credential exposure
+- **Custom Rules**: freee-specific detection patterns for Client ID, Secret, and tokens
+- **Manual Commands**: `npm run gitleaks` for local scanning, `npm run gitleaks:ci` for CI mode
+- **Configuration**: `.gitleaks.toml` with comprehensive freee OAuth patterns and allowlists
 
 ## Security Best Practices
 
