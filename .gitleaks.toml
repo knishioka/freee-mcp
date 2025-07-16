@@ -2,10 +2,22 @@
 # This file configures secret detection rules to prevent exposure of sensitive data
 title = "freee-mcp Gitleaks Config"
 
-# freee API Client ID detection
+# freee API Client ID detection (numeric format)
 [[rules]]
-id = "freee-client-id"
-description = "freee OAuth Client ID"
+id = "freee-client-id-numeric"
+description = "freee OAuth Client ID (numeric format)"
+regex = '''(?i)(freee[_-]?client[_-]?id)\s*[:=]\s*['"]{0,1}([0-9]{10,20})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_CLIENT_ID",
+    "freee_client_id"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee API Client ID detection (hex format - fallback)
+[[rules]]
+id = "freee-client-id-hex"
+description = "freee OAuth Client ID (hex format)"
 regex = '''(?i)(freee[_-]?client[_-]?id|client[_-]?id)\s*[:=]\s*['"]{0,1}([a-f0-9]{40,64})['"]{0,1}'''
 secretGroup = 2
 keywords = [
@@ -20,7 +32,7 @@ path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
 [[rules]]
 id = "freee-client-secret"
 description = "freee OAuth Client Secret"
-regex = '''(?i)(freee[_-]?client[_-]?secret|client[_-]?secret)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/]{40,128}={0,2})['"]{0,1}'''
+regex = '''(?i)(freee[_-]?client[_-]?secret|client[_-]?secret)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/\\-_]{40,150}={0,2})['"]{0,1}'''
 secretGroup = 2
 keywords = [
     "FREEE_CLIENT_SECRET",
@@ -79,6 +91,49 @@ secretGroup = 2
 keywords = [
     "Bearer",
     "bearer"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Generic numeric API keys (for services like freee)
+[[rules]]
+id = "numeric-api-key"
+description = "Numeric API Key"
+regex = '''(?i)(api[_-]?key|client[_-]?id|app[_-]?id)\s*[:=]\s*['"]{0,1}([0-9]{10,30})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "api_key",
+    "apikey",
+    "client_id",
+    "clientId",
+    "app_id",
+    "appId"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# Long alphanumeric secrets (like OAuth client secrets)
+[[rules]]
+id = "long-alphanumeric-secret"
+description = "Long alphanumeric secret"
+regex = '''(?i)(secret|password|token|key)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/\-_]{60,150})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "secret",
+    "password",
+    "token",
+    "key",
+    "auth"
+]
+path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
+
+# freee specific client secret pattern (80+ characters)
+[[rules]]
+id = "freee-client-secret-long"
+description = "freee OAuth Client Secret (long format)"
+regex = '''(?i)freee[_-]?client[_-]?secret\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/\-_]{80,100})['"]{0,1}'''
+secretGroup = 2
+keywords = [
+    "FREEE_CLIENT_SECRET",
+    "freee_client_secret"
 ]
 path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
 
@@ -172,7 +227,6 @@ regexes = [
     '''[CLIENT_SECRET]''',
     '''<your-.*>''',
     '''\$\{.*\}''',  # Environment variable placeholders
-    '''process\.env\.''',  # Environment variable references in code
 ]
 
 # Allow common test and placeholder patterns
@@ -183,6 +237,11 @@ regexes_content = [
     '''client_secret.*mock''',
     '''FREEE_CLIENT_ID.*your-client-id''',
     '''FREEE_CLIENT_SECRET.*your-client-secret''',
+    '''your-freee-client-id''',
+    '''your-freee-client-secret''',
+    '''12345.*test''',
+    '''1234567890.*example''',
+    '''0123456789.*placeholder''',
 ]
 
 # Global settings
