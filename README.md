@@ -337,12 +337,27 @@ The server provides detailed error messages for:
 - Invalid parameters
 - Network errors
 
-## Security Notes
+## Security
+
+### Quick Security Guidelines
 
 - Never commit your `.env` file or tokens.json
 - Keep your Client Secret secure
 - Use environment variables for sensitive data
 - Tokens are automatically refreshed to maintain security
+- Set restrictive file permissions (600) on token storage files
+- Use absolute paths for token storage outside project directory
+
+### Comprehensive Security Documentation
+
+For detailed security best practices, OAuth implementation guidelines, and Claude Desktop specific considerations, see our [MCP Authentication Guide](./MCP_AUTHENTICATION.md).
+
+The guide covers:
+- OAuth 2.1 security requirements
+- Secure token storage patterns
+- Claude Desktop environment variable workarounds
+- Common security pitfalls and solutions
+- Testing and CI/CD security practices
 
 ## Troubleshooting
 
