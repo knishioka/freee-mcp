@@ -156,10 +156,13 @@ path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
 # Allow example values in documentation
 paths = [
     '''.*\.md''',  # Markdown files may contain example values
+    '''debug-.*\.js''',  # Debug files with placeholder values
 ]
 regexes = [
     '''your-client-id''',
     '''your-client-secret''',
+    '''your-freee-client-id''',
+    '''your-freee-client-secret''',
     '''example-token''',
     '''dummy-token''',
     '''test-token''',

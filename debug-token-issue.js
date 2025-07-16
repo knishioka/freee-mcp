@@ -55,8 +55,8 @@ async function debugTokens() {
 }
 
 // Set environment variables from Claude Desktop config
-process.env.FREEE_CLIENT_ID = "REDACTED-CLIENT-ID";
-process.env.FREEE_CLIENT_SECRET = "REDACTED-CLIENT-SECRET";
+process.env.FREEE_CLIENT_ID = "your-freee-client-id";
+process.env.FREEE_CLIENT_SECRET = "your-freee-client-secret";
 process.env.FREEE_TOKEN_ENCRYPTION_KEY = "freee-claude-desktop-secure-2025";
 
 debugTokens().catch(console.error);

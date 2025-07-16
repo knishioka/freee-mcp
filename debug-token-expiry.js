@@ -3,8 +3,8 @@
 import { TokenManager } from './dist/auth/tokenManager.js';
 
 // Set environment variables to match Claude Desktop
-process.env.FREEE_CLIENT_ID = "REDACTED-CLIENT-ID";
-process.env.FREEE_CLIENT_SECRET = "REDACTED-CLIENT-SECRET";
+process.env.FREEE_CLIENT_ID = "your-freee-client-id";
+process.env.FREEE_CLIENT_SECRET = "your-freee-client-secret";
 process.env.FREEE_TOKEN_ENCRYPTION_KEY = "freee-claude-desktop-secure-2025";
 
 async function analyzeTokenExpiry() {
