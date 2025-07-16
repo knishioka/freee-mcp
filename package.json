@@ -16,7 +16,9 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "setup-auth": "node scripts/setup-auth.js",
-    "prepare": "husky"
+    "prepare": "husky",
+    "gitleaks": "gitleaks detect --source . --verbose --no-banner",
+    "gitleaks:ci": "gitleaks detect --source . --verbose --no-banner --exit-code 1"
   },
   "keywords": [
     "mcp",
@@ -53,6 +55,9 @@
     "src/**/*.{ts,tsx}": [
       "eslint --fix",
       "bash -c 'npm run typecheck'"
+    ],
+    "*": [
+      "gitleaks detect --source . --verbose --no-banner --redact"
     ]
   }
 }

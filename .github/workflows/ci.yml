@@ -101,3 +101,36 @@ jobs:
     - name: License checker
       run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePackages 'argparse'
       continue-on-error: true
+
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Scan (Gitleaks)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for gitleaks
+    
+    - name: Run Gitleaks
+      id: gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for Gitleaks Pro
+    
+    - name: Upload Gitleaks SARIF report
+      if: failure()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif
+    
+    - name: Upload Gitleaks results as artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gitleaks-results
+        path: |
+          results.sarif
+          results.json
+        retention-days: 30
