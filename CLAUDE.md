@@ -182,3 +182,25 @@ Required environment variables:
 - **Slow Profit Calculations**: Use `freee_get_profit_loss` API (1 call) instead of aggregating transactions (thousands of calls)
 - **Memory Usage**: Mock file system operations in tests to avoid creating actual files
 - **Rate Limit Consumption**: Monitor API usage - financial reports consume minimal rate limits vs individual queries
+
+## Security Best Practices
+
+### Token Storage Security
+- **File Permissions**: Always set restrictive permissions (600) on token files
+- **Storage Location**: Store tokens outside project directory (e.g., `~/.config/freee-mcp/`)
+- **Never Commit**: Add token files to `.gitignore` and never commit them
+- **Encryption**: Consider encrypting tokens at rest for additional security
+
+### Authentication Security
+- **Token Validation**: Validate all tokens are issued specifically for this MCP server
+- **No Sessions**: MCP servers must not use session-based authentication
+- **Refresh Strategy**: Tokens refresh automatically 5 minutes before expiry
+- **Error Handling**: Never expose token values in error messages or logs
+
+### Development Security
+- **Environment Variables**: Use file-based secrets instead of env vars in production
+- **Mock Authentication**: Use mock token managers for testing (see `src/__tests__/`)
+- **CI/CD**: Run security audits (`npm audit`) in CI pipeline
+- **Dependencies**: Regularly update dependencies for security patches
+
+For comprehensive security documentation, see [MCP_AUTHENTICATION.md](./MCP_AUTHENTICATION.md)
