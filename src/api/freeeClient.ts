@@ -21,6 +21,9 @@ import {
   FreeeTag,
   FreeeInvoice,
   FreeeTrialBalance,
+  FreeeWalletable,
+  FreeeManualJournal,
+  FreeeWalletTransaction,
   FreeeApiError,
 } from '../types/freee.js';
 import { ApiCache, generateCacheKey } from './cache.js';
@@ -615,6 +618,77 @@ export class FreeeClient {
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
+  }
+
+  // Walletable methods
+  async getWalletables(
+    companyId: number,
+    params?: {
+      with_balance?: boolean;
+    },
+  ): Promise<FreeeWalletable[]> {
+    const response = await this.api.get<{ walletables: FreeeWalletable[] }>(
+      '/walletables',
+      { params: { company_id: companyId, ...params } },
+    );
+    return response.data.walletables;
+  }
+
+  // Manual Journal methods
+  async getManualJournals(
+    companyId: number,
+    params?: {
+      start_issue_date?: string;
+      end_issue_date?: string;
+      entry_side?: string;
+      account_item_id?: number;
+      min_amount?: number;
+      max_amount?: number;
+      partner_id?: number;
+      section_id?: number;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeManualJournal[]> {
+    const response = await this.api.get<{
+      manual_journals: FreeeManualJournal[];
+    }>('/manual_journals', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.manual_journals;
+  }
+
+  async getManualJournal(
+    companyId: number,
+    manualJournalId: number,
+  ): Promise<FreeeManualJournal> {
+    const response = await this.api.get<{
+      manual_journal: FreeeManualJournal;
+    }>(`/manual_journals/${manualJournalId}`, {
+      params: { company_id: companyId },
+    });
+    return response.data.manual_journal;
+  }
+
+  // Wallet Transaction methods
+  async getWalletTxns(
+    companyId: number,
+    params?: {
+      walletable_type?: string;
+      walletable_id?: number;
+      start_date?: string;
+      end_date?: string;
+      entry_side?: string;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeWalletTransaction[]> {
+    const response = await this.api.get<{
+      wallet_txns: FreeeWalletTransaction[];
+    }>('/wallet_txns', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.wallet_txns;
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API

@@ -674,6 +674,163 @@ registerTool(
   },
 );
 
+// === Walletable tools ===
+
+registerTool(
+  'freee_get_walletables',
+  {
+    description:
+      'Get list of bank accounts, credit cards, and wallets - Retrieves all walletable accounts in one call. Use with withBalance=true to check current cash position across all accounts. For aggregated financial analysis, prefer balance_sheet API. Use this for account-level balance checks and cash management.',
+    inputSchema: schemas.GetWalletablesSchema,
+  },
+  async ({ companyId, withBalance }) => {
+    try {
+      const walletables = await freeeClient.getWalletables(
+        getCompanyId(companyId),
+        {
+          with_balance: withBalance,
+        },
+      );
+      const formatted = ResponseFormatter.formatWalletables(walletables);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_walletables', error);
+    }
+  },
+);
+
+// === Manual Journal tools ===
+
+registerTool(
+  'freee_get_manual_journals',
+  {
+    description:
+      'Get list of manual journal entries (振替伝票) - Supports rich filtering by date range, entry side, account, amount range, partner, and section. Max 500 records per page. For aggregated totals, prefer report APIs (profit_loss, trial_balance). Use this for reviewing individual accruals, adjustments, and reclassifications.',
+    inputSchema: schemas.GetManualJournalsSchema,
+  },
+  async ({
+    companyId,
+    startIssueDate,
+    endIssueDate,
+    entrySide,
+    accountItemId,
+    minAmount,
+    maxAmount,
+    partnerId,
+    sectionId,
+    offset,
+    limit,
+  }) => {
+    try {
+      const journals = await freeeClient.getManualJournals(
+        getCompanyId(companyId),
+        {
+          start_issue_date: startIssueDate,
+          end_issue_date: endIssueDate,
+          entry_side: entrySide,
+          account_item_id: accountItemId,
+          min_amount: minAmount,
+          max_amount: maxAmount,
+          partner_id: partnerId,
+          section_id: sectionId,
+          offset,
+          limit,
+        },
+      );
+      const formatted = ResponseFormatter.formatManualJournals(journals);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_manual_journals', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_get_manual_journal',
+  {
+    description:
+      'Get specific manual journal entry details - Retrieves full details of a single manual journal including all debit/credit line items.',
+    inputSchema: schemas.GetManualJournalSchema,
+  },
+  async ({ companyId, manualJournalId }) => {
+    try {
+      const journal = await freeeClient.getManualJournal(
+        getCompanyId(companyId),
+        manualJournalId,
+      );
+      const formatted = ResponseFormatter.formatManualJournal(journal);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_manual_journal', error);
+    }
+  },
+);
+
+// === Wallet Transaction tools ===
+
+registerTool(
+  'freee_get_wallet_txns',
+  {
+    description:
+      'Get list of wallet transactions (口座明細) - Retrieves bank/credit card/wallet transaction entries. Requires walletableType and walletableId for specific account filtering. Use freee_get_walletables first to get account IDs. Max 100 records per page. For cash flow analysis, consider report APIs for aggregated data.',
+    inputSchema: schemas.GetWalletTxnsSchema,
+  },
+  async ({
+    companyId,
+    walletableType,
+    walletableId,
+    startDate,
+    endDate,
+    entrySide,
+    offset,
+    limit,
+  }) => {
+    try {
+      const txns = await freeeClient.getWalletTxns(getCompanyId(companyId), {
+        walletable_type: walletableType,
+        walletable_id: walletableId,
+        start_date: startDate,
+        end_date: endDate,
+        entry_side: entrySide,
+        offset,
+        limit,
+      });
+      const formatted = ResponseFormatter.formatWalletTransactions(txns);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_wallet_txns', error);
+    }
+  },
+);
+
 // === Report tools ===
 
 registerTool(

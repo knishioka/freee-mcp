@@ -125,6 +125,50 @@ export interface FreeeTrialBalance {
   balances: FreeeTrialBalanceItem[];
 }
 
+export interface FreeeWalletable {
+  id: number;
+  name: string;
+  type: 'bank_account' | 'credit_card' | 'wallet';
+  bank_id?: number;
+  last_balance?: number;
+  walletable_balance?: number;
+}
+
+export interface FreeeManualJournalDetail {
+  id: number;
+  entry_side: 'debit' | 'credit';
+  account_item_id: number;
+  amount: number;
+  description?: string;
+  section_id?: number;
+  tag_ids?: number[];
+  partner_id?: number;
+  partner_name?: string;
+}
+
+export interface FreeeManualJournal {
+  id: number;
+  company_id: number;
+  issue_date: string;
+  adjustment: boolean;
+  txn_number?: string;
+  details: FreeeManualJournalDetail[];
+}
+
+export interface FreeeWalletTransaction {
+  id: number;
+  company_id: number;
+  date: string;
+  amount: number;
+  due_amount: number;
+  balance?: number;
+  entry_side: 'income' | 'expense';
+  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  walletable_id: number;
+  description?: string;
+  status: number;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{
@@ -200,6 +244,44 @@ export interface FormattedTag {
   id: number;
   name: string;
   shortcut?: string;
+}
+
+export interface FormattedWalletable {
+  id: number;
+  name: string;
+  type: 'bank_account' | 'credit_card' | 'wallet';
+  last_balance?: number;
+  walletable_balance?: number;
+}
+
+export interface FormattedManualJournalDetail {
+  entry_side: 'debit' | 'credit';
+  account_item_id: number;
+  amount: number;
+  description?: string;
+  section_id?: number;
+  tag_ids?: number[];
+  partner_name?: string;
+}
+
+export interface FormattedManualJournal {
+  id: number;
+  issue_date: string;
+  adjustment: boolean;
+  txn_number?: string;
+  details: FormattedManualJournalDetail[];
+}
+
+export interface FormattedWalletTransaction {
+  id: number;
+  date: string;
+  amount: number;
+  due_amount: number;
+  balance?: number;
+  entry_side: 'income' | 'expense';
+  walletable_type: string;
+  walletable_id: number;
+  description?: string;
 }
 
 export interface ListSummary {

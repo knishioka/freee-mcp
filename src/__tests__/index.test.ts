@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 18 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(18);
+    it('should register exactly 22 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(22);
     });
 
     it('should register all expected tool names', () => {
@@ -111,6 +111,10 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_tags',
         'freee_get_invoices',
         'freee_create_invoice',
+        'freee_get_walletables',
+        'freee_get_manual_journals',
+        'freee_get_manual_journal',
+        'freee_get_wallet_txns',
         'freee_get_trial_balance',
         'freee_get_profit_loss',
         'freee_get_balance_sheet',
@@ -139,7 +143,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         (block) => block.includes('description:') && block.includes('\'freee_'),
       );
 
-      expect(toolCalls.length).toBe(18);
+      expect(toolCalls.length).toBe(22);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -378,7 +382,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(18);
+    expect(schemaExports).toHaveLength(22);
   });
 
   it('should use Zod types in schema fields', async () => {
