@@ -113,10 +113,10 @@ Build the server first (`npm run build`), then configure one of the clients belo
 
 ```bash
 claude mcp add freee \
-  -e FREEE_CLIENT_ID=your_client_id_here \
+  -e 'FREEE_CLIENT_ID=your_client_id_here' \
   -e 'FREEE_CLIENT_SECRET=your_client_secret_here' \
-  -e TOKEN_STORAGE_PATH=/absolute/path/to/freee-mcp/tokens.enc \
-  -e FREEE_DEFAULT_COMPANY_ID=123456 \
+  -e 'TOKEN_STORAGE_PATH=/absolute/path/to/freee-mcp/tokens.enc' \
+  -e 'FREEE_DEFAULT_COMPANY_ID=123456' \
   -e 'FREEE_TOKEN_ENCRYPTION_KEY=replace-with-strong-random-value' \
   -- node /absolute/path/to/freee-mcp/dist/index.js
 ```
