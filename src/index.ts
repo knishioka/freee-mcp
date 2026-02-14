@@ -11,7 +11,6 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
-import { promises as fs } from 'fs';
 import { FreeeClient } from './api/freeeClient.js';
 import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME, SERVER_VERSION } from './constants.js';
@@ -291,112 +290,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case 'freee_get_access_token': {
       const params = schemas.GetTokenSchema.parse(args);
-      console.error(
-        '🔐 Starting token exchange for code:',
-        `${params.code.substring(0, 10)}...`,
-      );
-
-      // Also log to file for Claude Desktop debugging
-      const debugLog = `[${new Date().toISOString()}] Token exchange started for code: ${params.code.substring(0, 10)}...\n`;
-      try {
-        await fs.appendFile('/tmp/freee-mcp-debug.log', debugLog);
-      } catch {
-        // Ignore file write errors
-      }
-
       const tokenResponse = await freeeClient.getAccessToken(params.code);
-      console.error('✅ Token response received:', {
-        hasAccessToken: !!tokenResponse.access_token,
-        hasRefreshToken: !!tokenResponse.refresh_token,
-        expiresIn: tokenResponse.expires_in,
-        tokenType: tokenResponse.token_type,
-        scope: tokenResponse.scope,
-        createdAt: tokenResponse.created_at,
-      });
 
-      // Log detailed token info to file
-      const tokenLog = `[${new Date().toISOString()}] TOKEN DETAILS: expires_in=${tokenResponse.expires_in}, created_at=${tokenResponse.created_at}, token_type=${tokenResponse.token_type}\n`;
-      try {
-        await fs.appendFile('/tmp/freee-mcp-debug.log', tokenLog);
-      } catch {
-        // Ignore file write errors
-      }
-
-      // Temporarily store token with a dummy company ID to make the API call
-      console.error('💾 Storing temporary token with company ID 0');
+      // Temporarily store token to fetch company list
       await tokenManager.setToken(0, tokenResponse);
-
-      // Verify temporary storage
-      const tempToken = tokenManager.getToken(0);
-      console.error('🔍 Temporary token verification:', {
-        stored: !!tempToken,
-        hasAccess: !!tempToken?.access_token,
-        hasRefresh: !!tempToken?.refresh_token,
-      });
-
-      // Get companies to store token properly
-      console.error('🏢 Fetching companies list...');
-
-      // Check token status before API call
-      const preApiToken = tokenManager.getToken(0);
-      if (preApiToken) {
-        const preApiStatus = tokenManager.getTokenExpiryStatus(preApiToken);
-        const timeToExpiry =
-            preApiToken.expires_at - Math.floor(Date.now() / 1000);
-        console.error('🔍 Pre-API token check:', {
-          status: preApiStatus.status,
-          remainingMinutes: preApiStatus.remainingMinutes,
-          timeToExpiry,
-        });
-
-        const preApiLog = `[${new Date().toISOString()}] PRE-API CHECK: status=${preApiStatus.status}, remaining=${preApiStatus.remainingMinutes}min, timeToExpiry=${timeToExpiry}s\n`;
-        try {
-          await fs.appendFile('/tmp/freee-mcp-debug.log', preApiLog);
-        } catch {
-          // Ignore file write errors
-        }
-      }
-
       const companies = await freeeClient.getCompanies();
-      console.error(
-        '📋 Companies fetched:',
-        companies.map((c) => ({ id: c.id, name: c.display_name })),
-      );
-
-      // Remove the temporary token
-      console.error('🗑️ Removing temporary token');
       await tokenManager.removeToken(0);
 
-      if (companies.length > 0) {
-        // Store token for all companies
-        console.error('💾 Storing tokens for all companies...');
-        for (const company of companies) {
-          await tokenManager.setToken(company.id, tokenResponse);
-          console.error(
-            `✅ Token stored for company ${company.id} (${company.display_name})`,
-          );
-        }
-
-        // Verify final storage
-        const finalCompanyIds = tokenManager.getAllCompanyIds();
-        console.error(
-          '🔍 Final verification - stored company IDs:',
-          finalCompanyIds,
-        );
-
-        for (const companyId of finalCompanyIds) {
-          const storedToken = tokenManager.getToken(companyId);
-          if (storedToken) {
-            const expiryStatus =
-                tokenManager.getTokenExpiryStatus(storedToken);
-            console.error(`Company ${companyId} token status:`, {
-              hasAccess: !!storedToken.access_token,
-              hasRefresh: !!storedToken.refresh_token,
-              status: expiryStatus.status,
-              remainingMinutes: expiryStatus.remainingMinutes,
-            });
-          }
-        }
+      for (const company of companies) {
+        await tokenManager.setToken(company.id, tokenResponse);
       }
 
       return {
@@ -749,14 +651,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
     }
   } catch (error) {
-    // Log error details to file for debugging
-    const errorLog = `[${new Date().toISOString()}] ERROR in ${name}: ${formatError(error)}\n`;
-    try {
-      await fs.appendFile('/tmp/freee-mcp-debug.log', errorLog);
-    } catch {
-      // Ignore file logging errors - debug logging is optional
-    }
-
     console.error(`Tool execution error in ${name}:`, error);
 
     if (error instanceof McpError) {
@@ -820,6 +714,12 @@ async function main() {
 
   // Connect server to transport
   await server.connect(transport);
+
+  if (!process.env.FREEE_TOKEN_ENCRYPTION_KEY) {
+    console.error(
+      'Warning: FREEE_TOKEN_ENCRYPTION_KEY is not set. Using default encryption key for token storage. Set this environment variable for stronger security.',
+    );
+  }
 
   console.error('freee MCP server started');
   console.error(`Token storage: ${tokenStoragePath}`);
