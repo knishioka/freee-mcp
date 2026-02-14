@@ -3,6 +3,10 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { FreeeTokenResponse } from '../types/freee.js';
+import {
+  TOKEN_EXPIRY_BUFFER_SECONDS,
+  TOKEN_NEAR_EXPIRY_THRESHOLD_SECONDS,
+} from '../constants.js';
 
 export interface TokenData extends FreeeTokenResponse {
   expires_at: number;
@@ -210,14 +214,12 @@ export class TokenManager {
 
   isTokenExpired(token: TokenData): boolean {
     const now = Math.floor(Date.now() / 1000);
-    // Consider token expired 5 minutes before actual expiry
-    return token.expires_at <= now + 300;
+    return token.expires_at <= now + TOKEN_EXPIRY_BUFFER_SECONDS;
   }
 
   isTokenNearExpiry(token: TokenData): boolean {
     const now = Math.floor(Date.now() / 1000);
-    // Check if token expires within 30 minutes
-    return token.expires_at <= now + 1800;
+    return token.expires_at <= now + TOKEN_NEAR_EXPIRY_THRESHOLD_SECONDS;
   }
 
   getTokenExpiryStatus(token: TokenData): {
@@ -228,9 +230,12 @@ export class TokenManager {
     const remainingSeconds = token.expires_at - now;
     const remainingMinutes = Math.floor(remainingSeconds / 60);
 
-    if (remainingSeconds <= 0) {
-      return { status: 'expired', remainingMinutes: 0 };
-    } else if (remainingMinutes <= 30) {
+    if (remainingSeconds <= TOKEN_EXPIRY_BUFFER_SECONDS) {
+      return {
+        status: 'expired',
+        remainingMinutes: Math.max(0, remainingMinutes),
+      };
+    } else if (remainingSeconds <= TOKEN_NEAR_EXPIRY_THRESHOLD_SECONDS) {
       return { status: 'near_expiry', remainingMinutes };
     } else {
       return { status: 'valid', remainingMinutes };

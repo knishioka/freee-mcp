@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { TokenManager } from '../auth/tokenManager.js';
 import { FREEE_API_BASE_URL, FREEE_AUTH_BASE_URL } from '../constants.js';
+import { TokenRefreshError } from '../errors.js';
 import {
   FreeeTokenResponse,
   FreeeCompany,
@@ -21,6 +22,7 @@ export class FreeeClient {
   private clientId: string;
   private clientSecret: string;
   private redirectUri: string;
+  private refreshPromises: Map<number, Promise<void>> = new Map();
 
   constructor(
     clientId: string,
@@ -72,21 +74,22 @@ export class FreeeClient {
       }
 
       if (token) {
+        const effectiveCompanyId =
+          companyId || this.tokenManager.getAllCompanyIds()[0];
         const expiryStatus = this.tokenManager.getTokenExpiryStatus(token);
 
         if (expiryStatus.status === 'expired') {
           console.error(
-            `Token for company ${companyId} has expired. Attempting refresh...`,
+            `Token for company ${effectiveCompanyId} has expired. Attempting refresh...`,
           );
           if (token.refresh_token) {
             try {
-              await this.refreshToken(
-                companyId || this.tokenManager.getAllCompanyIds()[0],
+              await this.refreshTokenWithLock(
+                effectiveCompanyId,
                 token.refresh_token,
               );
-              const refreshedToken = this.tokenManager.getToken(
-                companyId || this.tokenManager.getAllCompanyIds()[0],
-              );
+              const refreshedToken =
+                this.tokenManager.getToken(effectiveCompanyId);
               if (refreshedToken) {
                 config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
               }
@@ -103,9 +106,18 @@ export class FreeeClient {
           }
         } else if (expiryStatus.status === 'near_expiry') {
           console.error(
-            `Token for company ${companyId} expires in ${expiryStatus.remainingMinutes} minutes`,
+            `Token for company ${effectiveCompanyId} expires in ${expiryStatus.remainingMinutes} minutes`,
           );
           config.headers.Authorization = `Bearer ${token.access_token}`;
+          // Fire-and-forget background refresh
+          if (token.refresh_token) {
+            this.refreshTokenWithLock(
+              effectiveCompanyId,
+              token.refresh_token,
+            ).catch((err) =>
+              console.error('Background token refresh failed:', err),
+            );
+          }
         } else {
           config.headers.Authorization = `Bearer ${token.access_token}`;
         }
@@ -160,7 +172,7 @@ export class FreeeClient {
             console.error(
               `\nAttempting automatic token refresh for company ${companyId}...`,
             );
-            await this.refreshToken(companyId, token.refresh_token);
+            await this.refreshTokenWithLock(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
               console.error(
@@ -177,26 +189,26 @@ export class FreeeClient {
               refreshErrorData?.error || refreshError.message,
             );
 
-            // Refresh failed, remove token
-            await this.tokenManager.removeToken(companyId);
-
-            // CIRCUIT BREAKER: Prevent recursive error messages
-            const baseErrorMessage =
-              refreshErrorData?.error_description ||
-              refreshError.message ||
-              'Unknown error';
-            const isRecursiveError = baseErrorMessage.includes(
-              'Token refresh failed:',
-            );
-
-            if (isRecursiveError) {
-              throw new Error(
-                'Authentication expired. Please re-authenticate using freee_get_auth_url.',
-              );
-            }
-
-            // If refresh token is also invalid, suggest re-authentication
+            // On invalid_grant, re-check token state before deleting
+            // Another concurrent refresh may have succeeded
             if (refreshErrorData?.error === 'invalid_grant') {
+              const currentToken = this.tokenManager.getToken(companyId);
+              if (
+                currentToken &&
+                currentToken.access_token !== token.access_token
+              ) {
+                // Token was refreshed by another request, retry with new token
+                console.error(
+                  'Token was refreshed by another request. Retrying...',
+                );
+                if (error.config) {
+                  const retryResult = await this.api.request(error.config);
+                  return retryResult as never;
+                }
+              }
+
+              // Token is genuinely invalid, remove and suggest re-auth
+              await this.tokenManager.removeToken(companyId);
               console.error(
                 '\nRefresh token is no longer valid. This can happen when:',
               );
@@ -221,7 +233,22 @@ export class FreeeClient {
               );
             }
 
-            throw new Error(`Token refresh failed: ${baseErrorMessage}`);
+            // Refresh failed for other reasons, remove token
+            await this.tokenManager.removeToken(companyId);
+
+            // CIRCUIT BREAKER: Prevent recursive error messages
+            if (refreshError instanceof TokenRefreshError) {
+              throw new Error(
+                'Authentication expired. Please re-authenticate using freee_get_auth_url.',
+              );
+            }
+
+            const baseErrorMessage =
+              refreshErrorData?.error_description ||
+              refreshError.message ||
+              'Unknown error';
+
+            throw new TokenRefreshError(`Token refresh failed: ${baseErrorMessage}`, companyId);
           }
         } else {
           console.error(
@@ -317,6 +344,25 @@ export class FreeeClient {
     );
 
     await this.tokenManager.setToken(companyId, response.data);
+  }
+
+  private async refreshTokenWithLock(
+    companyId: number,
+    refreshToken: string,
+  ): Promise<void> {
+    const existing = this.refreshPromises.get(companyId);
+    if (existing) {
+      return existing;
+    }
+
+    const refreshPromise = this.refreshToken(companyId, refreshToken).finally(
+      () => {
+        this.refreshPromises.delete(companyId);
+      },
+    );
+
+    this.refreshPromises.set(companyId, refreshPromise);
+    return refreshPromise;
   }
 
   // Company methods
