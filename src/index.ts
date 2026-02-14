@@ -1024,6 +1024,101 @@ registerTool(
   },
 );
 
+// === Analysis tools ===
+
+registerTool(
+  'freee_compare_periods',
+  {
+    description:
+      'Compare two financial periods with pre-computed diffs and percentages - Single call for YoY/MoM analysis. Returns metrics for both periods, absolute and percentage changes, and significance highlights. Eliminates LLM-side math for period comparisons.',
+    inputSchema: schemas.ComparePeriodsSchema,
+  },
+  async ({ companyId, reportType, period1, period2, breakdownDisplayType }) => {
+    try {
+      const comparison = await freeeClient.comparePeriods(
+        getCompanyId(companyId),
+        reportType,
+        {
+          fiscal_year: period1.fiscalYear,
+          start_month: period1.startMonth,
+          end_month: period1.endMonth,
+        },
+        {
+          fiscal_year: period2.fiscalYear,
+          start_month: period2.startMonth,
+          end_month: period2.endMonth,
+        },
+        breakdownDisplayType,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(comparison, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_compare_periods', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_monthly_trends',
+  {
+    description:
+      'Get monthly financial trends with summary statistics - Single call returns monthly P&L or BS data with pre-computed averages, max/min, and trend direction. Replaces 12 separate API calls and LLM-side trend analysis.',
+    inputSchema: schemas.MonthlyTrendsSchema,
+  },
+  async ({ companyId, fiscalYear, reportType, months }) => {
+    try {
+      const trends = await freeeClient.getMonthlyTrends(
+        getCompanyId(companyId),
+        fiscalYear,
+        reportType,
+        months,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(trends, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_monthly_trends', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_cash_position',
+  {
+    description:
+      'Get consolidated cash position overview - Single call combines walletable balances, unpaid invoices (receivables), and unsettled expense deals (payables) into one summary. Provides total cash, net position, and overdue amounts for quick financial health assessment.',
+    inputSchema: schemas.CashPositionSchema,
+  },
+  async ({ companyId }) => {
+    try {
+      const cashPosition = await freeeClient.getCashPosition(
+        getCompanyId(companyId),
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(cashPosition, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_cash_position', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(

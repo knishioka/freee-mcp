@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 24 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(24);
+    it('should register exactly 27 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(27);
     });
 
     it('should register all expected tool names', () => {
@@ -120,6 +120,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_trial_balance',
         'freee_get_profit_loss',
         'freee_get_balance_sheet',
+        'freee_compare_periods',
+        'freee_monthly_trends',
+        'freee_cash_position',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -145,7 +148,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         (block) => block.includes('description:') && block.includes('\'freee_'),
       );
 
-      expect(toolCalls.length).toBe(24);
+      expect(toolCalls.length).toBe(27);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -339,7 +342,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 24 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 27 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -388,7 +391,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 24 schemas', async () => {
+  it('should export exactly 27 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -396,7 +399,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(24);
+    expect(schemaExports).toHaveLength(27);
   });
 
   it('should use Zod types in schema fields', async () => {

@@ -357,3 +357,80 @@ export interface InvoiceSummaryAggregation {
   by_status: InvoiceStatusAggregation[];
   by_partner: InvoicePartnerAggregation[];
 }
+
+// Period comparison types
+
+export interface PeriodChange {
+  amount: number;
+  percentage: number | null;
+}
+
+export interface PeriodHighlight {
+  item: string;
+  change: string;
+  significance: 'high' | 'medium' | 'low';
+}
+
+export interface PeriodComparisonResult {
+  report_type: 'profit_loss' | 'balance_sheet';
+  period1: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+    metrics: Record<string, number>;
+  };
+  period2: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+    metrics: Record<string, number>;
+  };
+  changes: Record<string, PeriodChange>;
+  highlights: PeriodHighlight[];
+}
+
+// Monthly trends types
+
+export interface MonthlyMetrics {
+  month: number;
+  metrics: Record<string, number>;
+}
+
+export interface MonthlyTrendsSummary {
+  primary_metric: string;
+  avg: number;
+  max: { month: number; value: number };
+  min: { month: number; value: number };
+  trend: 'increasing' | 'decreasing' | 'stable' | 'fluctuating';
+}
+
+export interface MonthlyTrendsResult {
+  fiscal_year: number;
+  report_type: 'profit_loss' | 'balance_sheet';
+  months: MonthlyMetrics[];
+  summary: MonthlyTrendsSummary;
+}
+
+// Cash position types
+
+export interface CashAccount {
+  name: string;
+  type: 'bank_account' | 'credit_card' | 'wallet';
+  balance: number;
+}
+
+export interface CashPositionResult {
+  total_cash: number;
+  accounts: CashAccount[];
+  receivables: {
+    total: number;
+    overdue: number;
+    count: number;
+  };
+  payables: {
+    total: number;
+    overdue: number;
+    count: number;
+  };
+  net_position: number;
+}

@@ -317,3 +317,45 @@ export const GetBalanceSheetSchema = {
     .optional()
     .describe('Breakdown display type'),
 };
+
+// Analysis schemas
+export const ComparePeriodsSchema = {
+  companyId: companyIdField,
+  reportType: z
+    .enum(['profit_loss', 'balance_sheet'])
+    .describe('Type of financial report to compare'),
+  period1: z
+    .object({
+      fiscalYear: z.number().describe('Fiscal year'),
+      startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+      endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+    })
+    .describe('First period to compare'),
+  period2: z
+    .object({
+      fiscalYear: z.number().describe('Fiscal year'),
+      startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+      endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+    })
+    .describe('Second period to compare'),
+  breakdownDisplayType: z
+    .enum(['partner', 'item', 'section', 'tag'])
+    .optional()
+    .describe('Breakdown display type'),
+};
+
+export const MonthlyTrendsSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  reportType: z
+    .enum(['profit_loss', 'balance_sheet'])
+    .describe('Type of financial report'),
+  months: z
+    .array(z.number().min(1).max(12))
+    .optional()
+    .describe('Specific months to include (1-12). Defaults to all 12 months.'),
+};
+
+export const CashPositionSchema = {
+  companyId: companyIdField,
+};
