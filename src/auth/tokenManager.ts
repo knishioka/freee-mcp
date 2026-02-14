@@ -28,7 +28,13 @@ export class TokenManager {
     if (this.saltPath) {
       try {
         return await fs.readFile(this.saltPath);
-      } catch {
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          (error as NodeJS.ErrnoException).code !== 'ENOENT'
+        ) {
+          throw error;
+        }
         const salt = crypto.randomBytes(32);
         const dir = path.dirname(this.saltPath);
         await fs.mkdir(dir, { recursive: true });

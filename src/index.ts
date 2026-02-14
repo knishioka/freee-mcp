@@ -294,11 +294,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Temporarily store token to fetch company list
       await tokenManager.setToken(0, tokenResponse);
-      const companies = await freeeClient.getCompanies();
-      await tokenManager.removeToken(0);
-
-      for (const company of companies) {
-        await tokenManager.setToken(company.id, tokenResponse);
+      let companies;
+      try {
+        companies = await freeeClient.getCompanies();
+        for (const company of companies) {
+          await tokenManager.setToken(company.id, tokenResponse);
+        }
+      } finally {
+        await tokenManager.removeToken(0);
       }
 
       return {
