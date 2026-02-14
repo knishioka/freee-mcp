@@ -242,11 +242,8 @@ export class FreeeClient {
             }
 
             // Only delete tokens on definitive auth failures
-            if (
-              ['invalid_grant', 'invalid_client'].includes(
-                refreshErrorData?.error,
-              )
-            ) {
+            // (invalid_grant is fully handled above at lines 202-242)
+            if (refreshErrorData?.error === 'invalid_client') {
               await this.tokenManager.removeToken(companyId);
             } else {
               // Transient error (network, timeout, etc.) — keep token for retry
