@@ -223,11 +223,7 @@ export class FreeeClient {
               // Token is genuinely invalid, remove and suggest re-auth
               await this.tokenManager.removeToken(companyId);
               logAuth(
-                'Refresh token is no longer valid. Possible causes: ' +
-                  '(1) token already used (freee tokens are single-use), ' +
-                  '(2) OAuth app permissions changed, ' +
-                  '(3) token revoked. ' +
-                  'Re-authenticate using freee_get_auth_url.',
+                'Refresh token is no longer valid. Possible causes: (1) token already used (freee tokens are single-use), (2) OAuth app permissions changed, (3) token revoked. Re-authenticate using freee_get_auth_url.',
               );
               throw new Error(
                 'Authentication expired. Please re-authenticate using freee_get_auth_url.',
