@@ -1,7 +1,15 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import createDebug from 'debug';
 import { TokenManager } from '../auth/tokenManager.js';
-import { FREEE_API_BASE_URL, FREEE_AUTH_BASE_URL } from '../constants.js';
+import {
+  FREEE_API_BASE_URL,
+  FREEE_AUTH_BASE_URL,
+  CACHE_TTL_ACCOUNT_ITEMS,
+  CACHE_TTL_COMPANIES,
+  CACHE_TTL_PARTNERS,
+  CACHE_TTL_SECTIONS,
+  CACHE_TTL_TAGS,
+} from '../constants.js';
 import { TokenRefreshError } from '../errors.js';
 import {
   FreeeTokenResponse,
@@ -15,6 +23,7 @@ import {
   FreeeTrialBalance,
   FreeeApiError,
 } from '../types/freee.js';
+import { ApiCache, generateCacheKey } from './cache.js';
 
 const logAuth = createDebug('freee-mcp:auth');
 const logClient = createDebug('freee-mcp:client');
@@ -27,6 +36,7 @@ export class FreeeClient {
   private clientSecret: string;
   private redirectUri: string;
   private refreshPromises: Map<number, Promise<void>> = new Map();
+  private cache: ApiCache = new ApiCache();
 
   constructor(
     clientId: string,
@@ -368,16 +378,34 @@ export class FreeeClient {
 
   // Company methods
   async getCompanies(): Promise<FreeeCompany[]> {
+    const cacheKey = 'companies:all';
+    const cached = this.cache.get<FreeeCompany[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ companies: FreeeCompany[] }>(
       '/companies',
     );
-    return response.data.companies;
+    const companies = response.data.companies;
+    this.cache.set(cacheKey, companies, CACHE_TTL_COMPANIES);
+    for (const company of companies) {
+      this.cache.set(
+        `${company.id}:company:details`,
+        company,
+        CACHE_TTL_COMPANIES,
+      );
+    }
+    return companies;
   }
 
   async getCompany(companyId: number): Promise<FreeeCompany> {
+    const cacheKey = `${companyId}:company:details`;
+    const cached = this.cache.get<FreeeCompany>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ company: FreeeCompany }>(
       `/companies/${companyId}`,
     );
+    this.cache.set(cacheKey, response.data.company, CACHE_TTL_COMPANIES);
     return response.data.company;
   }
 
@@ -423,9 +451,20 @@ export class FreeeClient {
     companyId: number,
     accountCategory?: string,
   ): Promise<FreeeAccountItem[]> {
+    const cacheKey = generateCacheKey(companyId, 'account_items', {
+      account_category: accountCategory,
+    });
+    const cached = this.cache.get<FreeeAccountItem[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ account_items: FreeeAccountItem[] }>(
       '/account_items',
       { params: { company_id: companyId, account_category: accountCategory } },
+    );
+    this.cache.set(
+      cacheKey,
+      response.data.account_items,
+      CACHE_TTL_ACCOUNT_ITEMS,
     );
     return response.data.account_items;
   }
@@ -440,12 +479,17 @@ export class FreeeClient {
       limit?: number;
     },
   ): Promise<FreeePartner[]> {
+    const cacheKey = generateCacheKey(companyId, 'partners', params);
+    const cached = this.cache.get<FreeePartner[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ partners: FreeePartner[] }>(
       '/partners',
       {
         params: { company_id: companyId, ...params },
       },
     );
+    this.cache.set(cacheKey, response.data.partners, CACHE_TTL_PARTNERS);
     return response.data.partners;
   }
 
@@ -457,25 +501,36 @@ export class FreeeClient {
       '/partners',
       { company_id: companyId, ...partner },
     );
+    this.cache.invalidate(`${companyId}:partners`);
     return response.data.partner;
   }
 
   // Section methods
   async getSections(companyId: number): Promise<FreeeSection[]> {
+    const cacheKey = generateCacheKey(companyId, 'sections');
+    const cached = this.cache.get<FreeeSection[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ sections: FreeeSection[] }>(
       '/sections',
       {
         params: { company_id: companyId },
       },
     );
+    this.cache.set(cacheKey, response.data.sections, CACHE_TTL_SECTIONS);
     return response.data.sections;
   }
 
   // Tag methods
   async getTags(companyId: number): Promise<FreeeTag[]> {
+    const cacheKey = generateCacheKey(companyId, 'tags');
+    const cached = this.cache.get<FreeeTag[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ tags: FreeeTag[] }>('/tags', {
       params: { company_id: companyId },
     });
+    this.cache.set(cacheKey, response.data.tags, CACHE_TTL_TAGS);
     return response.data.tags;
   }
 
