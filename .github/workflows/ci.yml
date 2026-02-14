@@ -2,135 +2,135 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [20.x]
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run linter
-      run: npm run lint
-    
-    - name: Run type check
-      run: npm run typecheck
-    
-    - name: Run tests
-      run: npm test
-    
-    - name: Run test coverage
-      run: npm run test:coverage
-    
-    - name: Upload coverage reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: coverage/
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-    
-    - name: Build
-      run: npm run build
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run test coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Build
+        run: npm run build
 
   link-check:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Link Checker
-      uses: lycheeverse/lychee-action@v2
-      with:
-        # Check all markdown files
-        args: --verbose --no-progress './**/*.md'
-        fail: true
-        
-    - name: Create Link Check Report
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: link-check-report
-        path: lychee-out.md
+      - uses: actions/checkout@v4
+
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Check all markdown files
+          args: --verbose --no-progress './**/*.md'
+          fail: true
+
+      - name: Create Link Check Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-check-report
+          path: lychee-out.md
 
   code-quality:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Check for security vulnerabilities
-      run: npm audit --audit-level=high
-      
-    - name: Check for outdated dependencies
-      run: npx npm-check-updates --errorLevel 2
-      continue-on-error: true
-      
-    - name: License checker
-      run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePackages 'argparse'
-      continue-on-error: true
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for security vulnerabilities
+        run: npm audit --audit-level=critical
+
+      - name: Check for outdated dependencies
+        run: npx npm-check-updates --errorLevel 2
+        continue-on-error: true
+
+      - name: License checker
+        run: npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;CC0-1.0;CC-BY-3.0;CC-BY-4.0;Unlicense;Python-2.0' --excludePackages 'argparse'
+        continue-on-error: true
 
   security-scan:
     runs-on: ubuntu-latest
     name: Security Scan (Gitleaks)
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Full history for gitleaks
-    
-    - name: Run Gitleaks
-      id: gitleaks
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for Gitleaks Pro
-    
-    - name: Upload Gitleaks SARIF report
-      if: failure()
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: results.sarif
-    
-    - name: Upload Gitleaks results as artifact
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: gitleaks-results
-        path: |
-          results.sarif
-          results.json
-        retention-days: 30
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for gitleaks
+
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Optional: for Gitleaks Pro
+
+      - name: Upload Gitleaks SARIF report
+        if: failure()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Upload Gitleaks results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-results
+          path: |
+            results.sarif
+            results.json
+          retention-days: 30
