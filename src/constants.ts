@@ -15,7 +15,6 @@ export const API_RATE_LIMIT_PER_HOUR = 3600;
 
 // Default Values
 export const DEFAULT_REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
-export const DEFAULT_TOKEN_STORAGE_PATH = './tokens.json';
 
 // Retry Configuration
 export const MAX_API_RETRIES = 3;
@@ -35,5 +34,5 @@ export const ERROR_MESSAGES = {
 export const TOOL_PREFIX = 'freee_' as const;
 
 // MCP Server Configuration
-export const SERVER_NAME = 'freee-accounting';
+export const SERVER_NAME = 'freee-mcp';
 export const SERVER_VERSION = '0.1.0';

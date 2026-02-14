@@ -129,7 +129,7 @@ path = '''.*\.(js|ts|json|env|yaml|yml|toml|md|txt)$'''
 [[rules]]
 id = "freee-client-secret-long"
 description = "freee OAuth Client Secret (long format)"
-regex = '''(?i)freee[_-]?client[_-]?secret\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/\-_]{80,100})['"]{0,1}'''
+regex = '''(?i)(freee[_-]?client[_-]?secret)\s*[:=]\s*['"]{0,1}([a-zA-Z0-9+/\-_]{80,100})['"]{0,1}'''
 secretGroup = 2
 keywords = [
     "FREEE_CLIENT_SECRET",
