@@ -51,7 +51,7 @@ if (!clientId || !clientSecret) {
   console.error(
     '\nFor Claude Desktop, add these to your MCP settings configuration.',
   );
-  console.error('See MCP_AUTHENTICATION.md for detailed setup instructions.');
+  console.error('See README.md for detailed setup instructions.');
   console.error('=====================================\n');
   throw new Error(
     'FREEE_CLIENT_ID and FREEE_CLIENT_SECRET must be set in environment variables',
