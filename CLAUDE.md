@@ -94,7 +94,6 @@ When committing changes, the following checks run automatically:
 - Added comprehensive financial report APIs for efficient profit calculation
 - `freee_get_profit_loss` - Get operating profit without aggregating thousands of transactions
 - `freee_get_balance_sheet` - Get balance sheet data in aggregated format
-- `freee_get_cash_flow` - Get cash flow statements efficiently
 - Enhanced token error handling with proactive refresh and detailed logging
 
 ### Multiple Company Support (2025/1/26)

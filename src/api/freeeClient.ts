@@ -225,9 +225,7 @@ export class FreeeClient {
               console.error(
                 '3. Use freee_get_access_token with the authorization code',
               );
-              console.error(
-                '\nFor automated environments, see MCP_AUTHENTICATION.md',
-              );
+              console.error('\nFor automated environments, see README.md');
               throw new Error(
                 'Authentication expired. Please re-authenticate using freee_get_auth_url.',
               );
@@ -248,7 +246,10 @@ export class FreeeClient {
               refreshError.message ||
               'Unknown error';
 
-            throw new TokenRefreshError(`Token refresh failed: ${baseErrorMessage}`, companyId);
+            throw new TokenRefreshError(
+              `Token refresh failed: ${baseErrorMessage}`,
+              companyId,
+            );
           }
         } else {
           console.error(

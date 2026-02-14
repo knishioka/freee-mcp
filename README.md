@@ -57,7 +57,7 @@ cp .env.example .env
 FREEE_CLIENT_ID=your_client_id_here
 FREEE_CLIENT_SECRET=your_client_secret_here
 FREEE_REDIRECT_URI=urn:ietf:wg:oauth:2.0:oob
-TOKEN_STORAGE_PATH=./tokens.json
+# TOKEN_STORAGE_PATH=./tokens.enc  # Optional: defaults to platform-specific secure path
 ```
 
 ## Configuration
@@ -82,7 +82,7 @@ TOKEN_STORAGE_PATH=./tokens.json
 
 3. **Choose your configuration method:**
 
-   **Option A: Using tokens.json (Recommended after running setup-auth)**
+   **Option A: Using encrypted token file (Recommended after running setup-auth)**
 
    ```json
    {
@@ -93,7 +93,7 @@ TOKEN_STORAGE_PATH=./tokens.json
          "env": {
            "FREEE_CLIENT_ID": "your_client_id_here",
            "FREEE_CLIENT_SECRET": "your_client_secret_here",
-           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json",
+           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.enc",
            "FREEE_DEFAULT_COMPANY_ID": "123456" // Optional: Set default company ID
          }
        }
@@ -144,11 +144,11 @@ npm run setup-auth
 This script will:
 
 1. Load credentials from `.env` file if available
-2. Check for existing tokens in `tokens.json`
+2. Check for existing tokens in `tokens.enc`
 3. Open the authorization URL in your browser
 4. Wait for you to authorize and get the code
 5. Exchange the code for tokens immediately
-6. Save tokens to `tokens.json` or display environment variables
+6. Save tokens to `tokens.enc` or display environment variables
 
 After running this script, use **Option A** in the Claude Desktop configuration above.
 
@@ -241,7 +241,6 @@ Use tool: freee_get_deals with companyId: 123456
 - `freee_get_trial_balance` - Get trial balance report
 - `freee_get_profit_loss` - Get profit and loss statement - **Optimal for operating profit!**
 - `freee_get_balance_sheet` - Get balance sheet
-- `freee_get_cash_flow` - Get cash flow statement
 
 ### Efficient Operating Profit Retrieval
 
