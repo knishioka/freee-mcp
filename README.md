@@ -57,7 +57,7 @@ cp .env.example .env
 FREEE_CLIENT_ID=your_client_id_here
 FREEE_CLIENT_SECRET=your_client_secret_here
 FREEE_REDIRECT_URI=urn:ietf:wg:oauth:2.0:oob
-TOKEN_STORAGE_PATH=./tokens.enc
+# TOKEN_STORAGE_PATH=./tokens.enc  # Optional: defaults to platform-specific secure path
 ```
 
 ## Configuration
