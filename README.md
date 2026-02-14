@@ -27,27 +27,32 @@ A Model Context Protocol (MCP) server that provides integration with freee accou
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/knishioka/freee-mcp.git
 cd freee-mcp
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Build the TypeScript code:
+
 ```bash
 npm run build
 ```
 
 4. Copy the environment example file and configure it:
+
 ```bash
 cp .env.example .env
 ```
 
 5. Edit `.env` with your freee API credentials:
+
 ```
 FREEE_CLIENT_ID=your_client_id_here
 FREEE_CLIENT_SECRET=your_client_secret_here
@@ -78,6 +83,7 @@ TOKEN_STORAGE_PATH=./tokens.json
 3. **Choose your configuration method:**
 
    **Option A: Using tokens.json (Recommended after running setup-auth)**
+
    ```json
    {
      "mcpServers": {
@@ -88,7 +94,7 @@ TOKEN_STORAGE_PATH=./tokens.json
            "FREEE_CLIENT_ID": "your_client_id_here",
            "FREEE_CLIENT_SECRET": "your_client_secret_here",
            "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.json",
-           "FREEE_DEFAULT_COMPANY_ID": "123456"  // Optional: Set default company ID
+           "FREEE_DEFAULT_COMPANY_ID": "123456" // Optional: Set default company ID
          }
        }
      }
@@ -96,6 +102,7 @@ TOKEN_STORAGE_PATH=./tokens.json
    ```
 
    **Option B: Using environment variables for tokens**
+
    ```json
    {
      "mcpServers": {
@@ -129,11 +136,13 @@ For other MCP clients, adapt the configuration format as needed:
 #### Method 1: Using Setup Script (Recommended)
 
 Run the interactive setup script:
+
 ```bash
 npm run setup-auth
 ```
 
 This script will:
+
 1. Load credentials from `.env` file if available
 2. Check for existing tokens in `tokens.json`
 3. Open the authorization URL in your browser
@@ -150,6 +159,7 @@ If you already have tokens, you can directly set them in the Claude Desktop conf
 #### Method 3: Manual Flow (Not Recommended)
 
 1. Get the authorization URL:
+
 ```
 Use tool: freee_get_auth_url
 ```
@@ -157,6 +167,7 @@ Use tool: freee_get_auth_url
 2. Visit the URL in a browser and authorize the application
 3. Copy the authorization code from the redirect
 4. Exchange the code for an access token:
+
 ```
 Use tool: freee_get_access_token with code: "your_auth_code"
 ```
@@ -174,7 +185,7 @@ To avoid specifying `companyId` for every API call, you can set a default compan
 ```json
 {
   "env": {
-    "FREEE_DEFAULT_COMPANY_ID": "123456"  // Your default company ID
+    "FREEE_DEFAULT_COMPANY_ID": "123456" // Your default company ID
   }
 }
 ```
@@ -196,20 +207,24 @@ Use tool: freee_get_deals with companyId: 123456
 ### Available Tools
 
 #### Authentication
+
 - `freee_get_auth_url` - Get OAuth authorization URL
 - `freee_get_access_token` - Exchange auth code for access token
 - `freee_set_company_token` - Manually set token for a company
 
 #### Company Operations
+
 - `freee_get_companies` - List accessible companies
 - `freee_get_company` - Get company details
 
 #### Transaction (Deal) Operations
+
 - `freee_get_deals` - List transactions
 - `freee_get_deal` - Get transaction details
 - `freee_create_deal` - Create new transaction
 
 #### Master Data
+
 - `freee_get_account_items` - List account items
 - `freee_get_partners` - List partners
 - `freee_create_partner` - Create new partner
@@ -217,10 +232,12 @@ Use tool: freee_get_deals with companyId: 123456
 - `freee_get_tags` - List tags
 
 #### Invoice Operations
+
 - `freee_get_invoices` - List invoices
 - `freee_create_invoice` - Create new invoice
 
 #### Reports
+
 - `freee_get_trial_balance` - Get trial balance report
 - `freee_get_profit_loss` - Get profit and loss statement - **Optimal for operating profit!**
 - `freee_get_balance_sheet` - Get balance sheet
@@ -240,6 +257,7 @@ Parameters:
 ```
 
 This API returns pre-aggregated information including:
+
 - Revenue
 - Cost of goods sold
 - Gross profit
@@ -253,6 +271,7 @@ This API returns pre-aggregated information including:
 ### Usage Examples
 
 #### Check Monthly Operating Profit Trends
+
 ```
 # Operating profit from April to June 2024
 Use tool: freee_get_profit_loss
@@ -263,6 +282,7 @@ Parameters:
 ```
 
 #### Get Operating Profit for Year-over-Year Comparison
+
 ```
 # Current period (FY2024)
 Use tool: freee_get_profit_loss
@@ -272,7 +292,7 @@ Parameters:
 - endMonth: 9
 
 # Previous period (FY2023)
-Use tool: freee_get_profit_loss  
+Use tool: freee_get_profit_loss
 Parameters:
 - fiscalYear: 2023
 - startMonth: 4
@@ -280,6 +300,7 @@ Parameters:
 ```
 
 #### Partner-wise Operating Profit Analysis
+
 ```
 Use tool: freee_get_profit_loss
 Parameters:
@@ -291,33 +312,38 @@ Parameters:
 
 ### Performance Comparison
 
-| Method | API Calls | Data Processing | Rate Limit Impact |
-|--------|-----------|----------------|------------------|
+| Method                                 | API Calls                      | Data Processing                  | Rate Limit Impact          |
+| -------------------------------------- | ------------------------------ | -------------------------------- | -------------------------- |
 | **Individual Transaction Aggregation** | Thousands to tens of thousands | Client-side aggregation required | High risk (may hit limits) |
-| **Profit & Loss API** | **1 call** | **Server-side pre-aggregated** | **Minimal risk** |
+| **Profit & Loss API**                  | **1 call**                     | **Server-side pre-aggregated**   | **Minimal risk**           |
 
 #### Concrete Example: Annual Operating Profit Retrieval
+
 - Traditional method: 10,000 transactions → 10,000 API calls → 27% of rate limit consumed
 - **Efficient method: `freee_get_profit_loss` → 1 API call → 0.03% of rate limit consumed**
 
 ## Development
 
 ### Building
+
 ```bash
 npm run build
 ```
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
 
 ### Linting
+
 ```bash
 npm run lint
 ```
 
 ### Type Checking
+
 ```bash
 npm run typecheck
 ```
@@ -325,6 +351,7 @@ npm run typecheck
 ## Token Management
 
 The server automatically manages OAuth tokens:
+
 - Tokens are stored in the file specified by `TOKEN_STORAGE_PATH`
 - Tokens are automatically refreshed when they expire
 - Each company can have its own token
@@ -332,6 +359,7 @@ The server automatically manages OAuth tokens:
 ## Error Handling
 
 The server provides detailed error messages for:
+
 - Authentication failures
 - API rate limits
 - Invalid parameters
@@ -339,14 +367,57 @@ The server provides detailed error messages for:
 
 ## Security
 
-### Quick Security Guidelines
+### Token Security
 
-- Never commit your `.env` file or tokens.json
+- **Encryption at Rest**: All tokens are encrypted using AES-256-GCM before storage
+- **File Permissions**: Token files are created with 0600 permissions (owner read/write only)
+- **Secure Storage Paths**: Platform-specific secure directories are used by default
+- **Automatic Refresh**: Tokens are refreshed 5 minutes before expiry to prevent race conditions
+- **Single-Use Refresh Tokens**: freee refresh tokens are handled correctly with proper error recovery
+
+### General Security Guidelines
+
+- Never commit your `.env` file or token files
 - Keep your Client Secret secure
-- Use environment variables for sensitive data
-- Tokens are automatically refreshed to maintain security
-- Set restrictive file permissions (600) on token storage files
-- Use absolute paths for token storage outside project directory
+- Use absolute paths for token storage outside the project directory
+- Store tokens in platform-specific secure locations (e.g., `~/.config/freee-mcp/`)
+- Use `FREEE_TOKEN_ENCRYPTION_KEY` for custom encryption keys
+
+### Token Storage Options
+
+#### File-Based Storage (Default)
+
+```bash
+# Default locations:
+# macOS: ~/Library/Application Support/freee-mcp/tokens.enc
+# Windows: %APPDATA%/freee-mcp/tokens.enc
+# Linux: ~/.config/freee-mcp/tokens.enc
+
+# Custom location via environment:
+export TOKEN_STORAGE_PATH=/custom/path/tokens.enc
+```
+
+- Persistent across sessions
+- Encrypted with configurable key
+- Automatic permission management
+- Requires file system access
+
+#### Environment Variable Storage
+
+```bash
+# Base64 encoded token data (recommended for restricted environments)
+export FREEE_TOKEN_DATA_BASE64="base64-encoded-json"
+
+# Individual token variables (legacy)
+export FREEE_ACCESS_TOKEN="your-access-token"
+export FREEE_REFRESH_TOKEN="your-refresh-token"
+# FREEE_COMPANY_ID is required to associate the token with a specific company
+export FREEE_COMPANY_ID="12345"
+```
+
+- Works in serverless and restricted environments (e.g., Claude Desktop)
+- No file system dependencies
+- Easy to manage in CI/CD
 
 ### Secret Detection with Gitleaks
 
@@ -358,28 +429,27 @@ This project uses [Gitleaks](https://gitleaks.io/) to prevent accidental exposur
 - **Manual Scanning**: Run `npm run gitleaks` to check for secrets locally
 
 **Available Commands:**
+
 ```bash
 npm run gitleaks        # Scan for secrets (non-blocking)
 npm run gitleaks:ci     # Scan for secrets (CI mode, blocks on findings)
 ```
 
-### Comprehensive Security Documentation
-
-For detailed security best practices, OAuth implementation guidelines, and Claude Desktop specific considerations, see our [MCP Authentication Guide](./MCP_AUTHENTICATION.md).
-
-The guide covers:
-- OAuth 2.1 security requirements
-- Secure token storage patterns
-- Claude Desktop environment variable workarounds
-- Common security pitfalls and solutions
-- Testing and CI/CD security practices
-
 ## Troubleshooting
 
-1. **Authentication errors**: Ensure your Client ID and Secret are correct
-2. **Token expiration**: The server automatically refreshes tokens
-3. **Rate limits**: freee API has rate limits (3,600 requests/hour)
-4. **Company ID required**: Most operations require a company ID
+### Authentication Issues
+
+- **Authentication errors**: Ensure your Client ID and Secret are correct. Re-run `npm run setup-auth` if needed
+- **"Token refresh failed: invalid_grant"**: freee refresh tokens are single-use. Re-authenticate by running `npm run setup-auth`
+- **"No authenticated companies found"**: Run `freee_get_auth_url` to start OAuth flow, then complete authorization in browser
+- **"Permission denied" on token file**: Server automatically fixes permissions. Ensure parent directory is writable
+- **"Cannot find tokens.enc"**: Use absolute paths in configuration, or try environment variable storage for restricted environments
+
+### General Issues
+
+- **Token expiration**: The server automatically refreshes tokens 5 minutes before expiry
+- **Rate limits**: freee API has rate limits (3,600 requests/hour). Use aggregated report APIs to minimize calls
+- **Company ID required**: Most operations require a company ID. Set `FREEE_DEFAULT_COMPANY_ID` to avoid specifying it each time
 
 ## License
 
@@ -388,6 +458,7 @@ MIT
 ## Support
 
 For issues related to:
+
 - This MCP server: Create an issue in this repository
 - freee API: Consult [freee Developers Community](https://developer.freee.co.jp/)
 - MCP protocol: See [MCP documentation](https://modelcontextprotocol.io/)
