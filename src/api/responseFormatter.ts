@@ -5,6 +5,9 @@ import type {
   FreeeAccountItem,
   FreeeSection,
   FreeeTag,
+  FreeeWalletable,
+  FreeeManualJournal,
+  FreeeWalletTransaction,
   FormattedDeal,
   FormattedDealDetail,
   FormattedInvoice,
@@ -12,6 +15,10 @@ import type {
   FormattedAccountItem,
   FormattedSection,
   FormattedTag,
+  FormattedWalletable,
+  FormattedManualJournal,
+  FormattedManualJournalDetail,
+  FormattedWalletTransaction,
   ListSummary,
   FormattedListResponse,
 } from '../types/freee.js';
@@ -221,5 +228,125 @@ export class ResponseFormatter {
       return { summary, items: [] };
     }
     return { summary, items: tags.map((t) => this.formatTag(t)) };
+  }
+
+  // Walletable formatting
+  static formatWalletable(walletable: FreeeWalletable): FormattedWalletable {
+    return stripEmpty({
+      id: walletable.id,
+      name: walletable.name,
+      type: walletable.type,
+      last_balance: walletable.last_balance,
+      walletable_balance: walletable.walletable_balance,
+    }) as FormattedWalletable;
+  }
+
+  static formatWalletables(
+    walletables: FreeeWalletable[],
+  ): FormattedListResponse<FormattedWalletable> {
+    const summary: ListSummary = { total_count: walletables.length };
+    return {
+      summary,
+      items: walletables.map((w) => this.formatWalletable(w)),
+    };
+  }
+
+  // Manual Journal formatting
+  static formatManualJournal(
+    journal: FreeeManualJournal,
+  ): FormattedManualJournal {
+    const details: FormattedManualJournalDetail[] = (journal.details ?? []).map(
+      (d) =>
+        stripEmpty({
+          entry_side: d.entry_side,
+          account_item_id: d.account_item_id,
+          amount: d.amount,
+          description: d.description,
+          section_id: d.section_id,
+          tag_ids: d.tag_ids,
+          partner_name: d.partner_name,
+        }),
+    ) as FormattedManualJournalDetail[];
+
+    return stripEmpty({
+      id: journal.id,
+      issue_date: journal.issue_date,
+      adjustment: journal.adjustment,
+      txn_number: journal.txn_number,
+      details,
+    }) as FormattedManualJournal;
+  }
+
+  static formatManualJournals(
+    journals: FreeeManualJournal[],
+  ): FormattedListResponse<FormattedManualJournal> {
+    const summary = this.summarizeManualJournals(journals);
+    return {
+      summary,
+      items: journals.map((j) => this.formatManualJournal(j)),
+    };
+  }
+
+  private static summarizeManualJournals(
+    journals: FreeeManualJournal[],
+  ): ListSummary {
+    const sorted = [...journals].sort((a, b) =>
+      a.issue_date.localeCompare(b.issue_date),
+    );
+    const summary: ListSummary = { total_count: journals.length };
+    if (sorted.length > 0) {
+      summary.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
+    }
+    return summary;
+  }
+
+  // Wallet Transaction formatting
+  static formatWalletTransaction(
+    txn: FreeeWalletTransaction,
+  ): FormattedWalletTransaction {
+    return stripEmpty({
+      id: txn.id,
+      date: txn.date,
+      amount: txn.amount,
+      due_amount: txn.due_amount,
+      balance: txn.balance,
+      entry_side: txn.entry_side,
+      walletable_type: txn.walletable_type,
+      walletable_id: txn.walletable_id,
+      description: txn.description,
+    }) as FormattedWalletTransaction;
+  }
+
+  static formatWalletTransactions(
+    txns: FreeeWalletTransaction[],
+  ): FormattedListResponse<FormattedWalletTransaction> {
+    const summary = this.summarizeWalletTransactions(txns);
+    return {
+      summary,
+      items: txns.map((t) => this.formatWalletTransaction(t)),
+    };
+  }
+
+  private static summarizeWalletTransactions(
+    txns: FreeeWalletTransaction[],
+  ): ListSummary {
+    const sorted = [...txns].sort((a, b) => a.date.localeCompare(b.date));
+    const { income, expense } = txns.reduce(
+      (acc, t) => {
+        if (t.entry_side === 'income') acc.income += t.amount;
+        else acc.expense += t.amount;
+        return acc;
+      },
+      { income: 0, expense: 0 },
+    );
+    const summary: ListSummary = {
+      total_count: txns.length,
+      total_income: income,
+      total_expense: expense,
+    };
+    if (sorted.length > 0) {
+      summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
+    }
+    return summary;
   }
 }
