@@ -639,6 +639,183 @@ describe('FreeeClient', () => {
       );
     });
 
+    it('should prevent infinite 401 retry loops with retry guard', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to succeed
+      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      // Simulate a request that has already been retried
+      const retriedRequest = {
+        params: { company_id: 123 },
+        headers: {},
+        __retried: true,
+      };
+
+      const error = {
+        config: retriedRequest,
+        response: { status: 401 },
+      };
+
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Authentication failed after token refresh. Please re-authenticate.',
+      );
+
+      // Should NOT attempt another refresh
+      expect((client as any).refreshToken).not.toHaveBeenCalled();
+    });
+
+    it('should set __retried flag on request config before retry', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to succeed
+      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const originalRequest = {
+        params: { company_id: 123 },
+        headers: {},
+      };
+
+      const error = {
+        config: originalRequest,
+        response: { status: 401 },
+      };
+
+      mockAxiosInstance.request.mockResolvedValue({ data: 'success' });
+
+      await errorHandler(error);
+
+      // Verify __retried flag was set on the config before retry
+      expect(originalRequest).toHaveProperty('__retried', true);
+    });
+
+    it('should preserve token on transient refresh errors (network error)', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to fail with network error (no response)
+      const networkError = new Error('Network Error');
+      (client as any).refreshToken = jest.fn(() =>
+        Promise.reject(networkError),
+      );
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        config: {
+          params: { company_id: 123 },
+          headers: {},
+        },
+        response: { status: 401 },
+      };
+
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Token refresh failed: Network Error',
+      );
+
+      // Token should NOT be deleted on transient errors
+      expect(mockTokenManager.removeToken).not.toHaveBeenCalled();
+    });
+
+    it('should delete token on invalid_grant error', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      // Both calls return same token (no concurrent refresh succeeded)
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to fail with invalid_grant
+      const invalidGrantError = {
+        response: { data: { error: 'invalid_grant' } },
+        message: 'invalid_grant',
+      };
+      (client as any).refreshToken = jest.fn(() =>
+        Promise.reject(invalidGrantError),
+      );
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        config: {
+          params: { company_id: 123 },
+          headers: {},
+        },
+        response: { status: 401 },
+      };
+
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Authentication expired. Please re-authenticate using freee_get_auth_url.',
+      );
+
+      // Token SHOULD be deleted on invalid_grant
+      expect(mockTokenManager.removeToken).toHaveBeenCalledWith(123);
+    });
+
+    it('should delete token on invalid_client error', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to fail with invalid_client
+      const invalidClientError = {
+        response: { data: { error: 'invalid_client' } },
+        message: 'invalid_client',
+      };
+      (client as any).refreshToken = jest.fn(() =>
+        Promise.reject(invalidClientError),
+      );
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        config: {
+          params: { company_id: 123 },
+          headers: {},
+        },
+        response: { status: 401 },
+      };
+
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Token refresh failed: invalid_client',
+      );
+
+      // Token SHOULD be deleted on invalid_client
+      expect(mockTokenManager.removeToken).toHaveBeenCalledWith(123);
+    });
+
     it('should re-check token state on invalid_grant before deleting', async () => {
       const mockOldToken = {
         access_token: 'old-token',

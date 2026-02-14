@@ -168,6 +168,13 @@ export class FreeeClient {
       if (companyId) {
         const token = this.tokenManager.getToken(companyId);
         if (token?.refresh_token) {
+          // Retry guard: prevent infinite 401 retry loops
+          if ((error.config as any)?.__retried) {
+            throw new Error(
+              'Authentication failed after token refresh. Please re-authenticate.',
+            );
+          }
+
           try {
             console.error(
               `\nAttempting automatic token refresh for company ${companyId}...`,
@@ -175,6 +182,7 @@ export class FreeeClient {
             await this.refreshTokenWithLock(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
+              (error.config as any).__retried = true;
               console.error(
                 'Token refreshed successfully. Retrying original request...',
               );
@@ -233,8 +241,19 @@ export class FreeeClient {
               );
             }
 
-            // Refresh failed for other reasons, remove token
-            await this.tokenManager.removeToken(companyId);
+            // Only delete tokens on definitive auth failures
+            if (
+              ['invalid_grant', 'invalid_client'].includes(
+                refreshErrorData?.error,
+              )
+            ) {
+              await this.tokenManager.removeToken(companyId);
+            } else {
+              // Transient error (network, timeout, etc.) — keep token for retry
+              console.error(
+                'Token refresh failed (transient error), keeping existing token',
+              );
+            }
 
             // CIRCUIT BREAKER: Prevent recursive error messages
             if (refreshError instanceof TokenRefreshError) {
@@ -248,7 +267,10 @@ export class FreeeClient {
               refreshError.message ||
               'Unknown error';
 
-            throw new TokenRefreshError(`Token refresh failed: ${baseErrorMessage}`, companyId);
+            throw new TokenRefreshError(
+              `Token refresh failed: ${baseErrorMessage}`,
+              companyId,
+            );
           }
         } else {
           console.error(
