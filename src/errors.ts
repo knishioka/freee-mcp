@@ -7,7 +7,7 @@ export class FreeeApiError extends Error {
     message: string,
     public statusCode?: number,
     public errorCode?: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
     this.name = 'FreeeApiError';
@@ -32,7 +32,7 @@ export class ValidationError extends FreeeApiError {
   constructor(
     message: string,
     public field?: string,
-    public value?: unknown
+    public value?: unknown,
   ) {
     super(message, 400, 'VALIDATION_ERROR', { field, value });
     this.name = 'ValidationError';
@@ -46,8 +46,21 @@ export class RateLimitError extends FreeeApiError {
   }
 }
 
+export class TokenRefreshError extends AuthenticationError {
+  constructor(
+    message: string,
+    public companyId?: number,
+  ) {
+    super(message, { companyId });
+    this.name = 'TokenRefreshError';
+  }
+}
+
 export class NetworkError extends Error {
-  constructor(message: string, public originalError?: Error) {
+  constructor(
+    message: string,
+    public originalError?: Error,
+  ) {
     super(message);
     this.name = 'NetworkError';
   }
@@ -63,7 +76,9 @@ export function isFreeeApiError(error: unknown): error is FreeeApiError {
 /**
  * Type guard to check if error is an AuthenticationError
  */
-export function isAuthenticationError(error: unknown): error is AuthenticationError {
+export function isAuthenticationError(
+  error: unknown,
+): error is AuthenticationError {
   return error instanceof AuthenticationError;
 }
 
@@ -72,7 +87,10 @@ export function isAuthenticationError(error: unknown): error is AuthenticationEr
  */
 export function createApiError(response: any): FreeeApiError {
   const status = response?.status;
-  const message = response?.data?.message || response?.data?.errors?.[0]?.messages?.join(', ') || 'Unknown error';
+  const message =
+    response?.data?.message ||
+    response?.data?.errors?.[0]?.messages?.join(', ') ||
+    'Unknown error';
   const errorCode = response?.data?.code;
 
   switch (status) {

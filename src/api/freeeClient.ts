@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { TokenManager } from '../auth/tokenManager.js';
 import { FREEE_API_BASE_URL, FREEE_AUTH_BASE_URL } from '../constants.js';
+import { TokenRefreshError } from '../errors.js';
 import {
   FreeeTokenResponse,
   FreeeCompany,
@@ -236,21 +237,18 @@ export class FreeeClient {
             await this.tokenManager.removeToken(companyId);
 
             // CIRCUIT BREAKER: Prevent recursive error messages
-            const baseErrorMessage =
-              refreshErrorData?.error_description ||
-              refreshError.message ||
-              'Unknown error';
-            const isRecursiveError = baseErrorMessage.includes(
-              'Token refresh failed:',
-            );
-
-            if (isRecursiveError) {
+            if (refreshError instanceof TokenRefreshError) {
               throw new Error(
                 'Authentication expired. Please re-authenticate using freee_get_auth_url.',
               );
             }
 
-            throw new Error(`Token refresh failed: ${baseErrorMessage}`);
+            const baseErrorMessage =
+              refreshErrorData?.error_description ||
+              refreshError.message ||
+              'Unknown error';
+
+            throw new TokenRefreshError(`Token refresh failed: ${baseErrorMessage}`, companyId);
           }
         } else {
           console.error(

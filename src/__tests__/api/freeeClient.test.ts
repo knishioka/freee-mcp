@@ -630,7 +630,7 @@ describe('FreeeClient', () => {
       expect(result.headers.Authorization).toBe('Bearer test-token');
 
       // Wait for background refresh to complete
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => process.nextTick(resolve));
 
       // Should have triggered background refresh
       expect((client as any).refreshToken).toHaveBeenCalledWith(
