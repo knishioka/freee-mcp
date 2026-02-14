@@ -55,5 +55,5 @@ This project is an MCP server for freee accounting APIs.
 ## Key Constraints (freee-specific)
 
 - freee refresh tokens are single-use; never issue parallel refreshes for the same company.
-- freee API rate limit is 3,600 requests/hour; prefer aggregated report endpoints (for example P/L) over high-volume transaction scans.
+- freee API rate limit is 3,600 requests/hour; prefer aggregated report endpoints (e.g., freee_get_profit_loss) over high-volume transaction scans.
 - freee error/data formats can vary by endpoint; keep defensive parsing and explicit error messaging.
