@@ -18,9 +18,22 @@ import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME } from './constants.js';
 import * as schemas from './schemas.js';
 
-const packageJson = JSON.parse(
-  readFileSync(new URL('../package.json', import.meta.url), 'utf-8'),
-) as { version: string };
+const packageJson = (() => {
+  try {
+    const content = readFileSync(
+      new URL('../package.json', import.meta.url),
+      'utf-8',
+    );
+    const parsed = JSON.parse(content);
+    return { version: String(parsed.version ?? 'unknown') };
+  } catch (error) {
+    console.error(
+      'Warning: Could not read version from package.json. Using fallback.',
+      error,
+    );
+    return { version: 'unknown' };
+  }
+})();
 
 // Load environment variables
 dotenv.config();
