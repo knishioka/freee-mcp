@@ -49,8 +49,12 @@ describe('MCP Tool Handlers', () => {
     };
 
     // Mock constructors
-    (FreeeClient as jest.MockedClass<typeof FreeeClient>).mockImplementation(() => mockClient);
-    (TokenManager as jest.MockedClass<typeof TokenManager>).mockImplementation(() => mockTokenManager);
+    (FreeeClient as jest.MockedClass<typeof FreeeClient>).mockImplementation(
+      () => mockClient,
+    );
+    (TokenManager as jest.MockedClass<typeof TokenManager>).mockImplementation(
+      () => mockTokenManager,
+    );
   });
 
   describe('Tool Schema Validation', () => {
@@ -74,18 +78,24 @@ describe('MCP Tool Handlers', () => {
         'GetTrialBalanceSchema',
       ];
 
-      expectedSchemas.forEach(schemaName => {
+      expectedSchemas.forEach((schemaName) => {
         const schema = (schemas as any)[schemaName];
         expect(schema).toBeDefined();
-        expect(schema.parse).toBeDefined();
+        // Schemas are now raw shapes (plain objects with Zod fields) for MCP SDK 1.x registerTool
+        expect(typeof schema).toBe('object');
       });
+    });
+
+    it('should not export GetCashFlowSchema (removed)', () => {
+      expect((schemas as any).GetCashFlowSchema).toBeUndefined();
     });
   });
 
   describe('Authentication Tools', () => {
     it('should generate auth URL correctly', () => {
       const state = 'test-state';
-      const expectedUrl = 'https://accounts.secure.freee.co.jp/authorize?state=test-state';
+      const expectedUrl =
+        'https://accounts.secure.freee.co.jp/authorize?state=test-state';
       mockClient.getAuthorizationUrl.mockReturnValue(expectedUrl);
 
       // Simulate tool call
@@ -106,7 +116,7 @@ describe('MCP Tool Handlers', () => {
       mockClient.getAccessToken.mockResolvedValue(mockTokenResponse);
 
       const result = await mockClient.getAccessToken(code);
-      
+
       expect(result).toEqual(mockTokenResponse);
       expect(mockClient.getAccessToken).toHaveBeenCalledWith(code);
     });
@@ -219,7 +229,10 @@ describe('MCP Tool Handlers', () => {
       const result = await mockClient.getBalanceSheet(companyId, params);
 
       expect(result).toEqual(mockReport);
-      expect(mockClient.getBalanceSheet).toHaveBeenCalledWith(companyId, params);
+      expect(mockClient.getBalanceSheet).toHaveBeenCalledWith(
+        companyId,
+        params,
+      );
     });
 
     it('should fetch trial balance report', async () => {
@@ -240,7 +253,10 @@ describe('MCP Tool Handlers', () => {
       const result = await mockClient.getTrialBalance(companyId, params);
 
       expect(result).toEqual(mockReport);
-      expect(mockClient.getTrialBalance).toHaveBeenCalledWith(companyId, params);
+      expect(mockClient.getTrialBalance).toHaveBeenCalledWith(
+        companyId,
+        params,
+      );
     });
   });
 
