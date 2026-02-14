@@ -401,8 +401,16 @@ export class FreeeClient {
     const response = await this.api.get<{ companies: FreeeCompany[] }>(
       '/companies',
     );
-    this.cache.set(cacheKey, response.data.companies, CACHE_TTL_COMPANIES);
-    return response.data.companies;
+    const companies = response.data.companies;
+    this.cache.set(cacheKey, companies, CACHE_TTL_COMPANIES);
+    for (const company of companies) {
+      this.cache.set(
+        `${company.id}:company:details`,
+        company,
+        CACHE_TTL_COMPANIES,
+      );
+    }
+    return companies;
   }
 
   async getCompany(companyId: number): Promise<FreeeCompany> {
@@ -487,11 +495,7 @@ export class FreeeClient {
       limit?: number;
     },
   ): Promise<FreeePartner[]> {
-    const cacheKey = generateCacheKey(
-      companyId,
-      'partners',
-      params as Record<string, unknown>,
-    );
+    const cacheKey = generateCacheKey(companyId, 'partners', params);
     const cached = this.cache.get<FreeePartner[]>(cacheKey);
     if (cached) return cached;
 

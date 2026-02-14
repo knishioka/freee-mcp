@@ -117,6 +117,36 @@ describe('ApiCache', () => {
       cache.invalidate('123:partners');
       expect(cache.size).toBe(0);
     });
+
+    it('should not match partial company ID prefixes (startsWith safety)', () => {
+      cache.set('12:partners:all', 'company12', 10000);
+      cache.set('123:partners:all', 'company123', 10000);
+      cache.set('1234:partners:all', 'company1234', 10000);
+
+      cache.invalidate('12:partners');
+
+      expect(cache.get('12:partners:all')).toBeUndefined();
+      expect(cache.get('123:partners:all')).toBe('company123');
+      expect(cache.get('1234:partners:all')).toBe('company1234');
+    });
+  });
+
+  describe('eviction', () => {
+    it('should evict expired entries when max size reached', () => {
+      // Fill cache with expired entries
+      for (let i = 0; i < 1000; i++) {
+        cache.set(`key${i}`, `value${i}`, 100);
+      }
+      expect(cache.size).toBe(1000);
+
+      // Advance past TTL
+      jest.advanceTimersByTime(101);
+
+      // Adding new entry should trigger eviction
+      cache.set('new-key', 'new-value', 10000);
+      expect(cache.size).toBe(1);
+      expect(cache.get('new-key')).toBe('new-value');
+    });
   });
 
   describe('size', () => {

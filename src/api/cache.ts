@@ -13,6 +13,7 @@ class CacheEntry<T> {
 
 export class ApiCache {
   private cache = new Map<string, CacheEntry<unknown>>();
+  private static readonly MAX_ENTRIES = 1000;
 
   get<T>(key: string): T | undefined {
     const entry = this.cache.get(key);
@@ -24,12 +25,15 @@ export class ApiCache {
   }
 
   set<T>(key: string, data: T, ttlMs: number): void {
+    if (this.cache.size >= ApiCache.MAX_ENTRIES) {
+      this.evictExpired();
+    }
     this.cache.set(key, new CacheEntry(data, Date.now() + ttlMs));
   }
 
   invalidate(pattern: string): void {
     for (const key of this.cache.keys()) {
-      if (key.includes(pattern)) {
+      if (key.startsWith(pattern)) {
         this.cache.delete(key);
       }
     }
@@ -37,6 +41,15 @@ export class ApiCache {
 
   get size(): number {
     return this.cache.size;
+  }
+
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.cache) {
+      if (now > entry.expiresAt) {
+        this.cache.delete(key);
+      }
+    }
   }
 }
 
