@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import dotenv from 'dotenv';
 import type { z } from 'zod';
 import { FreeeClient } from './api/freeeClient.js';
+import { ResponseFormatter } from './api/responseFormatter.js';
 import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME } from './constants.js';
 import * as schemas from './schemas.js';
@@ -305,6 +306,7 @@ registerTool(
     endIssueDate,
     offset,
     limit,
+    compact,
   }) => {
     try {
       const deals = await freeeClient.getDeals(getCompanyId(companyId), {
@@ -315,11 +317,12 @@ registerTool(
         offset,
         limit,
       });
+      const formatted = ResponseFormatter.formatDeals(deals, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(deals, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -338,11 +341,12 @@ registerTool(
   async ({ companyId, dealId }) => {
     try {
       const deal = await freeeClient.getDeal(getCompanyId(companyId), dealId);
+      const formatted = ResponseFormatter.formatDeal(deal);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(deal, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -420,17 +424,18 @@ registerTool(
       'Get list of account items - Retrieves chart of accounts efficiently in one call. Use this master data for mapping and filtering in reports. Cached results recommended as account structure rarely changes.',
     inputSchema: schemas.GetAccountItemsSchema,
   },
-  async ({ companyId, accountCategory }) => {
+  async ({ companyId, accountCategory, compact }) => {
     try {
       const items = await freeeClient.getAccountItems(
         getCompanyId(companyId),
         accountCategory,
       );
+      const formatted = ResponseFormatter.formatAccountItems(items, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(items, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -449,7 +454,7 @@ registerTool(
       'Get list of partners - Retrieves customer/vendor master data efficiently. For partner-based analysis, use profit_loss API with partner breakdown instead of aggregating individual transactions. Cache results as partner data changes infrequently.',
     inputSchema: schemas.GetPartnersSchema,
   },
-  async ({ companyId, name, shortcut1, offset, limit }) => {
+  async ({ companyId, name, shortcut1, offset, limit, compact }) => {
     try {
       const partners = await freeeClient.getPartners(getCompanyId(companyId), {
         name,
@@ -457,11 +462,12 @@ registerTool(
         offset,
         limit,
       });
+      const formatted = ResponseFormatter.formatPartners(partners, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(partners, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -518,14 +524,15 @@ registerTool(
       'Get list of sections (departments/divisions) - Retrieves organizational units for segment reporting. Use with profit_loss breakdown_display_type="section" for departmental P&L analysis in one API call.',
     inputSchema: schemas.GetSectionsSchema,
   },
-  async ({ companyId }) => {
+  async ({ companyId, compact }) => {
     try {
       const sections = await freeeClient.getSections(getCompanyId(companyId));
+      const formatted = ResponseFormatter.formatSections(sections, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(sections, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -544,14 +551,15 @@ registerTool(
       'Get list of tags - Retrieves custom classification tags. For tag-based analysis, use profit_loss API with tag breakdown for efficient aggregation. Useful for project/campaign tracking.',
     inputSchema: schemas.GetTagsSchema,
   },
-  async ({ companyId }) => {
+  async ({ companyId, compact }) => {
     try {
       const tags = await freeeClient.getTags(getCompanyId(companyId));
+      const formatted = ResponseFormatter.formatTags(tags, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(tags, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
@@ -579,6 +587,7 @@ registerTool(
     endIssueDate,
     offset,
     limit,
+    compact,
   }) => {
     try {
       const invoices = await freeeClient.getInvoices(getCompanyId(companyId), {
@@ -590,11 +599,12 @@ registerTool(
         offset,
         limit,
       });
+      const formatted = ResponseFormatter.formatInvoices(invoices, compact);
       return {
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(invoices, null, 2),
+            text: JSON.stringify(formatted, null, 2),
           },
         ],
       };
