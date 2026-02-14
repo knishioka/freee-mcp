@@ -48,6 +48,12 @@ export const GetDealsSchema = {
     .max(100)
     .optional()
     .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 export const GetDealSchema = {
@@ -83,6 +89,12 @@ export const GetAccountItemsSchema = {
     .string()
     .optional()
     .describe('Account category to filter by'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 // Partner schemas
@@ -97,6 +109,12 @@ export const GetPartnersSchema = {
     .max(100)
     .optional()
     .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 export const CreatePartnerSchema = {
@@ -112,11 +130,23 @@ export const CreatePartnerSchema = {
 // Section schemas
 export const GetSectionsSchema = {
   companyId: companyIdField,
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 // Tag schemas
 export const GetTagsSchema = {
   companyId: companyIdField,
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 // Invoice schemas
@@ -134,6 +164,12 @@ export const GetInvoicesSchema = {
     .max(100)
     .optional()
     .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
 };
 
 export const CreateInvoiceSchema = {

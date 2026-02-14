@@ -132,3 +132,84 @@ export interface FreeeApiError {
     messages: string[];
   }>;
 }
+
+// Formatted response types for LLM-optimized output
+
+export interface FormattedDealDetail {
+  account_item_id: number;
+  amount: number;
+  tax_code: number;
+  description?: string;
+  section_id?: number;
+  tag_ids?: number[];
+}
+
+export interface FormattedDeal {
+  id: number;
+  issue_date: string;
+  type: 'income' | 'expense';
+  amount: number;
+  partner_name?: string;
+  status: string;
+  due_date?: string;
+  details?: FormattedDealDetail[];
+}
+
+export interface FormattedInvoice {
+  id: number;
+  issue_date: string;
+  invoice_number: string;
+  total_amount: number;
+  partner_name?: string;
+  invoice_status: string;
+  payment_status?: string;
+  title?: string;
+  due_date?: string;
+  invoice_lines?: Array<{
+    name: string;
+    quantity: number;
+    unit_price: number;
+    amount?: number;
+    description?: string;
+  }>;
+}
+
+export interface FormattedPartner {
+  id: number;
+  name: string;
+  shortcut1?: string;
+  long_name?: string;
+  contact_name?: string;
+}
+
+export interface FormattedAccountItem {
+  id: number;
+  name: string;
+  shortcut?: string;
+  account_category: string;
+  tax_code?: number;
+}
+
+export interface FormattedSection {
+  id: number;
+  name: string;
+  shortcut1?: string;
+}
+
+export interface FormattedTag {
+  id: number;
+  name: string;
+  shortcut?: string;
+}
+
+export interface ListSummary {
+  total_count: number;
+  total_income?: number;
+  total_expense?: number;
+  date_range?: string;
+}
+
+export interface FormattedListResponse<T> {
+  summary: ListSummary;
+  items: T[];
+}
