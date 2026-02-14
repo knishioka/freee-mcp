@@ -5,7 +5,7 @@ import { spawn } from "child_process";
 import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import dotenv from "dotenv";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,7 +24,7 @@ try {
   process.exit(1);
 }
 
-const { TokenManager } = await import(tokenManagerPath);
+const { TokenManager } = await import(pathToFileURL(tokenManagerPath).href);
 
 // Load .env file
 dotenv.config();
@@ -223,7 +223,7 @@ async function main() {
             // File doesn't exist
           }
 
-          if (!existingEnv.includes("FREEE_CLIENT_ID")) {
+          if (!/^FREEE_CLIENT_ID=/m.test(existingEnv)) {
             await fs.appendFile(envPath, envContent);
             console.log("✅ Credentials saved to .env file");
           }

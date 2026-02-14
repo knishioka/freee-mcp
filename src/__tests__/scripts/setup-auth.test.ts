@@ -7,6 +7,8 @@ import { TokenManager } from '../../auth/tokenManager.js';
 
 const execFileAsync = promisify(execFile);
 
+// __dirname is provided by ts-jest even in ESM mode (import.meta.url is not supported by ts-jest's TS compiler)
+
 // Path to the setup-auth.js script
 const SCRIPT_PATH = path.resolve(
   __dirname,
@@ -30,7 +32,7 @@ describe('setup-auth.js script', () => {
       // Acceptance Criteria #6: Setup script successfully imports TokenManager from compiled output
       // The script uses dynamic import after the build guard check
       expect(scriptSource).toMatch(
-        /await\s+import\s*\(\s*tokenManagerPath\s*\)/,
+        /await\s+import\s*\(\s*pathToFileURL\s*\(\s*tokenManagerPath\s*\)\s*\.href\s*\)/,
       );
       // The tokenManagerPath variable points to dist/auth/tokenManager.js
       expect(scriptSource).toMatch(
@@ -41,7 +43,7 @@ describe('setup-auth.js script', () => {
     it('should destructure TokenManager from the dynamic import', () => {
       // Acceptance Criteria #6: TokenManager is properly extracted from the import
       expect(scriptSource).toMatch(
-        /const\s*\{\s*TokenManager\s*\}\s*=\s*await\s+import\s*\(\s*tokenManagerPath\s*\)/,
+        /const\s*\{\s*TokenManager\s*\}\s*=\s*await\s+import\s*\(\s*pathToFileURL\s*\(\s*tokenManagerPath\s*\)\s*\.href\s*\)/,
       );
     });
 
@@ -137,7 +139,7 @@ describe('setup-auth.js script', () => {
       // so users get a friendly error message instead of a raw import error
       const guardIndex = scriptSource.indexOf('fs.access(tokenManagerPath)');
       const importIndex = scriptSource.indexOf(
-        'await import(tokenManagerPath)',
+        'await import(pathToFileURL(tokenManagerPath).href)',
       );
       expect(guardIndex).toBeGreaterThan(-1);
       expect(importIndex).toBeGreaterThan(-1);
@@ -192,7 +194,7 @@ describe('setup-auth.js script', () => {
           env: { ...process.env, NODE_NO_WARNINGS: '1' },
         });
         // Should not reach here
-        fail('Expected the script to exit with an error');
+        throw new Error('Expected the script to exit with an error');
       } catch (error: any) {
         // The script should exit with code 1
         expect(error.code).toBe(1);
