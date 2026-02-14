@@ -411,6 +411,7 @@ export FREEE_TOKEN_DATA_BASE64="base64-encoded-json"
 # Individual token variables (legacy)
 export FREEE_ACCESS_TOKEN="your-access-token"
 export FREEE_REFRESH_TOKEN="your-refresh-token"
+# FREEE_COMPANY_ID is required to associate the token with a specific company
 export FREEE_COMPANY_ID="12345"
 ```
 
