@@ -9,6 +9,8 @@ import {
   CACHE_TTL_PARTNERS,
   CACHE_TTL_SECTIONS,
   CACHE_TTL_TAGS,
+  PAGINATION_LIMIT,
+  MAX_AUTO_PAGINATION_RECORDS,
 } from '../constants.js';
 import { TokenRefreshError } from '../errors.js';
 import {
@@ -22,6 +24,13 @@ import {
   FreeeInvoice,
   FreeeTrialBalance,
   FreeeApiError,
+  DealAggregation,
+  PartnerAggregation,
+  MonthlyAggregation,
+  AccountItemAggregation,
+  InvoiceSummaryAggregation,
+  InvoiceStatusAggregation,
+  InvoicePartnerAggregation,
 } from '../types/freee.js';
 import { ApiCache, generateCacheKey } from './cache.js';
 
@@ -615,6 +624,293 @@ export class FreeeClient {
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
+  }
+
+  // Auto-pagination: fetches all pages of a paginated endpoint
+  async fetchAllPages<T>(
+    endpoint: string,
+    params: Record<string, unknown>,
+    dataKey: string,
+    maxRecords: number = MAX_AUTO_PAGINATION_RECORDS,
+  ): Promise<T[]> {
+    const allResults: T[] = [];
+    let offset = 0;
+    const limit = PAGINATION_LIMIT;
+    let pageCount = 0;
+
+    while (allResults.length < maxRecords) {
+      const response = await this.api.get(endpoint, {
+        params: { ...params, offset, limit },
+      });
+      const items: T[] = response.data[dataKey] || [];
+      allResults.push(...items);
+      pageCount++;
+
+      if (pageCount > 1 && pageCount % 5 === 0) {
+        logClient(
+          'Auto-pagination: fetched %d records in %d API calls for %s',
+          allResults.length,
+          pageCount,
+          endpoint,
+        );
+      }
+
+      if (items.length < limit) break;
+      offset += limit;
+    }
+
+    return allResults.slice(0, maxRecords);
+  }
+
+  // Search deals with server-side aggregation
+  async searchDeals(
+    companyId: number,
+    filters: {
+      partner_id?: number;
+      account_item_id?: number;
+      start_issue_date?: string;
+      end_issue_date?: string;
+    },
+    maxRecords?: number,
+  ): Promise<DealAggregation> {
+    const params: Record<string, unknown> = { company_id: companyId };
+    if (filters.partner_id) params.partner_id = filters.partner_id;
+    if (filters.account_item_id)
+      params.account_item_id = filters.account_item_id;
+    if (filters.start_issue_date)
+      params.start_issue_date = filters.start_issue_date;
+    if (filters.end_issue_date) params.end_issue_date = filters.end_issue_date;
+
+    const deals = await this.fetchAllPages<FreeeDeal>(
+      '/deals',
+      params,
+      'deals',
+      maxRecords,
+    );
+
+    return this.aggregateDeals(deals);
+  }
+
+  private aggregateDeals(deals: FreeeDeal[]): DealAggregation {
+    const sorted = [...deals].sort((a, b) =>
+      a.issue_date.localeCompare(b.issue_date),
+    );
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const partnerMap = new Map<
+      number,
+      { name: string; income: number; expense: number; count: number }
+    >();
+    const monthMap = new Map<
+      string,
+      { income: number; expense: number; count: number }
+    >();
+    const accountItemMap = new Map<number, { total: number; count: number }>();
+
+    for (const deal of deals) {
+      if (deal.type === 'income') {
+        totalIncome += deal.amount;
+      } else {
+        totalExpense += deal.amount;
+      }
+
+      // By partner
+      if (deal.partner_id != null) {
+        const existing = partnerMap.get(deal.partner_id) || {
+          name: deal.partner_name || `Partner ${deal.partner_id}`,
+          income: 0,
+          expense: 0,
+          count: 0,
+        };
+        if (deal.type === 'income') existing.income += deal.amount;
+        else existing.expense += deal.amount;
+        existing.count++;
+        partnerMap.set(deal.partner_id, existing);
+      }
+
+      // By month
+      const month = deal.issue_date.substring(0, 7); // YYYY-MM
+      const monthEntry = monthMap.get(month) || {
+        income: 0,
+        expense: 0,
+        count: 0,
+      };
+      if (deal.type === 'income') monthEntry.income += deal.amount;
+      else monthEntry.expense += deal.amount;
+      monthEntry.count++;
+      monthMap.set(month, monthEntry);
+
+      // By account item
+      for (const detail of deal.details || []) {
+        const existing = accountItemMap.get(detail.account_item_id) || {
+          total: 0,
+          count: 0,
+        };
+        existing.total += detail.amount;
+        existing.count++;
+        accountItemMap.set(detail.account_item_id, existing);
+      }
+    }
+
+    const byPartner: PartnerAggregation[] = Array.from(
+      partnerMap.entries(),
+    ).map(([id, data]) => ({
+      partner_id: id,
+      partner_name: data.name,
+      income: data.income,
+      expense: data.expense,
+      count: data.count,
+    }));
+
+    const byMonth: MonthlyAggregation[] = Array.from(monthMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        income: data.income,
+        expense: data.expense,
+        count: data.count,
+      }));
+
+    const byAccountItem: AccountItemAggregation[] = Array.from(
+      accountItemMap.entries(),
+    ).map(([id, data]) => ({
+      account_item_id: id,
+      total: data.total,
+      count: data.count,
+    }));
+
+    const result: DealAggregation = {
+      total_count: deals.length,
+      total_income: totalIncome,
+      total_expense: totalExpense,
+      by_partner: byPartner,
+      by_month: byMonth,
+      by_account_item: byAccountItem,
+    };
+
+    if (sorted.length > 0) {
+      result.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
+    }
+
+    return result;
+  }
+
+  // Summarize invoices with payment status breakdown
+  async summarizeInvoices(
+    companyId: number,
+    filters: {
+      partner_id?: number;
+      invoice_status?: string;
+      payment_status?: string;
+      start_issue_date?: string;
+      end_issue_date?: string;
+    },
+    maxRecords?: number,
+  ): Promise<InvoiceSummaryAggregation> {
+    const params: Record<string, unknown> = { company_id: companyId };
+    if (filters.partner_id) params.partner_id = filters.partner_id;
+    if (filters.invoice_status) params.invoice_status = filters.invoice_status;
+    if (filters.payment_status) params.payment_status = filters.payment_status;
+    if (filters.start_issue_date)
+      params.start_issue_date = filters.start_issue_date;
+    if (filters.end_issue_date) params.end_issue_date = filters.end_issue_date;
+
+    const invoices = await this.fetchAllPages<FreeeInvoice>(
+      '/invoices',
+      params,
+      'invoices',
+      maxRecords,
+    );
+
+    return this.aggregateInvoices(invoices);
+  }
+
+  private aggregateInvoices(
+    invoices: FreeeInvoice[],
+  ): InvoiceSummaryAggregation {
+    const sorted = [...invoices].sort((a, b) =>
+      a.issue_date.localeCompare(b.issue_date),
+    );
+
+    const today = new Date().toISOString().split('T')[0];
+    let totalAmount = 0;
+    let unpaidAmount = 0;
+    let overdueCount = 0;
+    const statusMap = new Map<string, { count: number; amount: number }>();
+    const partnerMap = new Map<
+      number,
+      { name: string; count: number; amount: number; unpaid: number }
+    >();
+
+    for (const invoice of invoices) {
+      totalAmount += invoice.total_amount;
+
+      const isUnpaid =
+        invoice.payment_status === 'unsettled' ||
+        invoice.payment_status === 'empty';
+      if (isUnpaid) {
+        unpaidAmount += invoice.total_amount;
+        if (invoice.due_date && invoice.due_date < today) {
+          overdueCount++;
+        }
+      }
+
+      // By status (combine invoice_status and payment_status)
+      const statusKey = `${invoice.invoice_status}/${invoice.payment_status || 'unknown'}`;
+      const statusEntry = statusMap.get(statusKey) || {
+        count: 0,
+        amount: 0,
+      };
+      statusEntry.count++;
+      statusEntry.amount += invoice.total_amount;
+      statusMap.set(statusKey, statusEntry);
+
+      // By partner
+      const existing = partnerMap.get(invoice.partner_id) || {
+        name: invoice.partner_name || `Partner ${invoice.partner_id}`,
+        count: 0,
+        amount: 0,
+        unpaid: 0,
+      };
+      existing.count++;
+      existing.amount += invoice.total_amount;
+      if (isUnpaid) existing.unpaid += invoice.total_amount;
+      partnerMap.set(invoice.partner_id, existing);
+    }
+
+    const byStatus: InvoiceStatusAggregation[] = Array.from(
+      statusMap.entries(),
+    ).map(([status, data]) => ({
+      status,
+      count: data.count,
+      amount: data.amount,
+    }));
+
+    const byPartner: InvoicePartnerAggregation[] = Array.from(
+      partnerMap.entries(),
+    ).map(([id, data]) => ({
+      partner_id: id,
+      partner_name: data.name,
+      count: data.count,
+      amount: data.amount,
+      unpaid: data.unpaid,
+    }));
+
+    const result: InvoiceSummaryAggregation = {
+      total_count: invoices.length,
+      total_amount: totalAmount,
+      unpaid_amount: unpaidAmount,
+      overdue_count: overdueCount,
+      by_status: byStatus,
+      by_partner: byPartner,
+    };
+
+    if (sorted.length > 0) {
+      result.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
+    }
+
+    return result;
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API

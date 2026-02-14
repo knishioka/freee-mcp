@@ -213,3 +213,60 @@ export interface FormattedListResponse<T> {
   summary: ListSummary;
   items: T[];
 }
+
+// Aggregation response types for server-side summarization
+
+export interface PartnerAggregation {
+  partner_id: number;
+  partner_name: string;
+  income: number;
+  expense: number;
+  count: number;
+}
+
+export interface MonthlyAggregation {
+  month: string;
+  income: number;
+  expense: number;
+  count: number;
+}
+
+export interface AccountItemAggregation {
+  account_item_id: number;
+  total: number;
+  count: number;
+}
+
+export interface DealAggregation {
+  total_count: number;
+  total_income: number;
+  total_expense: number;
+  date_range?: string;
+  by_partner: PartnerAggregation[];
+  by_month: MonthlyAggregation[];
+  by_account_item: AccountItemAggregation[];
+}
+
+export interface InvoiceStatusAggregation {
+  status: string;
+  count: number;
+  amount: number;
+}
+
+export interface InvoicePartnerAggregation {
+  partner_id: number;
+  partner_name: string;
+  count: number;
+  amount: number;
+  unpaid: number;
+}
+
+export interface InvoiceSummaryAggregation {
+  total_count: number;
+  total_amount: number;
+  unpaid_amount: number;
+  overdue_count: number;
+  date_range?: string;
+  by_status: InvoiceStatusAggregation[];
+  by_partner: InvoicePartnerAggregation[];
+}

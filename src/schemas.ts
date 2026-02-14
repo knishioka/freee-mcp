@@ -195,6 +195,36 @@ export const CreateInvoiceSchema = {
     .describe('Invoice line items'),
 };
 
+// Search/Aggregation schemas
+export const SearchDealsSchema = {
+  companyId: companyIdField,
+  partnerId: z.number().optional().describe('Partner ID to filter by'),
+  accountItemId: z.number().optional().describe('Account item ID to filter by'),
+  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(1000)
+    .optional()
+    .describe('Maximum records to fetch (1-1000, default 1000)'),
+};
+
+export const SummarizeInvoicesSchema = {
+  companyId: companyIdField,
+  partnerId: z.number().optional().describe('Partner ID to filter by'),
+  invoiceStatus: z.string().optional().describe('Invoice status to filter by'),
+  paymentStatus: z.string().optional().describe('Payment status to filter by'),
+  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(1000)
+    .optional()
+    .describe('Maximum records to fetch (1-1000, default 1000)'),
+};
+
 // Trial Balance schemas
 export const GetTrialBalanceSchema = {
   companyId: companyIdField,

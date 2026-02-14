@@ -674,6 +674,90 @@ registerTool(
   },
 );
 
+// === Search/Aggregation tools ===
+
+registerTool(
+  'freee_search_deals',
+  {
+    description:
+      'Search and aggregate all deals - Auto-paginates through all matching deals and returns pre-computed summaries by partner, month, and account item. Use this instead of manual pagination with freee_get_deals for financial analysis. Returns aggregated totals, not individual records.',
+    inputSchema: schemas.SearchDealsSchema,
+  },
+  async ({
+    companyId,
+    partnerId,
+    accountItemId,
+    startIssueDate,
+    endIssueDate,
+    maxRecords,
+  }) => {
+    try {
+      const aggregation = await freeeClient.searchDeals(
+        getCompanyId(companyId),
+        {
+          partner_id: partnerId,
+          account_item_id: accountItemId,
+          start_issue_date: startIssueDate,
+          end_issue_date: endIssueDate,
+        },
+        maxRecords,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(aggregation, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_search_deals', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_summarize_invoices',
+  {
+    description:
+      'Summarize all invoices with payment status breakdown - Auto-paginates through all matching invoices and returns pre-computed summaries by status and partner. Shows total amounts, unpaid amounts, and overdue counts. Use this for AR tracking and cash flow analysis instead of manual pagination.',
+    inputSchema: schemas.SummarizeInvoicesSchema,
+  },
+  async ({
+    companyId,
+    partnerId,
+    invoiceStatus,
+    paymentStatus,
+    startIssueDate,
+    endIssueDate,
+    maxRecords,
+  }) => {
+    try {
+      const summary = await freeeClient.summarizeInvoices(
+        getCompanyId(companyId),
+        {
+          partner_id: partnerId,
+          invoice_status: invoiceStatus,
+          payment_status: paymentStatus,
+          start_issue_date: startIssueDate,
+          end_issue_date: endIssueDate,
+        },
+        maxRecords,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(summary, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_summarize_invoices', error);
+    }
+  },
+);
+
 // === Report tools ===
 
 registerTool(
