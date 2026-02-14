@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import createDebug from 'debug';
 import { TokenManager } from '../auth/tokenManager.js';
 import { FREEE_API_BASE_URL, FREEE_AUTH_BASE_URL } from '../constants.js';
 import { TokenRefreshError } from '../errors.js';
@@ -14,6 +15,9 @@ import {
   FreeeTrialBalance,
   FreeeApiError,
 } from '../types/freee.js';
+
+const logAuth = createDebug('freee-mcp:auth');
+const logClient = createDebug('freee-mcp:client');
 
 export class FreeeClient {
   private api: AxiosInstance;
@@ -79,8 +83,9 @@ export class FreeeClient {
         const expiryStatus = this.tokenManager.getTokenExpiryStatus(token);
 
         if (expiryStatus.status === 'expired') {
-          console.error(
-            `Token for company ${effectiveCompanyId} has expired. Attempting refresh...`,
+          logAuth(
+            'Token for company %d has expired. Attempting refresh...',
+            effectiveCompanyId,
           );
           if (token.refresh_token) {
             try {
@@ -94,7 +99,7 @@ export class FreeeClient {
                 config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
               }
             } catch (error) {
-              console.error('Pre-request token refresh failed:', error);
+              logAuth('Pre-request token refresh failed: %O', error);
               throw new Error(
                 'Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.',
               );
@@ -105,8 +110,10 @@ export class FreeeClient {
             );
           }
         } else if (expiryStatus.status === 'near_expiry') {
-          console.error(
-            `Token for company ${effectiveCompanyId} expires in ${expiryStatus.remainingMinutes} minutes`,
+          logAuth(
+            'Token for company %d expires in %d minutes',
+            effectiveCompanyId,
+            expiryStatus.remainingMinutes,
           );
           config.headers.Authorization = `Bearer ${token.access_token}`;
           // Fire-and-forget background refresh
@@ -115,7 +122,7 @@ export class FreeeClient {
               effectiveCompanyId,
               token.refresh_token,
             ).catch((err) =>
-              console.error('Background token refresh failed:', err),
+              logAuth('Background token refresh failed: %O', err),
             );
           }
         } else {
@@ -140,10 +147,10 @@ export class FreeeClient {
       const isExpiredToken = errorData?.code === 'expired_access_token';
       const errorCode = errorData?.code || 'unknown';
 
-      console.error('\n=== Authentication Error (401) ===');
-      console.error(`Error code: ${errorCode}`);
-      console.error(
-        `Type: ${isExpiredToken ? 'Token expired' : 'Unauthorized'}`,
+      logAuth(
+        'Authentication error (401): code=%s type=%s',
+        errorCode,
+        isExpiredToken ? 'Token expired' : 'Unauthorized',
       );
 
       // Token might be expired, try to refresh
@@ -176,14 +183,15 @@ export class FreeeClient {
           }
 
           try {
-            console.error(
-              `\nAttempting automatic token refresh for company ${companyId}...`,
+            logAuth(
+              'Attempting automatic token refresh for company %d...',
+              companyId,
             );
             await this.refreshTokenWithLock(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
               (error.config as any).__retried = true;
-              console.error(
+              logAuth(
                 'Token refreshed successfully. Retrying original request...',
               );
               const retryResult = await this.api.request(error.config);
@@ -191,9 +199,8 @@ export class FreeeClient {
             }
           } catch (refreshError: any) {
             const refreshErrorData = refreshError.response?.data;
-            console.error('\n=== Token Refresh Failed ===');
-            console.error(
-              'Error:',
+            logAuth(
+              'Token refresh failed: %s',
               refreshErrorData?.error || refreshError.message,
             );
 
@@ -206,9 +213,7 @@ export class FreeeClient {
                 currentToken.access_token !== token.access_token
               ) {
                 // Token was refreshed by another request, retry with new token
-                console.error(
-                  'Token was refreshed by another request. Retrying...',
-                );
+                logAuth('Token was refreshed by another request. Retrying...');
                 if (error.config) {
                   const retryResult = await this.api.request(error.config);
                   return retryResult as never;
@@ -217,35 +222,24 @@ export class FreeeClient {
 
               // Token is genuinely invalid, remove and suggest re-auth
               await this.tokenManager.removeToken(companyId);
-              console.error(
-                '\nRefresh token is no longer valid. This can happen when:',
+              logAuth(
+                'Refresh token is no longer valid. Possible causes: ' +
+                  '(1) token already used (freee tokens are single-use), ' +
+                  '(2) OAuth app permissions changed, ' +
+                  '(3) token revoked. ' +
+                  'Re-authenticate using freee_get_auth_url.',
               );
-              console.error(
-                '1. The refresh token has already been used (freee tokens are single-use)',
-              );
-              console.error('2. The OAuth app permissions have changed');
-              console.error('3. The token has been revoked');
-              console.error('\nTo fix this issue:');
-              console.error(
-                '1. Use the freee_get_auth_url tool to get a new authorization URL',
-              );
-              console.error('2. Visit the URL and authorize the application');
-              console.error(
-                '3. Use freee_get_access_token with the authorization code',
-              );
-              console.error('\nFor automated environments, see README.md');
               throw new Error(
                 'Authentication expired. Please re-authenticate using freee_get_auth_url.',
               );
             }
 
             // Only delete tokens on definitive auth failures
-            // (invalid_grant is fully handled above at lines 202-242)
             if (refreshErrorData?.error === 'invalid_client') {
               await this.tokenManager.removeToken(companyId);
             } else {
               // Transient error (network, timeout, etc.) — keep token for retry
-              console.error(
+              logAuth(
                 'Token refresh failed (transient error), keeping existing token',
               );
             }
@@ -268,16 +262,14 @@ export class FreeeClient {
             );
           }
         } else {
-          console.error(
-            '\nNo refresh token available. Please re-authenticate.',
-          );
+          logAuth('No refresh token available. Please re-authenticate.');
           throw new Error(
             'No refresh token available. Use freee_get_auth_url to re-authenticate.',
           );
         }
       } else {
-        console.error(
-          '\nNo company ID found for authentication. Please ensure you have authenticated at least once.',
+        logAuth(
+          'No company ID found for authentication. Please ensure you have authenticated at least once.',
         );
         throw new Error(
           'No authenticated companies found. Use freee_get_auth_url to authenticate.',
@@ -287,17 +279,13 @@ export class FreeeClient {
 
     // Handle other API errors
     if (error.response?.status === 403) {
-      console.error('\n=== Permission Error (403) ===');
-      console.error(
-        'The OAuth app does not have permission for this operation.',
+      logClient(
+        'Permission error (403): The OAuth app does not have permission for this operation. Check freee OAuth app settings and scopes.',
       );
-      console.error('Please check your freee OAuth app settings and scopes.');
     } else if (error.response?.status === 429) {
-      console.error('\n=== Rate Limit Error (429) ===');
-      console.error(
-        'You have exceeded the freee API rate limit (3,600 requests/hour).',
+      logClient(
+        'Rate limit error (429): freee API rate limit exceeded (3,600 requests/hour). Please wait before making more requests.',
       );
-      console.error('Please wait before making more requests.');
     }
 
     const apiError = error.response?.data as FreeeApiError;
@@ -331,16 +319,16 @@ export class FreeeClient {
     });
 
     try {
-      console.error('🔄 Making token request to freee API...');
+      logAuth('Making token request to freee API...');
       const response = await this.authApi.post<FreeeTokenResponse>(
         '/public_api/token',
         params.toString(),
       );
-      console.error('✅ Token request successful');
+      logAuth('Token request successful');
       return response.data;
     } catch (error: any) {
-      console.error(
-        '❌ Token request failed:',
+      logAuth(
+        'Token request failed: %O',
         error.response?.data || error.message,
       );
       throw error;
