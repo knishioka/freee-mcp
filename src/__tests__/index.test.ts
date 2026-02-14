@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 22 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(22);
+    it('should register exactly 24 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(24);
     });
 
     it('should register all expected tool names', () => {
@@ -111,6 +111,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_tags',
         'freee_get_invoices',
         'freee_create_invoice',
+        'freee_search_deals',
+        'freee_summarize_invoices',
         'freee_get_walletables',
         'freee_get_manual_journals',
         'freee_get_manual_journal',
@@ -143,7 +145,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         (block) => block.includes('description:') && block.includes('\'freee_'),
       );
 
-      expect(toolCalls.length).toBe(22);
+      expect(toolCalls.length).toBe(24);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -172,6 +174,12 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetTrialBalanceSchema',
         'schemas.GetProfitLossSchema',
         'schemas.GetBalanceSheetSchema',
+        'schemas.SearchDealsSchema',
+        'schemas.SummarizeInvoicesSchema',
+        'schemas.GetWalletablesSchema',
+        'schemas.GetManualJournalsSchema',
+        'schemas.GetManualJournalSchema',
+        'schemas.GetWalletTxnsSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -331,7 +339,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 18 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 24 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -350,6 +358,12 @@ describe('Schema Structure Verification', () => {
       'GetTagsSchema',
       'GetInvoicesSchema',
       'CreateInvoiceSchema',
+      'SearchDealsSchema',
+      'SummarizeInvoicesSchema',
+      'GetWalletablesSchema',
+      'GetManualJournalsSchema',
+      'GetManualJournalSchema',
+      'GetWalletTxnsSchema',
       'GetTrialBalanceSchema',
       'GetProfitLossSchema',
       'GetBalanceSheetSchema',
@@ -374,7 +388,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 18 schemas', async () => {
+  it('should export exactly 24 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -382,7 +396,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(22);
+    expect(schemaExports).toHaveLength(24);
   });
 
   it('should use Zod types in schema fields', async () => {

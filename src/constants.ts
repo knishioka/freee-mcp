@@ -17,5 +17,9 @@ export const CACHE_TTL_TAGS = 15 * 60 * 1000; // 15 minutes
 export const CACHE_TTL_PARTNERS = 5 * 60 * 1000; // 5 minutes
 export const CACHE_TTL_COMPANIES = 30 * 60 * 1000; // 30 minutes
 
+// Pagination Configuration
+export const PAGINATION_LIMIT = 100; // freee API max per page
+export const MAX_AUTO_PAGINATION_RECORDS = 1000; // Safety limit for auto-pagination
+
 // MCP Server Configuration
 export const SERVER_NAME = 'freee-mcp';
