@@ -425,6 +425,144 @@ describe('FreeeClient', () => {
         );
       });
     });
+
+    describe('getWalletables', () => {
+      it('should fetch walletables with parameters', async () => {
+        const mockWalletables = [
+          {
+            id: 1,
+            name: 'Main Bank',
+            type: 'bank_account',
+            last_balance: 100000,
+          },
+          { id: 2, name: 'Corp Card', type: 'credit_card' },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { walletables: mockWalletables },
+        });
+
+        const result = await client.getWalletables(123, {
+          with_balance: true,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/walletables', {
+          params: { company_id: 123, with_balance: true },
+        });
+        expect(result).toEqual(mockWalletables);
+      });
+    });
+
+    describe('getManualJournals', () => {
+      it('should fetch manual journals with parameters', async () => {
+        const mockJournals = [
+          {
+            id: 1,
+            company_id: 123,
+            issue_date: '2024-01-01',
+            adjustment: false,
+            details: [],
+          },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { manual_journals: mockJournals },
+        });
+
+        const params = {
+          start_issue_date: '2024-01-01',
+          end_issue_date: '2024-01-31',
+          entry_side: 'debit',
+          min_amount: 1000,
+          max_amount: 50000,
+          limit: 500,
+        };
+
+        const result = await client.getManualJournals(123, params);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/manual_journals', {
+          params: { company_id: 123, ...params },
+        });
+        expect(result).toEqual(mockJournals);
+      });
+    });
+
+    describe('getManualJournal', () => {
+      it('should fetch a single manual journal by ID', async () => {
+        const mockJournal = {
+          id: 42,
+          company_id: 123,
+          issue_date: '2024-01-15',
+          adjustment: true,
+          details: [
+            {
+              id: 1,
+              entry_side: 'debit',
+              account_item_id: 100,
+              amount: 5000,
+            },
+            {
+              id: 2,
+              entry_side: 'credit',
+              account_item_id: 200,
+              amount: 5000,
+            },
+          ],
+        };
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { manual_journal: mockJournal },
+        });
+
+        const result = await client.getManualJournal(123, 42);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/manual_journals/42',
+          {
+            params: { company_id: 123 },
+          },
+        );
+        expect(result).toEqual(mockJournal);
+      });
+    });
+
+    describe('getWalletTxns', () => {
+      it('should fetch wallet transactions with parameters', async () => {
+        const mockTxns = [
+          {
+            id: 1,
+            company_id: 123,
+            date: '2024-01-01',
+            amount: 10000,
+            due_amount: 10000,
+            entry_side: 'income',
+            walletable_type: 'bank_account',
+            walletable_id: 1,
+            status: 1,
+          },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { wallet_txns: mockTxns },
+        });
+
+        const params = {
+          walletable_type: 'bank_account',
+          walletable_id: 1,
+          start_date: '2024-01-01',
+          end_date: '2024-01-31',
+          entry_side: 'income',
+          limit: 100,
+        };
+
+        const result = await client.getWalletTxns(123, params);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/wallet_txns', {
+          params: { company_id: 123, ...params },
+        });
+        expect(result).toEqual(mockTxns);
+      });
+    });
   });
 
   describe('error handling', () => {

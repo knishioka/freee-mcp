@@ -195,6 +195,68 @@ export const CreateInvoiceSchema = {
     .describe('Invoice line items'),
 };
 
+// Walletable schemas
+export const GetWalletablesSchema = {
+  companyId: companyIdField,
+  withBalance: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, includes current balance for each account. Useful for cash position analysis.',
+    ),
+};
+
+// Manual Journal schemas
+export const GetManualJournalsSchema = {
+  companyId: companyIdField,
+  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  entrySide: z
+    .enum(['debit', 'credit'])
+    .optional()
+    .describe('Filter by entry side'),
+  accountItemId: z.number().optional().describe('Account item ID to filter by'),
+  minAmount: z.number().optional().describe('Minimum amount filter'),
+  maxAmount: z.number().optional().describe('Maximum amount filter'),
+  partnerId: z.number().optional().describe('Partner ID to filter by'),
+  sectionId: z.number().optional().describe('Section ID to filter by'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(500)
+    .optional()
+    .describe('Number of results (1-500, default 100)'),
+};
+
+export const GetManualJournalSchema = {
+  companyId: companyIdField,
+  manualJournalId: z.number().describe('Manual journal ID'),
+};
+
+// Wallet Transaction schemas
+export const GetWalletTxnsSchema = {
+  companyId: companyIdField,
+  walletableType: z
+    .enum(['bank_account', 'credit_card', 'wallet'])
+    .optional()
+    .describe('Type of wallet account to filter'),
+  walletableId: z.number().optional().describe('Wallet account ID to filter'),
+  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  entrySide: z
+    .enum(['income', 'expense'])
+    .optional()
+    .describe('Filter by income or expense'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+};
+
 // Trial Balance schemas
 export const GetTrialBalanceSchema = {
   companyId: companyIdField,
