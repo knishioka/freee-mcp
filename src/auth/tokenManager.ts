@@ -15,14 +15,59 @@ export interface TokenData extends FreeeTokenResponse {
 export class TokenManager {
   private tokens: Map<number, TokenData> = new Map();
   private storagePath?: string;
+  private saltPath?: string;
+  private secret: string;
   private encryptionKey?: Buffer;
 
   constructor(storagePath?: string) {
     this.storagePath = storagePath;
-    // Generate encryption key from environment or create a deterministic one
-    const secret =
+    this.secret =
       process.env.FREEE_TOKEN_ENCRYPTION_KEY || 'freee-mcp-default-key';
-    this.encryptionKey = crypto.scryptSync(secret, 'salt', 32);
+    if (storagePath) {
+      this.saltPath = `${storagePath}.salt`;
+    }
+  }
+
+  private async loadOrCreateSalt(): Promise<Buffer> {
+    if (this.saltPath) {
+      try {
+        return await fs.readFile(this.saltPath);
+      } catch (error: unknown) {
+        if (
+          error instanceof Error &&
+          (error as NodeJS.ErrnoException).code !== 'ENOENT'
+        ) {
+          throw error;
+        }
+        const salt = crypto.randomBytes(32);
+        const dir = path.dirname(this.saltPath);
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(this.saltPath, salt, { mode: 0o600 });
+        return salt;
+      }
+    }
+    return Buffer.from('salt');
+  }
+
+  private deriveKey(salt: Buffer | string): Buffer {
+    return crypto.scryptSync(this.secret, salt, 32);
+  }
+
+  private decryptWithKey(encryptedText: string, key: Buffer): string {
+    const parts = encryptedText.split(':');
+    if (parts.length !== 3) throw new Error('Not encrypted');
+
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
   }
 
   private async checkFilePermissions(filePath: string): Promise<void> {
@@ -83,12 +128,30 @@ export class TokenManager {
   async loadTokens(): Promise<void> {
     if (!this.storagePath) return;
 
+    const salt = await this.loadOrCreateSalt();
+    this.encryptionKey = this.deriveKey(salt);
+
     try {
       await this.checkFilePermissions(this.storagePath);
       const encryptedData = await fs.readFile(this.storagePath, 'utf-8');
-      const data = this.decrypt(encryptedData);
-      const tokenArray: Array<[number, TokenData]> = JSON.parse(data);
-      this.tokens = new Map(tokenArray);
+
+      try {
+        const data = this.decrypt(encryptedData);
+        const tokenArray: Array<[number, TokenData]> = JSON.parse(data);
+        this.tokens = new Map(tokenArray);
+      } catch {
+        // Try legacy salt migration
+        try {
+          const legacyKey = this.deriveKey('salt');
+          const data = this.decryptWithKey(encryptedData, legacyKey);
+          const tokenArray: Array<[number, TokenData]> = JSON.parse(data);
+          this.tokens = new Map(tokenArray);
+          await this.saveTokens();
+          console.error('Migrated tokens from legacy salt to random salt');
+        } catch {
+          this.tokens = new Map();
+        }
+      }
     } catch (error) {
       // File doesn't exist or is invalid, start with empty tokens
       this.tokens = new Map();
@@ -97,6 +160,11 @@ export class TokenManager {
 
   async saveTokens(): Promise<void> {
     if (!this.storagePath) return;
+
+    if (!this.encryptionKey) {
+      const salt = await this.loadOrCreateSalt();
+      this.encryptionKey = this.deriveKey(salt);
+    }
 
     const tokenArray = Array.from(this.tokens.entries());
     const dir = path.dirname(this.storagePath);
