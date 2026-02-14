@@ -11,6 +11,7 @@ import {
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 import dotenv from 'dotenv';
+import type { z } from 'zod';
 import { FreeeClient } from './api/freeeClient.js';
 import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME, SERVER_VERSION } from './constants.js';
@@ -106,7 +107,7 @@ function formatError(error: unknown): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function registerTool(
   name: string,
-  config: { description: string; inputSchema?: Record<string, unknown> },
+  config: { description: string; inputSchema?: Record<string, z.ZodTypeAny> },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: (args: any) => Promise<CallToolResult>,
 ): void {
@@ -628,7 +629,8 @@ registerTool(
             description: line.description,
             tax_code: line.taxCode,
             account_item_id: line.accountItemId,
-          })),
+          }),
+        ),
       });
       return {
         content: [
@@ -772,27 +774,38 @@ server.registerResource(
     mimeType: 'application/json',
   },
   async (uri, { companyId }) => {
-    const id = parseInt(String(companyId), 10);
-    const token = tokenManager.getToken(id);
+    try {
+      const id = parseInt(String(companyId), 10);
+      const token = tokenManager.getToken(id);
 
-    if (!token) {
+      if (!token) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          'No token found for this company',
+        );
+      }
+
+      const company = await freeeClient.getCompany(id);
+
+      return {
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify(company, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Resource read error for company:', error);
+      if (error instanceof McpError) {
+        throw error;
+      }
       throw new McpError(
-        ErrorCode.InvalidRequest,
-        'No token found for this company',
+        ErrorCode.InternalError,
+        `Resource read failed: ${formatError(error)}`,
       );
     }
-
-    const company = await freeeClient.getCompany(id);
-
-    return {
-      contents: [
-        {
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify(company, null, 2),
-        },
-      ],
-    };
   },
 );
 
