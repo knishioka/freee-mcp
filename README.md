@@ -72,62 +72,102 @@ FREEE_REDIRECT_URI=urn:ietf:wg:oauth:2.0:oob
 
 ### MCP Client Configuration
 
-#### Claude Desktop Configuration
+Build the server first (`npm run build`), then configure one of the clients below.
 
-1. **Ensure the server is built** (see Installation step 3 above)
+#### Environment Variables
 
-2. **Locate the configuration file:**
-   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+| Variable | Required | Description | Default |
+| --- | --- | --- | --- |
+| `FREEE_CLIENT_ID` | Yes | freee OAuth app client ID. The server exits on startup if this is missing. | — |
+| `FREEE_CLIENT_SECRET` | Yes | freee OAuth app client secret. The server exits on startup if this is missing. | — |
+| `FREEE_DEFAULT_COMPANY_ID` | No | Default company ID used when tool calls omit `companyId`. | — |
+| `TOKEN_STORAGE_PATH` | No | Encrypted token storage file path. | Platform-specific (`TokenManager.getDefaultStoragePath()`) |
+| `FREEE_TOKEN_ENCRYPTION_KEY` | No | Secret used to derive the AES-256-GCM key for token encryption. | Built-in default key (`freee-mcp-default-key`) |
+| `FREEE_TOKEN_DATA_BASE64` | No | Base64-encoded JSON of `[companyId, tokenData]` tuples loaded at startup. | — |
 
-3. **Choose your configuration method:**
+<details>
+<summary>Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` or `%APPDATA%\\Claude\\claude_desktop_config.json`)</summary>
 
-   **Option A: Using encrypted token file (Recommended after running setup-auth)**
+```json
+{
+  "mcpServers": {
+    "freee": {
+      "command": "node",
+      "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
+      "env": {
+        "FREEE_CLIENT_ID": "your_client_id_here",
+        "FREEE_CLIENT_SECRET": "your_client_secret_here",
+        "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.enc",
+        "FREEE_DEFAULT_COMPANY_ID": "123456",
+        "FREEE_TOKEN_ENCRYPTION_KEY": "replace-with-strong-random-value"
+      }
+    }
+  }
+}
+```
 
-   ```json
-   {
-     "mcpServers": {
-       "freee": {
-         "command": "node",
-         "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
-         "env": {
-           "FREEE_CLIENT_ID": "your_client_id_here",
-           "FREEE_CLIENT_SECRET": "your_client_secret_here",
-           "TOKEN_STORAGE_PATH": "/absolute/path/to/freee-mcp/tokens.enc",
-           "FREEE_DEFAULT_COMPANY_ID": "123456" // Optional: Set default company ID
-         }
-       }
-     }
-   }
-   ```
+</details>
 
-   **Option B: Using environment variables for tokens**
+<details>
+<summary>Claude Code CLI</summary>
 
-   ```json
-   {
-     "mcpServers": {
-       "freee": {
-         "command": "node",
-         "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
-         "env": {
-           "FREEE_CLIENT_ID": "your_client_id_here",
-           "FREEE_CLIENT_SECRET": "your_client_secret_here",
-           "FREEE_ACCESS_TOKEN": "your_access_token",
-           "FREEE_REFRESH_TOKEN": "your_refresh_token",
-           "FREEE_COMPANY_ID": "your_company_id"
-         }
-       }
-     }
-   }
-   ```
+```bash
+claude mcp add freee \
+  -e FREEE_CLIENT_ID=your_client_id_here \
+  -e 'FREEE_CLIENT_SECRET=your_client_secret_here' \
+  -e TOKEN_STORAGE_PATH=/absolute/path/to/freee-mcp/tokens.enc \
+  -e FREEE_DEFAULT_COMPANY_ID=123456 \
+  -e 'FREEE_TOKEN_ENCRYPTION_KEY=replace-with-strong-random-value' \
+  -- node /absolute/path/to/freee-mcp/dist/index.js
+```
 
-4. **Restart Claude Desktop** to apply the configuration.
+</details>
 
-5. **Verify the server is running** by checking if freee tools are available in Claude. Try asking "What freee tools are available?"
+<details>
+<summary>VS Code (`.vscode/mcp.json`)</summary>
 
-#### Other MCP Clients
+```json
+{
+  "servers": {
+    "freee": {
+      "command": "node",
+      "args": ["${workspaceFolder}/dist/index.js"],
+      "env": {
+        "FREEE_CLIENT_ID": "your_client_id_here",
+        "FREEE_CLIENT_SECRET": "your_client_secret_here",
+        "TOKEN_STORAGE_PATH": "${workspaceFolder}/tokens.enc",
+        "FREEE_DEFAULT_COMPANY_ID": "123456",
+        "FREEE_TOKEN_ENCRYPTION_KEY": "replace-with-strong-random-value"
+      }
+    }
+  }
+}
+```
 
-For other MCP clients, adapt the configuration format as needed:
+</details>
+
+<details>
+<summary>Cursor (`~/.cursor/mcp.json`)</summary>
+
+```json
+{
+  "mcpServers": {
+    "freee": {
+      "command": "node",
+      "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
+      "env": {
+        "FREEE_CLIENT_ID": "your_client_id_here",
+        "FREEE_CLIENT_SECRET": "your_client_secret_here",
+        "FREEE_TOKEN_DATA_BASE64": "base64-encoded-json",
+        "FREEE_DEFAULT_COMPANY_ID": "123456",
+        "FREEE_TOKEN_ENCRYPTION_KEY": "replace-with-strong-random-value"
+      }
+    }
+  }
+}
+```
+
+</details>
 
 ## Usage
 
@@ -150,11 +190,11 @@ This script will:
 5. Exchange the code for tokens immediately
 6. Save tokens to `tokens.enc` or display environment variables
 
-After running this script, use **Option A** in the Claude Desktop configuration above.
+After running this script, use a file-based token configuration like the Claude Desktop or VS Code examples above.
 
 #### Method 2: Environment Variables
 
-If you already have tokens, you can directly set them in the Claude Desktop configuration. Use **Option B** in the Claude Desktop configuration above with your actual token values.
+If you already have tokens, provide them via environment variables (for example `FREEE_TOKEN_DATA_BASE64` in the Cursor example above).
 
 #### Method 3: Manual Flow (Not Recommended)
 
@@ -185,7 +225,7 @@ To avoid specifying `companyId` for every API call, you can set a default compan
 ```json
 {
   "env": {
-    "FREEE_DEFAULT_COMPANY_ID": "123456" // Your default company ID
+    "FREEE_DEFAULT_COMPANY_ID": "123456"
   }
 }
 ```
@@ -311,15 +351,9 @@ Parameters:
 
 ### Performance Comparison
 
-| Method                                 | API Calls                      | Data Processing                  | Rate Limit Impact          |
-| -------------------------------------- | ------------------------------ | -------------------------------- | -------------------------- |
-| **Individual Transaction Aggregation** | Thousands to tens of thousands | Client-side aggregation required | High risk (may hit limits) |
-| **Profit & Loss API**                  | **1 call**                     | **Server-side pre-aggregated**   | **Minimal risk**           |
+Aggregating operating profit from individual deals can require thousands of API calls and significant client-side processing. The `freee_get_profit_loss` tool returns pre-aggregated report data in a single request, which dramatically reduces rate-limit usage. For most reporting flows, start with report APIs and only fetch raw deals when you need detailed drill-down.
 
-#### Concrete Example: Annual Operating Profit Retrieval
-
-- Traditional method: 10,000 transactions → 10,000 API calls → 27% of rate limit consumed
-- **Efficient method: `freee_get_profit_loss` → 1 API call → 0.03% of rate limit consumed**
+Tip: Set `FREEE_DEFAULT_COMPANY_ID` so report calls work without passing `companyId` each time.
 
 ## Development
 
@@ -377,6 +411,7 @@ The server provides detailed error messages for:
 ### General Security Guidelines
 
 - Never commit your `.env` file or token files
+- Never commit client config files that embed secrets (for example `.vscode/mcp.json`, `~/.cursor/mcp.json`, or Claude Desktop config files)
 - Keep your Client Secret secure
 - Use absolute paths for token storage outside the project directory
 - Store tokens in platform-specific secure locations (e.g., `~/.config/freee-mcp/`)
