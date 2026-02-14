@@ -166,6 +166,7 @@ export interface FreeeWalletTransaction {
   walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
   description?: string;
+  /** ステータス(1: 未対応, 2: 確認済み, 3: 登録済み, 4: 登録済み（古）, 5: 無視) */
   status: number;
 }
 
@@ -279,7 +280,7 @@ export interface FormattedWalletTransaction {
   due_amount: number;
   balance?: number;
   entry_side: 'income' | 'expense';
-  walletable_type: string;
+  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
   description?: string;
 }
