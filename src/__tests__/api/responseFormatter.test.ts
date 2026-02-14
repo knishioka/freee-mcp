@@ -172,21 +172,21 @@ describe('ResponseFormatter', () => {
       const result = ResponseFormatter.formatDeal(deal);
 
       expect(result.details).toHaveLength(1);
-      const detail = result.details[0];
+      const detail = result.details![0];
       expect(detail.account_item_id).toBe(1);
       expect(detail.amount).toBe(10000);
       expect(detail.tax_code).toBe(21);
       expect(detail.description).toBe('detail description');
     });
 
-    it('should strip id, section_id, and tag_ids from deal details', () => {
+    it('should preserve section_id and tag_ids in deal details', () => {
       const deal = makeDeal();
       const result = ResponseFormatter.formatDeal(deal);
 
-      const detail = result.details[0];
+      const detail = result.details![0];
       expect(detail).not.toHaveProperty('id');
-      expect(detail).not.toHaveProperty('section_id');
-      expect(detail).not.toHaveProperty('tag_ids');
+      expect(detail.section_id).toBe(5);
+      expect(detail.tag_ids).toEqual([1, 2]);
     });
 
     it('should strip null/undefined optional fields', () => {
@@ -206,14 +206,14 @@ describe('ResponseFormatter', () => {
         details: [makeDealDetail({ description: undefined })],
       });
       const result = ResponseFormatter.formatDeal(deal);
-      expect(result.details[0]).not.toHaveProperty('description');
+      expect(result.details![0]).not.toHaveProperty('description');
     });
 
     it('should handle deal with empty details array', () => {
       const deal = makeDeal({ details: [] });
       const result = ResponseFormatter.formatDeal(deal);
-      // Empty arrays are stripped by stripEmpty
-      expect(result).not.toHaveProperty('details');
+      // Empty arrays are preserved by stripEmpty
+      expect(result.details).toEqual([]);
     });
 
     it('should handle deal with undefined details', () => {
@@ -221,8 +221,8 @@ describe('ResponseFormatter', () => {
       // Force undefined details to simulate API quirks
       (deal as unknown as Record<string, unknown>).details = undefined;
       const result = ResponseFormatter.formatDeal(deal);
-      // details defaults to [] via ?? [], then empty array is stripped
-      expect(result.details).toBeUndefined();
+      // details defaults to [] via ?? [], empty arrays are preserved
+      expect(result.details).toEqual([]);
     });
   });
 
@@ -376,7 +376,7 @@ describe('ResponseFormatter', () => {
       const result = ResponseFormatter.formatInvoice(invoice);
 
       expect(result.invoice_lines).toHaveLength(1);
-      const line = result.invoice_lines[0];
+      const line = result.invoice_lines![0];
       expect(line.name).toBe('Service A');
       expect(line.quantity).toBe(2);
       expect(line.unit_price).toBe(5000);
@@ -388,7 +388,7 @@ describe('ResponseFormatter', () => {
       const invoice = makeInvoice();
       const result = ResponseFormatter.formatInvoice(invoice);
 
-      const line = result.invoice_lines[0];
+      const line = result.invoice_lines![0];
       expect(line).not.toHaveProperty('id');
       expect(line).not.toHaveProperty('tax_code');
       expect(line).not.toHaveProperty('account_item_id');
@@ -417,7 +417,7 @@ describe('ResponseFormatter', () => {
       });
       const result = ResponseFormatter.formatInvoice(invoice);
 
-      const line = result.invoice_lines[0];
+      const line = result.invoice_lines![0];
       expect(line).not.toHaveProperty('description');
       expect(line).not.toHaveProperty('amount');
     });
@@ -425,8 +425,8 @@ describe('ResponseFormatter', () => {
     it('should handle invoice with empty lines array', () => {
       const invoice = makeInvoice({ invoice_lines: [] });
       const result = ResponseFormatter.formatInvoice(invoice);
-      // Empty arrays are stripped by stripEmpty
-      expect(result).not.toHaveProperty('invoice_lines');
+      // Empty arrays are preserved by stripEmpty
+      expect(result.invoice_lines).toEqual([]);
     });
   });
 
@@ -875,10 +875,10 @@ describe('ResponseFormatter', () => {
       const result = ResponseFormatter.formatDeal(deal);
 
       expect(result.details).toHaveLength(3);
-      expect(result.details[0].amount).toBe(5000);
-      expect(result.details[1].amount).toBe(3000);
-      expect(result.details[2].amount).toBe(2000);
-      expect(result.details[2]).not.toHaveProperty('description');
+      expect(result.details![0].amount).toBe(5000);
+      expect(result.details![1].amount).toBe(3000);
+      expect(result.details![2].amount).toBe(2000);
+      expect(result.details![2]).not.toHaveProperty('description');
     });
 
     it('should handle invoice with multiple lines', () => {
@@ -895,8 +895,8 @@ describe('ResponseFormatter', () => {
       const result = ResponseFormatter.formatInvoice(invoice);
 
       expect(result.invoice_lines).toHaveLength(2);
-      expect(result.invoice_lines[0].name).toBe('Service A');
-      expect(result.invoice_lines[1].name).toBe('Service B');
+      expect(result.invoice_lines![0].name).toBe('Service A');
+      expect(result.invoice_lines![1].name).toBe('Service B');
     });
 
     it('should handle deals with same issue_date for date_range', () => {

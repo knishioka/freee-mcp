@@ -140,6 +140,8 @@ export interface FormattedDealDetail {
   amount: number;
   tax_code: number;
   description?: string;
+  section_id?: number;
+  tag_ids?: number[];
 }
 
 export interface FormattedDeal {
@@ -150,7 +152,7 @@ export interface FormattedDeal {
   partner_name?: string;
   status: string;
   due_date?: string;
-  details: FormattedDealDetail[];
+  details?: FormattedDealDetail[];
 }
 
 export interface FormattedInvoice {
@@ -163,7 +165,7 @@ export interface FormattedInvoice {
   payment_status?: string;
   title?: string;
   due_date?: string;
-  invoice_lines: Array<{
+  invoice_lines?: Array<{
     name: string;
     quantity: number;
     unit_price: number;

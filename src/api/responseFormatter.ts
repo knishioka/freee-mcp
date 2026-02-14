@@ -17,13 +17,13 @@ import type {
 } from '../types/freee.js';
 
 /**
- * Strips null, undefined, and empty array values from an object.
+ * Strips null and undefined values from an object, preserving empty arrays.
  */
 function stripEmpty<T extends Record<string, unknown>>(obj: T): Partial<T> {
   return JSON.parse(
     JSON.stringify(obj, (_key, value) => {
       if (value === null || value === undefined) return undefined;
-      if (Array.isArray(value) && value.length === 0) return undefined;
+      if (Array.isArray(value) && value.length === 0) return value;
       return value;
     }),
   );
@@ -38,6 +38,8 @@ export class ResponseFormatter {
         amount: d.amount,
         tax_code: d.tax_code,
         description: d.description,
+        section_id: d.section_id,
+        tag_ids: d.tag_ids,
       }),
     ) as FormattedDealDetail[];
 
@@ -68,14 +70,18 @@ export class ResponseFormatter {
     const sorted = [...deals].sort((a, b) =>
       a.issue_date.localeCompare(b.issue_date),
     );
+    const { income, expense } = deals.reduce(
+      (acc, d) => {
+        if (d.type === 'income') acc.income += d.amount;
+        else acc.expense += d.amount;
+        return acc;
+      },
+      { income: 0, expense: 0 },
+    );
     const summary: ListSummary = {
       total_count: deals.length,
-      total_income: deals
-        .filter((d) => d.type === 'income')
-        .reduce((sum, d) => sum + d.amount, 0),
-      total_expense: deals
-        .filter((d) => d.type === 'expense')
-        .reduce((sum, d) => sum + d.amount, 0),
+      total_income: income,
+      total_expense: expense,
     };
     if (sorted.length > 0) {
       summary.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
