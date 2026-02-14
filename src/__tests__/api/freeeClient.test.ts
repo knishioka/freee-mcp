@@ -29,16 +29,16 @@ describe('FreeeClient', () => {
       request: jest.fn(),
       interceptors: {
         request: {
-          use: jest.fn()
+          use: jest.fn(),
         },
         response: {
-          use: jest.fn()
-        }
-      }
+          use: jest.fn(),
+        },
+      },
     };
 
     mockAuthAxiosInstance = {
-      post: jest.fn()
+      post: jest.fn(),
     };
 
     // Mock axios.create to return different instances
@@ -57,18 +57,20 @@ describe('FreeeClient', () => {
       loadTokens: jest.fn(),
       removeToken: jest.fn(),
       getAllCompanyIds: jest.fn(),
-      getTokenExpiryStatus: jest.fn()
+      getTokenExpiryStatus: jest.fn(),
     };
 
     // Create client instance with mocked dependencies
-    const MockedTokenManager = TokenManager as jest.MockedClass<typeof TokenManager>;
+    const MockedTokenManager = TokenManager as jest.MockedClass<
+      typeof TokenManager
+    >;
     MockedTokenManager.mockImplementation(() => mockTokenManager);
 
     client = new FreeeClient(
       'test-client-id',
       'test-client-secret',
       'test-redirect-uri',
-      mockTokenManager
+      mockTokenManager,
     );
   });
 
@@ -100,11 +102,11 @@ describe('FreeeClient', () => {
       it('should fetch companies successfully', async () => {
         const mockCompanies = [
           { id: 1, name: 'Company 1', display_name: 'Company 1' },
-          { id: 2, name: 'Company 2', display_name: 'Company 2' }
+          { id: 2, name: 'Company 2', display_name: 'Company 2' },
         ];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { companies: mockCompanies } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { companies: mockCompanies },
         });
 
         const result = await client.getCompanies();
@@ -116,24 +118,22 @@ describe('FreeeClient', () => {
 
     describe('getDeals', () => {
       it('should fetch deals with parameters', async () => {
-        const mockDeals = [
-          { id: 1, issue_date: '2024-01-01', amount: 10000 }
-        ];
+        const mockDeals = [{ id: 1, issue_date: '2024-01-01', amount: 10000 }];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { deals: mockDeals } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { deals: mockDeals },
         });
 
         const params = {
           start_issue_date: '2024-01-01',
           end_issue_date: '2024-01-31',
-          limit: 10
+          limit: 10,
         };
 
         const result = await client.getDeals(123, params);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/deals', { 
-          params: { company_id: 123, ...params } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/deals', {
+          params: { company_id: 123, ...params },
         });
         expect(result).toEqual(mockDeals);
       });
@@ -141,14 +141,14 @@ describe('FreeeClient', () => {
 
     describe('createDeal', () => {
       it('should create a deal successfully', async () => {
-        const mockDeal = { 
-          id: 1, 
-          issue_date: '2024-01-01', 
-          amount: 10000 
+        const mockDeal = {
+          id: 1,
+          issue_date: '2024-01-01',
+          amount: 10000,
         };
 
-        mockAxiosInstance.post.mockResolvedValue({ 
-          data: { deal: mockDeal } 
+        mockAxiosInstance.post.mockResolvedValue({
+          data: { deal: mockDeal },
         });
 
         const dealData = {
@@ -156,18 +156,20 @@ describe('FreeeClient', () => {
           type: 'income' as const,
           amount: 10000,
           status: 'settled',
-          details: [{
-            amount: 10000,
-            account_item_id: 1,
-            tax_code: 1
-          }]
+          details: [
+            {
+              amount: 10000,
+              account_item_id: 1,
+              tax_code: 1,
+            },
+          ],
         };
 
         const result = await client.createDeal(123, dealData);
 
         expect(mockAxiosInstance.post).toHaveBeenCalledWith('/deals', {
           company_id: 123,
-          ...dealData
+          ...dealData,
         });
         expect(result).toEqual(mockDeal);
       });
@@ -176,22 +178,22 @@ describe('FreeeClient', () => {
     describe('getInvoices', () => {
       it('should fetch invoices with parameters', async () => {
         const mockInvoices = [
-          { id: 1, issue_date: '2024-01-01', total_amount: 10000 }
+          { id: 1, issue_date: '2024-01-01', total_amount: 10000 },
         ];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { invoices: mockInvoices } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { invoices: mockInvoices },
         });
 
         const params = {
           start_issue_date: '2024-01-01',
-          end_issue_date: '2024-01-31'
+          end_issue_date: '2024-01-31',
         };
 
         const result = await client.getInvoices(123, params);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/invoices', { 
-          params: { company_id: 123, ...params } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/invoices', {
+          params: { company_id: 123, ...params },
         });
         expect(result).toEqual(mockInvoices);
       });
@@ -205,24 +207,27 @@ describe('FreeeClient', () => {
           start_month: 1,
           end_month: 12,
           created_at: '2024-01-01',
-          balances: []
+          balances: [],
         };
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { trial_pl: mockReport } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl: mockReport },
         });
 
         const params = {
           fiscal_year: 2024,
           start_month: 1,
-          end_month: 12
+          end_month: 12,
         };
 
         const result = await client.getProfitLoss(123, params);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/reports/trial_pl', { 
-          params: { company_id: 123, ...params } 
-        });
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_pl',
+          {
+            params: { company_id: 123, ...params },
+          },
+        );
         expect(result).toEqual(mockReport);
       });
 
@@ -233,24 +238,27 @@ describe('FreeeClient', () => {
           start_month: 1,
           end_month: 12,
           created_at: '2024-01-01',
-          balances: []
+          balances: [],
         };
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { trial_bs: mockReport } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_bs: mockReport },
         });
 
         const params = {
           fiscal_year: 2024,
           start_month: 1,
-          end_month: 12
+          end_month: 12,
         };
 
         const result = await client.getBalanceSheet(123, params);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/reports/trial_bs', { 
-          params: { company_id: 123, ...params } 
-        });
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_bs',
+          {
+            params: { company_id: 123, ...params },
+          },
+        );
         expect(result).toEqual(mockReport);
       });
 
@@ -261,24 +269,27 @@ describe('FreeeClient', () => {
           start_month: 1,
           end_month: 12,
           created_at: '2024-01-01',
-          balances: []
+          balances: [],
         };
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { trial_bs: mockReport } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_bs: mockReport },
         });
 
         const params = {
           fiscal_year: 2024,
           start_month: 1,
-          end_month: 12
+          end_month: 12,
         };
 
         const result = await client.getTrialBalance(123, params);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/reports/trial_bs', { 
-          params: { company_id: 123, ...params } 
-        });
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_bs',
+          {
+            params: { company_id: 123, ...params },
+          },
+        );
         expect(result).toEqual(mockReport);
       });
     });
@@ -286,68 +297,66 @@ describe('FreeeClient', () => {
     describe('master data methods', () => {
       it('should fetch account items', async () => {
         const mockItems = [
-          { id: 1, name: 'Sales', account_category: 'income' }
+          { id: 1, name: 'Sales', account_category: 'income' },
         ];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { account_items: mockItems } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { account_items: mockItems },
         });
 
         const result = await client.getAccountItems(123);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/account_items', { 
-          params: { company_id: 123 } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/account_items', {
+          params: { company_id: 123 },
         });
         expect(result).toEqual(mockItems);
       });
 
       it('should fetch partners', async () => {
         const mockPartners = [
-          { id: 1, company_id: 123, name: 'Partner 1', available: true }
+          { id: 1, company_id: 123, name: 'Partner 1', available: true },
         ];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { partners: mockPartners } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { partners: mockPartners },
         });
 
         const result = await client.getPartners(123);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/partners', { 
-          params: { company_id: 123 } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/partners', {
+          params: { company_id: 123 },
         });
         expect(result).toEqual(mockPartners);
       });
 
       it('should fetch sections', async () => {
         const mockSections = [
-          { id: 1, company_id: 123, name: 'Section 1', available: true }
+          { id: 1, company_id: 123, name: 'Section 1', available: true },
         ];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { sections: mockSections } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { sections: mockSections },
         });
 
         const result = await client.getSections(123);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/sections', { 
-          params: { company_id: 123 } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/sections', {
+          params: { company_id: 123 },
         });
         expect(result).toEqual(mockSections);
       });
 
       it('should fetch tags', async () => {
-        const mockTags = [
-          { id: 1, name: 'Tag 1' }
-        ];
+        const mockTags = [{ id: 1, name: 'Tag 1' }];
 
-        mockAxiosInstance.get.mockResolvedValue({ 
-          data: { tags: mockTags } 
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { tags: mockTags },
         });
 
         const result = await client.getTags(123);
 
-        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tags', { 
-          params: { company_id: 123 } 
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tags', {
+          params: { company_id: 123 },
         });
         expect(result).toEqual(mockTags);
       });
@@ -356,7 +365,9 @@ describe('FreeeClient', () => {
     describe('authentication methods', () => {
       it('should generate authorization URL', () => {
         const url = client.getAuthorizationUrl('test-state');
-        expect(url).toContain('https://accounts.secure.freee.co.jp/public_api/authorize');
+        expect(url).toContain(
+          'https://accounts.secure.freee.co.jp/public_api/authorize',
+        );
         expect(url).toContain('client_id=test-client-id');
         expect(url).toContain('redirect_uri=test-redirect-uri');
         expect(url).toContain('response_type=code');
@@ -367,22 +378,22 @@ describe('FreeeClient', () => {
         const mockTokenResponse = {
           access_token: 'test-access-token',
           refresh_token: 'test-refresh-token',
-          expires_in: 21600
+          expires_in: 21600,
         };
 
         mockAuthAxiosInstance.post.mockResolvedValue({
-          data: mockTokenResponse
+          data: mockTokenResponse,
         });
 
         const result = await client.getAccessToken('test-code');
 
         expect(mockAuthAxiosInstance.post).toHaveBeenCalledWith(
           '/public_api/token',
-          expect.stringContaining('grant_type=authorization_code')
+          expect.stringContaining('grant_type=authorization_code'),
         );
         expect(mockAuthAxiosInstance.post).toHaveBeenCalledWith(
           '/public_api/token',
-          expect.stringContaining('code=test-code')
+          expect.stringContaining('code=test-code'),
         );
         expect(result).toEqual(mockTokenResponse);
       });
@@ -391,24 +402,27 @@ describe('FreeeClient', () => {
         const mockTokenResponse = {
           access_token: 'new-access-token',
           refresh_token: 'new-refresh-token',
-          expires_in: 21600
+          expires_in: 21600,
         };
 
         mockAuthAxiosInstance.post.mockResolvedValue({
-          data: mockTokenResponse
+          data: mockTokenResponse,
         });
 
         await client.refreshToken(123, 'old-refresh-token');
 
         expect(mockAuthAxiosInstance.post).toHaveBeenCalledWith(
           '/public_api/token',
-          expect.stringContaining('grant_type=refresh_token')
+          expect.stringContaining('grant_type=refresh_token'),
         );
         expect(mockAuthAxiosInstance.post).toHaveBeenCalledWith(
           '/public_api/token',
-          expect.stringContaining('refresh_token=old-refresh-token')
+          expect.stringContaining('refresh_token=old-refresh-token'),
         );
-        expect(mockTokenManager.setToken).toHaveBeenCalledWith(123, mockTokenResponse);
+        expect(mockTokenManager.setToken).toHaveBeenCalledWith(
+          123,
+          mockTokenResponse,
+        );
       });
     });
   });
@@ -416,35 +430,43 @@ describe('FreeeClient', () => {
   describe('error handling', () => {
     it('should handle API errors with error message', async () => {
       // We need to trigger the error handler in the response interceptor
-      const errorHandler = mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
-      
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
       const error = {
         response: {
           status: 400,
           data: {
-            errors: [{
-              messages: ['Invalid request parameters']
-            }]
-          }
+            errors: [
+              {
+                messages: ['Invalid request parameters'],
+              },
+            ],
+          },
         },
-        config: {}
+        config: {},
       };
 
-      await expect(errorHandler(error)).rejects.toThrow('freee API Error: Invalid request parameters');
+      await expect(errorHandler(error)).rejects.toThrow(
+        'freee API Error: Invalid request parameters',
+      );
     });
 
     it('should handle API errors without message', async () => {
-      const errorHandler = mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
-      
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
       const error = {
         response: {
-          status: 400
+          status: 400,
         },
         message: 'Network error',
-        config: {}
+        config: {},
       };
 
-      await expect(errorHandler(error)).rejects.toThrow('freee API Error: Network error');
+      await expect(errorHandler(error)).rejects.toThrow(
+        'freee API Error: Network error',
+      );
     });
   });
 
@@ -452,14 +474,18 @@ describe('FreeeClient', () => {
     it('should add authorization header in request interceptor', async () => {
       const mockToken = { access_token: 'test-token' };
       mockTokenManager.getToken.mockReturnValue(mockToken);
-      mockTokenManager.getTokenExpiryStatus.mockReturnValue({ status: 'valid', remainingMinutes: 300 });
+      mockTokenManager.getTokenExpiryStatus.mockReturnValue({
+        status: 'valid',
+        remainingMinutes: 300,
+      });
 
       // Get the request interceptor
-      const requestInterceptor = mockAxiosInstance.interceptors.request.use.mock.calls[0][0];
-      
+      const requestInterceptor =
+        mockAxiosInstance.interceptors.request.use.mock.calls[0][0];
+
       const config = {
         headers: {},
-        params: { company_id: 123 }
+        params: { company_id: 123 },
       };
 
       const result = await requestInterceptor(config);
@@ -469,28 +495,30 @@ describe('FreeeClient', () => {
     });
 
     it('should handle 401 errors in response interceptor', async () => {
-      const mockOldToken = { 
+      const mockOldToken = {
         access_token: 'old-token',
-        refresh_token: 'refresh-token'
+        refresh_token: 'refresh-token',
       };
-      
+
       mockTokenManager.getToken.mockReturnValue(mockOldToken);
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
-      
-      // Mock refreshToken to succeed
-      (client as any).refreshToken = jest.fn() as any;
+
+      // Mock refreshToken to succeed (must return a Promise for refreshTokenWithLock)
+      const mockRefresh = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = mockRefresh;
 
       // Get the error handler from response interceptor
-      const errorHandler = mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
 
       const originalRequest = {
         params: { company_id: 123 },
-        headers: {}
+        headers: {},
       };
 
       const error = {
         config: originalRequest,
-        response: { status: 401 }
+        response: { status: 401 },
       };
 
       // Mock the retry request
@@ -498,7 +526,165 @@ describe('FreeeClient', () => {
 
       const result = await errorHandler(error);
 
-      expect((client as any).refreshToken).toHaveBeenCalledWith(123, 'refresh-token');
+      expect((client as any).refreshToken).toHaveBeenCalledWith(
+        123,
+        'refresh-token',
+      );
+      expect(mockAxiosInstance.request).toHaveBeenCalledWith(originalRequest);
+      expect(result).toEqual({ data: 'success' });
+    });
+
+    it('should deduplicate concurrent refresh requests for the same company', async () => {
+      let resolveRefresh: () => void;
+      const refreshPromise = new Promise<void>((resolve) => {
+        resolveRefresh = resolve;
+      });
+
+      // Mock refreshToken to return a delayed promise
+      (client as any).refreshToken = jest
+        .fn()
+        .mockReturnValue(refreshPromise) as any;
+
+      // Call refreshTokenWithLock twice for the same company
+      const promise1 = (client as any).refreshTokenWithLock(
+        123,
+        'refresh-token',
+      );
+      const promise2 = (client as any).refreshTokenWithLock(
+        123,
+        'refresh-token',
+      );
+
+      // Resolve the refresh
+      resolveRefresh!();
+      await Promise.all([promise1, promise2]);
+
+      // Should only call refreshToken once
+      expect((client as any).refreshToken).toHaveBeenCalledTimes(1);
+    });
+
+    it('should allow independent refresh for different companies', async () => {
+      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+
+      // Call refreshTokenWithLock for two different companies
+      await Promise.all([
+        (client as any).refreshTokenWithLock(123, 'token-1'),
+        (client as any).refreshTokenWithLock(456, 'token-2'),
+      ]);
+
+      // Should call refreshToken for each company
+      expect((client as any).refreshToken).toHaveBeenCalledTimes(2);
+      expect((client as any).refreshToken).toHaveBeenCalledWith(123, 'token-1');
+      expect((client as any).refreshToken).toHaveBeenCalledWith(456, 'token-2');
+    });
+
+    it('should clean up refresh promise after completion', async () => {
+      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+
+      await (client as any).refreshTokenWithLock(123, 'refresh-token');
+
+      // After completion, refreshPromises map should be empty
+      expect((client as any).refreshPromises.size).toBe(0);
+    });
+
+    it('should clean up refresh promise after failure', async () => {
+      (client as any).refreshToken = jest.fn(() =>
+        Promise.reject(new Error('refresh failed')),
+      );
+
+      await expect(
+        (client as any).refreshTokenWithLock(123, 'refresh-token'),
+      ).rejects.toThrow('refresh failed');
+
+      // After failure, refreshPromises map should be empty
+      expect((client as any).refreshPromises.size).toBe(0);
+    });
+
+    it('should trigger background refresh on near-expiry tokens', async () => {
+      const mockToken = {
+        access_token: 'test-token',
+        refresh_token: 'refresh-token',
+      };
+      mockTokenManager.getToken.mockReturnValue(mockToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+      mockTokenManager.getTokenExpiryStatus.mockReturnValue({
+        status: 'near_expiry',
+        remainingMinutes: 20,
+      });
+
+      // Mock refreshToken to succeed
+      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+
+      // Get the request interceptor
+      const requestInterceptor =
+        mockAxiosInstance.interceptors.request.use.mock.calls[0][0];
+
+      const config = {
+        headers: {},
+        params: { company_id: 123 },
+      };
+
+      const result = await requestInterceptor(config);
+
+      // Should set current token (not block)
+      expect(result.headers.Authorization).toBe('Bearer test-token');
+
+      // Wait for background refresh to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Should have triggered background refresh
+      expect((client as any).refreshToken).toHaveBeenCalledWith(
+        123,
+        'refresh-token',
+      );
+    });
+
+    it('should re-check token state on invalid_grant before deleting', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+      const mockNewToken = {
+        access_token: 'new-token',
+        refresh_token: 'new-refresh-token',
+      };
+
+      // First call returns old token, second call returns new token (refreshed by another request)
+      mockTokenManager.getToken
+        .mockReturnValueOnce(mockOldToken)
+        .mockReturnValueOnce(mockNewToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Mock refreshToken to fail with invalid_grant
+      const invalidGrantError = {
+        response: { data: { error: 'invalid_grant' } },
+        message: 'invalid_grant',
+      };
+      (client as any).refreshToken = jest.fn(() =>
+        Promise.reject(invalidGrantError),
+      );
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const originalRequest = {
+        params: { company_id: 123 },
+        headers: {},
+      };
+
+      const error = {
+        config: originalRequest,
+        response: { status: 401 },
+      };
+
+      // Mock retry to succeed with new token
+      mockAxiosInstance.request.mockResolvedValue({ data: 'success' });
+
+      const result = await errorHandler(error);
+
+      // Should NOT have removed the token (another refresh succeeded)
+      expect(mockTokenManager.removeToken).not.toHaveBeenCalled();
+      // Should have retried the request
       expect(mockAxiosInstance.request).toHaveBeenCalledWith(originalRequest);
       expect(result).toEqual({ data: 'success' });
     });
