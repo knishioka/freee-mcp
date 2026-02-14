@@ -659,7 +659,21 @@ export class FreeeClient {
       offset += limit;
     }
 
+    const truncated = allResults.length > maxRecords;
+    if (truncated) {
+      logClient(
+        'Auto-pagination: results truncated at %d records for %s (total fetched: %d)',
+        maxRecords,
+        endpoint,
+        allResults.length,
+      );
+    }
+
     return allResults.slice(0, maxRecords);
+  }
+
+  private wasTruncated(fetchedCount: number, maxRecords: number): boolean {
+    return fetchedCount >= maxRecords;
   }
 
   // Search deals with server-side aggregation
@@ -681,6 +695,7 @@ export class FreeeClient {
       params.start_issue_date = filters.start_issue_date;
     if (filters.end_issue_date) params.end_issue_date = filters.end_issue_date;
 
+    const effectiveMax = maxRecords ?? MAX_AUTO_PAGINATION_RECORDS;
     const deals = await this.fetchAllPages<FreeeDeal>(
       '/deals',
       params,
@@ -688,7 +703,12 @@ export class FreeeClient {
       maxRecords,
     );
 
-    return this.aggregateDeals(deals);
+    const result = this.aggregateDeals(deals);
+    if (this.wasTruncated(deals.length, effectiveMax)) {
+      result.truncated = true;
+      result.max_records_cap = effectiveMax;
+    }
+    return result;
   }
 
   private aggregateDeals(deals: FreeeDeal[]): DealAggregation {
@@ -816,6 +836,7 @@ export class FreeeClient {
       params.start_issue_date = filters.start_issue_date;
     if (filters.end_issue_date) params.end_issue_date = filters.end_issue_date;
 
+    const effectiveMax = maxRecords ?? MAX_AUTO_PAGINATION_RECORDS;
     const invoices = await this.fetchAllPages<FreeeInvoice>(
       '/invoices',
       params,
@@ -823,7 +844,12 @@ export class FreeeClient {
       maxRecords,
     );
 
-    return this.aggregateInvoices(invoices);
+    const result = this.aggregateInvoices(invoices);
+    if (this.wasTruncated(invoices.length, effectiveMax)) {
+      result.truncated = true;
+      result.max_records_cap = effectiveMax;
+    }
+    return result;
   }
 
   private aggregateInvoices(
@@ -833,7 +859,14 @@ export class FreeeClient {
       a.issue_date.localeCompare(b.issue_date),
     );
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(new Date())
+      .replace(/\//g, '-');
     let totalAmount = 0;
     let unpaidAmount = 0;
     let overdueCount = 0;

@@ -529,5 +529,130 @@ describe('FreeeClient - Auto-pagination and Aggregation', () => {
 
       expect(result.unpaid_amount).toBe(50000);
     });
+
+    it('should detect overdue at date boundaries using JST', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2024-02-15T00:00:00+09:00'));
+
+      const mockInvoices = [
+        {
+          id: 1,
+          company_id: 123,
+          issue_date: '2024-01-01',
+          partner_id: 1,
+          partner_name: 'Client A',
+          invoice_number: 'INV-001',
+          total_amount: 10000,
+          invoice_status: 'sent',
+          payment_status: 'unsettled',
+          due_date: '2024-02-14', // yesterday - overdue
+          invoice_lines: [],
+        },
+        {
+          id: 2,
+          company_id: 123,
+          issue_date: '2024-01-01',
+          partner_id: 2,
+          partner_name: 'Client B',
+          invoice_number: 'INV-002',
+          total_amount: 20000,
+          invoice_status: 'sent',
+          payment_status: 'unsettled',
+          due_date: '2024-02-15', // today - not overdue
+          invoice_lines: [],
+        },
+        {
+          id: 3,
+          company_id: 123,
+          issue_date: '2024-01-01',
+          partner_id: 3,
+          partner_name: 'Client C',
+          invoice_number: 'INV-003',
+          total_amount: 30000,
+          invoice_status: 'sent',
+          payment_status: 'unsettled',
+          due_date: '2024-02-16', // tomorrow - not overdue
+          invoice_lines: [],
+        },
+      ];
+
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { invoices: mockInvoices },
+      });
+
+      const result = await client.summarizeInvoices(123, {});
+
+      expect(result.overdue_count).toBe(1); // only yesterday's invoice
+      expect(result.unpaid_amount).toBe(60000); // all three unpaid
+
+      jest.useRealTimers();
+    });
+  });
+
+  describe('truncation metadata', () => {
+    it('should set truncated flag when searchDeals hits maxRecords', async () => {
+      const page1 = Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        company_id: 123,
+        issue_date: '2024-01-01',
+        amount: 1000,
+        type: 'income' as const,
+        status: 'settled',
+        details: [],
+      }));
+
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({ data: { deals: page1 } })
+        .mockResolvedValueOnce({ data: { deals: [] } });
+
+      const result = await client.searchDeals(123, {}, 50);
+
+      expect(result.truncated).toBe(true);
+      expect(result.max_records_cap).toBe(50);
+    });
+
+    it('should not set truncated flag when all results fit', async () => {
+      const deals = Array.from({ length: 30 }, (_, i) => ({
+        id: i + 1,
+        company_id: 123,
+        issue_date: '2024-01-01',
+        amount: 1000,
+        type: 'income' as const,
+        status: 'settled',
+        details: [],
+      }));
+
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { deals },
+      });
+
+      const result = await client.searchDeals(123, {});
+
+      expect(result.truncated).toBeUndefined();
+      expect(result.max_records_cap).toBeUndefined();
+    });
+
+    it('should set truncated flag when summarizeInvoices hits maxRecords', async () => {
+      const invoices = Array.from({ length: 100 }, (_, i) => ({
+        id: i + 1,
+        company_id: 123,
+        issue_date: '2024-01-01',
+        partner_id: 1,
+        partner_name: 'Client A',
+        invoice_number: `INV-${i + 1}`,
+        total_amount: 1000,
+        invoice_status: 'sent' as const,
+        payment_status: 'settled' as const,
+        invoice_lines: [],
+      }));
+
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({ data: { invoices } })
+        .mockResolvedValueOnce({ data: { invoices: [] } });
+
+      const result = await client.summarizeInvoices(123, {}, 50);
+
+      expect(result.truncated).toBe(true);
+      expect(result.max_records_cap).toBe(50);
+    });
   });
 });

@@ -242,6 +242,8 @@ export interface DealAggregation {
   total_income: number;
   total_expense: number;
   date_range?: string;
+  truncated?: boolean;
+  max_records_cap?: number;
   by_partner: PartnerAggregation[];
   by_month: MonthlyAggregation[];
   by_account_item: AccountItemAggregation[];
@@ -267,6 +269,8 @@ export interface InvoiceSummaryAggregation {
   unpaid_amount: number;
   overdue_count: number;
   date_range?: string;
+  truncated?: boolean;
+  max_records_cap?: number;
   by_status: InvoiceStatusAggregation[];
   by_partner: InvoicePartnerAggregation[];
 }
