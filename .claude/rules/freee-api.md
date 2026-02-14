@@ -1,0 +1,4 @@
+- freee refresh tokens are single-use; never retry with the same refresh token after use.
+- Respect the 3,600 requests/hour freee limit; prefer aggregated report APIs to reduce call volume.
+- Use `freee_get_profit_loss` for profit analysis instead of manual transaction aggregation.
+- freee API response formats can vary; validate response structure before reading nested fields.
