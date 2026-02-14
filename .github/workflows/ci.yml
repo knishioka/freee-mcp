@@ -92,7 +92,7 @@ jobs:
         run: npm ci
 
       - name: Check for security vulnerabilities
-        run: npm audit --audit-level=critical
+        run: npm audit --audit-level=high
 
       - name: Check for outdated dependencies
         run: npx npm-check-updates --errorLevel 2

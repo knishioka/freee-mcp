@@ -67,11 +67,11 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
   });
 
   describe('McpServer Initialization', () => {
-    it('should create McpServer with SERVER_NAME and SERVER_VERSION', () => {
+    it('should create McpServer with SERVER_NAME and version from package.json', () => {
       // Verify server creation pattern
       expect(indexSource).toContain('new McpServer(');
       expect(indexSource).toContain('name: SERVER_NAME');
-      expect(indexSource).toContain('version: SERVER_VERSION');
+      expect(indexSource).toContain('version: packageJson.version');
     });
 
     it('should configure tools and resources capabilities', () => {

@@ -10,12 +10,30 @@ import {
   ErrorCode,
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
+import { readFileSync } from 'node:fs';
 import dotenv from 'dotenv';
 import type { z } from 'zod';
 import { FreeeClient } from './api/freeeClient.js';
 import { TokenManager } from './auth/tokenManager.js';
-import { SERVER_NAME, SERVER_VERSION } from './constants.js';
+import { SERVER_NAME } from './constants.js';
 import * as schemas from './schemas.js';
+
+const packageJson = (() => {
+  try {
+    const content = readFileSync(
+      new URL('../package.json', import.meta.url),
+      'utf-8',
+    );
+    const parsed = JSON.parse(content);
+    return { version: String(parsed.version ?? 'unknown') };
+  } catch (error) {
+    console.error(
+      'Warning: Could not read version from package.json. Using fallback.',
+      error,
+    );
+    return { version: 'unknown' };
+  }
+})();
 
 // Load environment variables
 dotenv.config();
@@ -71,7 +89,7 @@ const freeeClient = new FreeeClient(
 const server = new McpServer(
   {
     name: SERVER_NAME,
-    version: SERVER_VERSION,
+    version: packageJson.version,
   },
   {
     capabilities: {
