@@ -1,153 +1,191 @@
 import { z } from 'zod';
 
+// Common field descriptions
+const companyIdField = z
+  .number()
+  .optional()
+  .describe(
+    'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)',
+  );
+
 // Auth schemas
-export const AuthorizeSchema = z.object({
-  state: z.string().optional(),
-});
+export const AuthorizeSchema = {
+  state: z
+    .string()
+    .optional()
+    .describe('Optional state parameter for CSRF protection'),
+};
 
-export const GetTokenSchema = z.object({
-  code: z.string(),
-});
+export const GetTokenSchema = {
+  code: z.string().describe('Authorization code from OAuth flow'),
+};
 
-export const SetCompanyTokenSchema = z.object({
-  companyId: z.number(),
-  accessToken: z.string(),
-  refreshToken: z.string(),
-  expiresIn: z.number(),
-});
+export const SetCompanyTokenSchema = {
+  companyId: z.number().describe('Company ID to set token for'),
+  accessToken: z.string().describe('OAuth access token'),
+  refreshToken: z.string().describe('OAuth refresh token'),
+  expiresIn: z.number().describe('Token expiration time in seconds'),
+};
 
 // Company schemas
-export const GetCompaniesSchema = z.object({});
+export const GetCompaniesSchema = {};
 
-export const GetCompanySchema = z.object({
-  companyId: z.number().optional(),
-});
+export const GetCompanySchema = {
+  companyId: companyIdField,
+};
 
 // Deal schemas
-export const GetDealsSchema = z.object({
-  companyId: z.number().optional(),
-  partnerId: z.number().optional(),
-  accountItemId: z.number().optional(),
-  startIssueDate: z.string().optional(),
-  endIssueDate: z.string().optional(),
-  offset: z.number().optional(),
-  limit: z.number().min(1).max(100).optional(),
-});
+export const GetDealsSchema = {
+  companyId: companyIdField,
+  partnerId: z.number().optional().describe('Partner ID to filter by'),
+  accountItemId: z.number().optional().describe('Account item ID to filter by'),
+  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+};
 
-export const GetDealSchema = z.object({
-  companyId: z.number().optional(),
-  dealId: z.number(),
-});
+export const GetDealSchema = {
+  companyId: companyIdField,
+  dealId: z.number().describe('Deal ID'),
+};
 
-export const CreateDealSchema = z.object({
-  companyId: z.number().optional(),
-  issueDate: z.string(),
-  type: z.enum(['income', 'expense']),
-  partnerId: z.number().optional(),
-  dueDate: z.string().optional(),
-  refNumber: z.string().optional(),
-  details: z.array(z.object({
-    accountItemId: z.number(),
-    taxCode: z.number(),
-    amount: z.number(),
-    description: z.string().optional(),
-    sectionId: z.number().optional(),
-    tagIds: z.array(z.number()).optional(),
-  })),
-});
+export const CreateDealSchema = {
+  companyId: companyIdField,
+  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  type: z.enum(['income', 'expense']).describe('Transaction type'),
+  partnerId: z.number().optional().describe('Partner ID'),
+  dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
+  refNumber: z.string().optional().describe('Reference number'),
+  details: z
+    .array(
+      z.object({
+        accountItemId: z.number().describe('Account item ID'),
+        taxCode: z.number().describe('Tax code'),
+        amount: z.number().describe('Amount'),
+        description: z.string().optional().describe('Description'),
+        sectionId: z.number().optional().describe('Section ID'),
+        tagIds: z.array(z.number()).optional().describe('Tag IDs'),
+      }),
+    )
+    .describe('Transaction details'),
+};
 
 // Account Item schemas
-export const GetAccountItemsSchema = z.object({
-  companyId: z.number().optional(),
-  accountCategory: z.string().optional(),
-});
+export const GetAccountItemsSchema = {
+  companyId: companyIdField,
+  accountCategory: z
+    .string()
+    .optional()
+    .describe('Account category to filter by'),
+};
 
 // Partner schemas
-export const GetPartnersSchema = z.object({
-  companyId: z.number().optional(),
-  name: z.string().optional(),
-  shortcut1: z.string().optional(),
-  offset: z.number().optional(),
-  limit: z.number().min(1).max(100).optional(),
-});
+export const GetPartnersSchema = {
+  companyId: companyIdField,
+  name: z.string().optional().describe('Partner name to search'),
+  shortcut1: z.string().optional().describe('Shortcut 1 to search'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+};
 
-export const CreatePartnerSchema = z.object({
-  companyId: z.number().optional(),
-  name: z.string(),
-  shortcut1: z.string().optional(),
-  shortcut2: z.string().optional(),
-  longName: z.string().optional(),
-  nameKana: z.string().optional(),
-  countryCode: z.string().optional(),
-});
+export const CreatePartnerSchema = {
+  companyId: companyIdField,
+  name: z.string().describe('Partner name'),
+  shortcut1: z.string().optional().describe('Shortcut 1'),
+  shortcut2: z.string().optional().describe('Shortcut 2'),
+  longName: z.string().optional().describe('Long name'),
+  nameKana: z.string().optional().describe('Name in Kana'),
+  countryCode: z.string().optional().describe('Country code'),
+};
 
 // Section schemas
-export const GetSectionsSchema = z.object({
-  companyId: z.number().optional(),
-});
+export const GetSectionsSchema = {
+  companyId: companyIdField,
+};
 
 // Tag schemas
-export const GetTagsSchema = z.object({
-  companyId: z.number().optional(),
-});
+export const GetTagsSchema = {
+  companyId: companyIdField,
+};
 
 // Invoice schemas
-export const GetInvoicesSchema = z.object({
-  companyId: z.number().optional(),
-  partnerId: z.number().optional(),
-  invoiceStatus: z.string().optional(),
-  paymentStatus: z.string().optional(),
-  startIssueDate: z.string().optional(),
-  endIssueDate: z.string().optional(),
-  offset: z.number().optional(),
-  limit: z.number().min(1).max(100).optional(),
-});
+export const GetInvoicesSchema = {
+  companyId: companyIdField,
+  partnerId: z.number().optional().describe('Partner ID to filter by'),
+  invoiceStatus: z.string().optional().describe('Invoice status to filter by'),
+  paymentStatus: z.string().optional().describe('Payment status to filter by'),
+  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+};
 
-export const CreateInvoiceSchema = z.object({
-  companyId: z.number().optional(),
-  issueDate: z.string(),
-  partnerId: z.number(),
-  dueDate: z.string().optional(),
-  title: z.string().optional(),
-  invoiceStatus: z.enum(['draft', 'issue', 'sent', 'settled']),
-  invoiceLines: z.array(z.object({
-    name: z.string(),
-    quantity: z.number(),
-    unitPrice: z.number(),
-    description: z.string().optional(),
-    taxCode: z.number().optional(),
-    accountItemId: z.number().optional(),
-  })),
-});
+export const CreateInvoiceSchema = {
+  companyId: companyIdField,
+  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  partnerId: z.number().describe('Partner ID'),
+  dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
+  title: z.string().optional().describe('Invoice title'),
+  invoiceStatus: z
+    .enum(['draft', 'issue', 'sent', 'settled'])
+    .describe('Invoice status'),
+  invoiceLines: z
+    .array(
+      z.object({
+        name: z.string().describe('Item name'),
+        quantity: z.number().describe('Quantity'),
+        unitPrice: z.number().describe('Unit price'),
+        description: z.string().optional().describe('Description'),
+        taxCode: z.number().optional().describe('Tax code'),
+        accountItemId: z.number().optional().describe('Account item ID'),
+      }),
+    )
+    .describe('Invoice line items'),
+};
 
 // Trial Balance schemas
-export const GetTrialBalanceSchema = z.object({
-  companyId: z.number().optional(),
-  fiscalYear: z.number(),
-  startMonth: z.number().min(1).max(12),
-  endMonth: z.number().min(1).max(12),
-});
+export const GetTrialBalanceSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+};
 
 // Report schemas for financial statements
-export const GetProfitLossSchema = z.object({
-  companyId: z.number().optional(),
-  fiscalYear: z.number(),
-  startMonth: z.number().min(1).max(12),
-  endMonth: z.number().min(1).max(12),
-  breakdownDisplayType: z.enum(['partner', 'item', 'section', 'tag']).optional(),
-});
+export const GetProfitLossSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+  breakdownDisplayType: z
+    .enum(['partner', 'item', 'section', 'tag'])
+    .optional()
+    .describe('Breakdown display type'),
+};
 
-export const GetBalanceSheetSchema = z.object({
-  companyId: z.number().optional(),
-  fiscalYear: z.number(),
-  startMonth: z.number().min(1).max(12),
-  endMonth: z.number().min(1).max(12),
-  breakdownDisplayType: z.enum(['partner', 'item', 'section', 'tag']).optional(),
-});
-
-export const GetCashFlowSchema = z.object({
-  companyId: z.number().optional(),
-  fiscalYear: z.number(),
-  startMonth: z.number().min(1).max(12),
-  endMonth: z.number().min(1).max(12),
-});
+export const GetBalanceSheetSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+  breakdownDisplayType: z
+    .enum(['partner', 'item', 'section', 'tag'])
+    .optional()
+    .describe('Breakdown display type'),
+};
