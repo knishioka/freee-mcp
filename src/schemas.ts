@@ -82,6 +82,37 @@ export const CreateDealSchema = {
     .describe('Transaction details'),
 };
 
+export const UpdateDealSchema = {
+  companyId: companyIdField,
+  dealId: z.number().describe('Deal ID to update'),
+  issueDate: z.string().optional().describe('Issue date (YYYY-MM-DD)'),
+  type: z.enum(['income', 'expense']).optional().describe('Transaction type'),
+  details: z
+    .array(
+      z.object({
+        accountItemId: z.number().describe('Account item ID'),
+        taxCode: z.number().describe('Tax code'),
+        amount: z.number().describe('Amount'),
+        description: z.string().optional().describe('Description'),
+        sectionId: z.number().optional().describe('Section ID'),
+        tagIds: z.array(z.number()).optional().describe('Tag IDs'),
+      }),
+    )
+    .optional()
+    .describe('Transaction details (replaces all existing details)'),
+};
+
+export const CreateDealPaymentSchema = {
+  companyId: companyIdField,
+  dealId: z.number().describe('Deal ID to add payment to'),
+  date: z.string().describe('Payment date (YYYY-MM-DD)'),
+  fromWalletableId: z.number().describe('Source wallet account ID'),
+  fromWalletableType: z
+    .enum(['bank_account', 'credit_card', 'wallet'])
+    .describe('Source wallet account type'),
+  amount: z.number().describe('Payment amount'),
+};
+
 // Account Item schemas
 export const GetAccountItemsSchema = {
   companyId: companyIdField,
