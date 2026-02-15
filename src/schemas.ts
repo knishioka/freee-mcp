@@ -561,6 +561,38 @@ export const ApproveExpenseApplicationSchema = {
     ),
 };
 
+// Receipt schemas
+export const GetReceiptsSchema = {
+  companyId: companyIdField,
+  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  userName: z.string().optional().describe('Filter by upload user name'),
+  status: z
+    .enum(['unconfirmed', 'confirmed', 'deleted'])
+    .optional()
+    .describe(
+      'Filter by status (unconfirmed: 未確認, confirmed: 確認済み, deleted: 削除済み)',
+    ),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
+};
+
+export const GetReceiptSchema = {
+  companyId: companyIdField,
+  receiptId: z.number().describe('Receipt ID (証憑ID)'),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,

@@ -1335,6 +1335,77 @@ registerTool(
   },
 );
 
+// === Receipt tools ===
+
+registerTool(
+  'freee_get_receipts',
+  {
+    description:
+      'Get list of receipts (証憑) for electronic bookkeeping compliance (電子帳簿保存法) - Retrieves uploaded receipt images/PDFs with filtering by date, user, and status. Use compact mode for summary statistics only. Max 100 records per page.',
+    inputSchema: schemas.GetReceiptsSchema,
+  },
+  async ({
+    companyId,
+    startDate,
+    endDate,
+    userName,
+    status,
+    offset,
+    limit,
+    compact,
+  }) => {
+    try {
+      const receipts = await freeeClient.getReceipts(getCompanyId(companyId), {
+        start_date: startDate,
+        end_date: endDate,
+        user_name: userName,
+        status,
+        offset,
+        limit,
+      });
+      const formatted = ResponseFormatter.formatReceipts(receipts, compact);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_receipts', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_get_receipt',
+  {
+    description:
+      'Get specific receipt details (証憑詳細) - Retrieves full details of a single receipt including file URL, issue date, user info, and qualified invoice status. Use for individual receipt inspection and compliance verification.',
+    inputSchema: schemas.GetReceiptSchema,
+  },
+  async ({ companyId, receiptId }) => {
+    try {
+      const receipt = await freeeClient.getReceipt(
+        getCompanyId(companyId),
+        receiptId,
+      );
+      const formatted = ResponseFormatter.formatReceipt(receipt);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_receipt', error);
+    }
+  },
+);
+
 // === Search/Aggregation tools ===
 
 registerTool(
