@@ -578,9 +578,9 @@ registerTool(
       'Get list of tax codes (税区分マスター) - Retrieves all available tax classification codes in one call. Essential for accurate deal and invoice creation (e.g., taxable 10%, reduced 8%, exempt). Cached for 15 minutes as tax codes rarely change.',
     inputSchema: schemas.GetTaxCodesSchema,
   },
-  async ({ compact }) => {
+  async ({ companyId, compact }) => {
     try {
-      const taxCodes = await freeeClient.getTaxCodes();
+      const taxCodes = await freeeClient.getTaxCodes(getCompanyId(companyId));
       const formatted = ResponseFormatter.formatTaxCodes(taxCodes, compact);
       return {
         content: [

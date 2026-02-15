@@ -557,13 +557,14 @@ export class FreeeClient {
   }
 
   // Tax Code methods
-  async getTaxCodes(): Promise<FreeeTaxCode[]> {
-    const cacheKey = 'tax_codes:all';
+  async getTaxCodes(companyId: number): Promise<FreeeTaxCode[]> {
+    const cacheKey = generateCacheKey(companyId, 'tax_codes');
     const cached = this.cache.get<FreeeTaxCode[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ taxes: FreeeTaxCode[] }>(
       '/taxes/codes',
+      { params: { company_id: companyId } },
     );
     this.cache.set(cacheKey, response.data.taxes, CACHE_TTL_TAX_CODES);
     return response.data.taxes;
