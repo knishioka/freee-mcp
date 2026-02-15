@@ -269,6 +269,28 @@ export interface FreeeExpenseApplication {
   approval_flow_logs?: FreeeExpenseApplicationFlowLog[];
 }
 
+export interface FreeeReceiptUser {
+  id: number;
+  email: string;
+  display_name?: string;
+}
+
+export interface FreeeReceipt {
+  id: number;
+  status: 'unconfirmed' | 'confirmed' | 'deleted';
+  description?: string;
+  mime_type?: string;
+  issue_date?: string;
+  origin?: string;
+  created_at: string;
+  file_src?: string;
+  user: FreeeReceiptUser;
+  receipt_metadatum?: {
+    id: number;
+  };
+  qualified_invoice?: string;
+}
+
 // Journal download types (async API)
 export interface FreeeJournalDownloadRequest {
   id: number;
@@ -482,6 +504,19 @@ export interface FormattedExpenseApplication {
   approvers?: FormattedExpenseApplicationApprover[];
   comments?: FormattedExpenseApplicationComment[];
   approval_flow_logs?: FormattedExpenseApplicationFlowLog[];
+}
+
+export interface FormattedReceipt {
+  id: number;
+  status: string;
+  description?: string;
+  mime_type?: string;
+  issue_date?: string;
+  origin?: string;
+  created_at: string;
+  file_src?: string;
+  user_name?: string;
+  qualified_invoice?: string;
 }
 
 export interface FormattedJournalEntry {
