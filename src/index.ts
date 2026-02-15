@@ -1623,6 +1623,38 @@ registerTool(
   },
 );
 
+// === Journal tools (async download API) ===
+
+registerTool(
+  'freee_get_journals',
+  {
+    description:
+      'Get journal entries (仕訳帳) for a date range - Downloads all journal entries including deals, manual journals, and auto-generated entries. Uses async download API internally (request → poll → download). Ideal for monthly closing verification, anomaly detection (duplicate entries, unusual accounts), and comprehensive audit review. Returns structured data parsed from CSV. Note: may take 10-30 seconds for large date ranges.',
+    inputSchema: schemas.GetJournalsSchema,
+  },
+  async ({ companyId, startDate, endDate, visibleTags, visibleIds }) => {
+    try {
+      const entries = await freeeClient.getJournals(getCompanyId(companyId), {
+        start_date: startDate,
+        end_date: endDate,
+        visible_tags: visibleTags,
+        visible_ids: visibleIds,
+      });
+      const formatted = ResponseFormatter.formatJournalEntries(entries);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_journals', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(
