@@ -15,6 +15,7 @@ import dotenv from 'dotenv';
 import type { z } from 'zod';
 import { FreeeClient } from './api/freeeClient.js';
 import { ResponseFormatter } from './api/responseFormatter.js';
+import type { FreeeDealUpdatePayload } from './types/freee.js';
 import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME } from './constants.js';
 import * as schemas from './schemas.js';
@@ -424,18 +425,7 @@ registerTool(
   },
   async ({ companyId, dealId, issueDate, type, details }) => {
     try {
-      const updateData: {
-        issue_date?: string;
-        type?: 'income' | 'expense';
-        details?: Array<{
-          account_item_id: number;
-          tax_code: number;
-          amount: number;
-          description?: string;
-          section_id?: number;
-          tag_ids?: number[];
-        }>;
-      } = {};
+      const updateData: FreeeDealUpdatePayload = {};
       if (issueDate !== undefined) updateData.issue_date = issueDate;
       if (type !== undefined) updateData.type = type;
       if (details !== undefined) {

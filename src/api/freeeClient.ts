@@ -19,6 +19,7 @@ import {
   FreeeCompany,
   FreeeDeal,
   FreeeDealPayment,
+  FreeeDealUpdatePayload,
   FreeeAccountItem,
   FreeePartner,
   FreeeSection,
@@ -474,18 +475,7 @@ export class FreeeClient {
   async updateDeal(
     companyId: number,
     dealId: number,
-    deal: {
-      issue_date?: string;
-      type?: 'income' | 'expense';
-      details?: Array<{
-        account_item_id: number;
-        tax_code: number;
-        amount: number;
-        description?: string;
-        section_id?: number;
-        tag_ids?: number[];
-      }>;
-    },
+    deal: FreeeDealUpdatePayload,
   ): Promise<FreeeDeal> {
     const response = await this.api.put<{ deal: FreeeDeal }>(
       `/deals/${dealId}`,
@@ -498,12 +488,7 @@ export class FreeeClient {
   async createDealPayment(
     companyId: number,
     dealId: number,
-    payment: {
-      date: string;
-      from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
-      from_walletable_id: number;
-      amount: number;
-    },
+    payment: Omit<FreeeDealPayment, 'id'>,
   ): Promise<FreeeDealPayment> {
     const response = await this.api.post<{ deal_payment: FreeeDealPayment }>(
       `/deals/${dealId}/payments`,

@@ -47,6 +47,12 @@ export interface FreeeDealPayment {
   amount: number;
 }
 
+export interface FreeeDealUpdatePayload {
+  issue_date?: string;
+  type?: 'income' | 'expense';
+  details?: Array<Omit<FreeeDealDetail, 'id'>>;
+}
+
 export interface FreeeAccountItem {
   id: number;
   company_id: number;
