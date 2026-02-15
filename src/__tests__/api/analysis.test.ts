@@ -686,16 +686,17 @@ describe('FreeeClient Analysis Methods', () => {
       expect(result.accounts).toHaveLength(3);
       expect(result.accounts[0].name).toBe('普通預金');
 
-      // Receivables from unsettled invoices
-      expect(result.receivables.total).toBe(2000000);
-      expect(result.receivables.count).toBe(1);
+      // Receivables from unsettled invoices + unsettled income deals
+      // Invoice: 2000000 + Income deal (id:3): 500000
+      expect(result.receivables.total).toBe(2500000);
+      expect(result.receivables.count).toBe(2);
 
       // Payables from unsettled expense deals (only the 1500000 one, settled is excluded)
       expect(result.payables.total).toBe(1500000);
       expect(result.payables.count).toBe(1);
 
       // Net position = cash + receivables - payables
-      expect(result.net_position).toBe(5000000 + 2000000 - 1500000);
+      expect(result.net_position).toBe(5000000 + 2500000 - 1500000);
     });
 
     it('should identify overdue invoices', async () => {
@@ -926,6 +927,25 @@ describe('FreeeClient Analysis Methods', () => {
 
       const result = await client.getMonthlyTrends(123, 2024, 'profit_loss');
       expect(result.summary.trend).toBe('stable');
+    });
+
+    it('should return decreasing when starting from zero and going negative', async () => {
+      const values = [0, 0, 0, 0, -100000, -200000, -300000, -400000, -500000, -600000, -700000, -800000];
+      for (const val of values) {
+        mockAxiosInstance.get.mockResolvedValueOnce({
+          data: {
+            trial_pl: makePLReport([
+              makeBalanceItem({
+                account_item_name: '売上高',
+                closing_balance: val,
+              }),
+            ]),
+          },
+        });
+      }
+
+      const result = await client.getMonthlyTrends(123, 2024, 'profit_loss');
+      expect(result.summary.trend).toBe('decreasing');
     });
   });
 });

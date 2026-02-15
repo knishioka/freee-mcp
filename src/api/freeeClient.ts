@@ -1228,14 +1228,24 @@ export class FreeeClient {
       .filter((a) => a.type !== 'credit_card')
       .reduce((sum, a) => sum + a.balance, 0);
 
-    // Receivables from unsettled invoices
+    // Receivables from unsettled invoices and income deals
+    const unsettledIncomes = allDeals.filter(
+      (d) => d.type === 'income' && d.status !== 'settled',
+    );
     const overdueInvoices = unsettledInvoices.filter(
       (i) => i.due_date && i.due_date < today,
     );
+    const overdueIncomes = unsettledIncomes.filter(
+      (d) => d.due_date && d.due_date < today,
+    );
     const receivables = {
-      total: unsettledInvoices.reduce((sum, i) => sum + i.total_amount, 0),
-      overdue: overdueInvoices.reduce((sum, i) => sum + i.total_amount, 0),
-      count: unsettledInvoices.length,
+      total:
+        unsettledInvoices.reduce((sum, i) => sum + i.total_amount, 0) +
+        unsettledIncomes.reduce((sum, d) => sum + d.amount, 0),
+      overdue:
+        overdueInvoices.reduce((sum, i) => sum + i.total_amount, 0) +
+        overdueIncomes.reduce((sum, d) => sum + d.amount, 0),
+      count: unsettledInvoices.length + unsettledIncomes.length,
     };
 
     // Payables from unsettled expense deals
@@ -1285,7 +1295,7 @@ export class FreeeClient {
     const lastAvg = lastThird.reduce((a, b) => a + b, 0) / lastThird.length;
 
     if (firstAvg === 0 && lastAvg === 0) return 'stable';
-    if (firstAvg === 0) return 'increasing';
+    if (firstAvg === 0) return lastAvg > 0 ? 'increasing' : 'decreasing';
 
     const changePercent = ((lastAvg - firstAvg) / Math.abs(firstAvg)) * 100;
 
