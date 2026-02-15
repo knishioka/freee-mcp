@@ -550,7 +550,7 @@ describe('FreeeClient', () => {
           start_date: '2024-01-01',
           end_date: '2024-01-31',
           walletable_id: 1,
-          walletable_type: 'bank_account',
+          walletable_type: 'bank_account' as const,
           offset: 0,
           limit: 100,
         };
@@ -639,18 +639,19 @@ describe('FreeeClient', () => {
           date: '2024-02-01',
           amount: 200000,
           from_walletable_id: 1,
-          from_walletable_type: 'bank_account',
+          from_walletable_type: 'bank_account' as const,
           to_walletable_id: 2,
-          to_walletable_type: 'bank_account',
+          to_walletable_type: 'bank_account' as const,
           description: 'Inter-account transfer',
         };
 
         const result = await client.createTransfer(123, transferData);
 
-        expect(mockAxiosInstance.post).toHaveBeenCalledWith('/transfers', {
-          company_id: 123,
-          ...transferData,
-        });
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/transfers',
+          { company_id: 123, ...transferData },
+          { params: { company_id: 123 } },
+        );
         expect(result).toEqual(mockTransfer);
       });
 
@@ -674,17 +675,18 @@ describe('FreeeClient', () => {
           date: '2024-02-01',
           amount: 50000,
           from_walletable_id: 1,
-          from_walletable_type: 'bank_account',
+          from_walletable_type: 'bank_account' as const,
           to_walletable_id: 4,
-          to_walletable_type: 'wallet',
+          to_walletable_type: 'wallet' as const,
         };
 
         const result = await client.createTransfer(123, transferData);
 
-        expect(mockAxiosInstance.post).toHaveBeenCalledWith('/transfers', {
-          company_id: 123,
-          ...transferData,
-        });
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/transfers',
+          { company_id: 123, ...transferData },
+          { params: { company_id: 123 } },
+        );
         expect(result).toEqual(mockTransfer);
       });
     });

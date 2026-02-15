@@ -732,7 +732,7 @@ export class FreeeClient {
       start_date?: string;
       end_date?: string;
       walletable_id?: number;
-      walletable_type?: string;
+      walletable_type?: 'bank_account' | 'credit_card' | 'wallet';
       offset?: number;
       limit?: number;
     },
@@ -761,15 +761,16 @@ export class FreeeClient {
       date: string;
       amount: number;
       from_walletable_id: number;
-      from_walletable_type: string;
+      from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
       to_walletable_id: number;
-      to_walletable_type: string;
+      to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
       description?: string;
     },
   ): Promise<FreeeTransfer> {
     const response = await this.api.post<{ transfer: FreeeTransfer }>(
       "/transfers",
       { company_id: companyId, ...transfer },
+      { params: { company_id: companyId } },
     );
     return response.data.transfer;
   }
