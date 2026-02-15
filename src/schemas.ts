@@ -359,3 +359,14 @@ export const MonthlyTrendsSchema = {
 export const CashPositionSchema = {
   companyId: companyIdField,
 };
+
+// Tax Code schemas
+export const GetTaxCodesSchema = {
+  companyId: companyIdField,
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
+};

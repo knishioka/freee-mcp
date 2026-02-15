@@ -9,6 +9,7 @@ import {
   CACHE_TTL_PARTNERS,
   CACHE_TTL_SECTIONS,
   CACHE_TTL_TAGS,
+  CACHE_TTL_TAX_CODES,
   PAGINATION_LIMIT,
   MAX_AUTO_PAGINATION_RECORDS,
 } from '../constants.js';
@@ -27,6 +28,7 @@ import {
   FreeeWalletable,
   FreeeManualJournal,
   FreeeWalletTransaction,
+  FreeeTaxCode,
   FreeeApiError,
   DealAggregation,
   PartnerAggregation,
@@ -552,6 +554,19 @@ export class FreeeClient {
     });
     this.cache.set(cacheKey, response.data.tags, CACHE_TTL_TAGS);
     return response.data.tags;
+  }
+
+  // Tax Code methods
+  async getTaxCodes(): Promise<FreeeTaxCode[]> {
+    const cacheKey = 'tax_codes:all';
+    const cached = this.cache.get<FreeeTaxCode[]>(cacheKey);
+    if (cached) return cached;
+
+    const response = await this.api.get<{ taxes: FreeeTaxCode[] }>(
+      '/taxes/codes',
+    );
+    this.cache.set(cacheKey, response.data.taxes, CACHE_TTL_TAX_CODES);
+    return response.data.taxes;
   }
 
   // Invoice methods

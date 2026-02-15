@@ -7,6 +7,7 @@ import type {
   FreeeTag,
   FreeeWalletable,
   FreeeManualJournal,
+  FreeeTaxCode,
   FreeeWalletTransaction,
   FormattedDeal,
   FormattedDealDetail,
@@ -15,6 +16,7 @@ import type {
   FormattedAccountItem,
   FormattedSection,
   FormattedTag,
+  FormattedTaxCode,
   FormattedWalletable,
   FormattedManualJournal,
   FormattedManualJournalDetail,
@@ -348,5 +350,28 @@ export class ResponseFormatter {
       summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
     }
     return summary;
+  }
+
+  // Tax Code formatting
+  static formatTaxCode(taxCode: FreeeTaxCode): FormattedTaxCode {
+    return {
+      code: taxCode.code,
+      name: taxCode.name,
+      name_ja: taxCode.name_ja,
+    };
+  }
+
+  static formatTaxCodes(
+    taxCodes: FreeeTaxCode[],
+    compact?: boolean,
+  ): FormattedListResponse<FormattedTaxCode> {
+    const summary: ListSummary = { total_count: taxCodes.length };
+    if (compact) {
+      return { summary, items: [] };
+    }
+    return {
+      summary,
+      items: taxCodes.map((t) => this.formatTaxCode(t)),
+    };
   }
 }

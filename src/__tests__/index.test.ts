@@ -35,8 +35,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
     });
 
     it('should import McpServer from @modelcontextprotocol/sdk/server/mcp.js', () => {
-      expect(indexSource).toContain(
-        'from \'@modelcontextprotocol/sdk/server/mcp.js\'',
+      expect(indexSource).toMatch(
+        /from ['"]@modelcontextprotocol\/sdk\/server\/mcp\.js['"]/,
       );
       expect(indexSource).toContain('McpServer');
     });
@@ -45,21 +45,21 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       expect(indexSource).toContain('ResourceTemplate');
       // Verify it's imported from the mcp.js module (may be multi-line import)
       const importBlock = indexSource.match(
-        /import\s*\{[^}]*ResourceTemplate[^}]*\}\s*from\s*'@modelcontextprotocol\/sdk\/server\/mcp\.js'/s,
+        /import\s*\{[^}]*ResourceTemplate[^}]*\}\s*from\s*['"]@modelcontextprotocol\/sdk\/server\/mcp\.js['"]/s,
       );
       expect(importBlock).toBeDefined();
     });
 
     it('should import StdioServerTransport from @modelcontextprotocol/sdk/server/stdio.js', () => {
-      expect(indexSource).toContain(
-        'from \'@modelcontextprotocol/sdk/server/stdio.js\'',
+      expect(indexSource).toMatch(
+        /from ['"]@modelcontextprotocol\/sdk\/server\/stdio\.js['"]/,
       );
       expect(indexSource).toContain('StdioServerTransport');
     });
 
     it('should import McpError and ErrorCode from @modelcontextprotocol/sdk/types.js', () => {
-      expect(indexSource).toContain(
-        'from \'@modelcontextprotocol/sdk/types.js\'',
+      expect(indexSource).toMatch(
+        /from ['"]@modelcontextprotocol\/sdk\/types\.js['"]/,
       );
       expect(indexSource).toContain('McpError');
       expect(indexSource).toContain('ErrorCode');
@@ -83,15 +83,15 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 
   describe('Tool Registration Pattern (registerTool)', () => {
     // Extract all registerTool calls from source
-    const registerToolRegex = /registerTool\(\s*'([^']+)'/g;
+    const registerToolRegex = /registerTool\(\s*["']([^"']+)["']/g;
     const toolNames: string[] = [];
     let match;
     while ((match = registerToolRegex.exec(indexSource)) !== null) {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 27 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(27);
+    it('should register exactly 28 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(28);
     });
 
     it('should register all expected tool names', () => {
@@ -109,6 +109,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_create_partner',
         'freee_get_sections',
         'freee_get_tags',
+        'freee_get_tax_codes',
         'freee_get_invoices',
         'freee_create_invoice',
         'freee_search_deals',
@@ -145,18 +146,22 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       const toolBlocks = indexSource.split(/registerTool\(/);
       // Skip the first element (code before first registerTool call) and the wrapper function definition
       const toolCalls = toolBlocks.filter(
-        (block) => block.includes('description:') && block.includes('\'freee_'),
+        (block) =>
+          block.includes('description:') &&
+          (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(27);
+      expect(toolCalls.length).toBe(28);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
     });
 
     it('should use schemas from schemas.ts as inputSchema (raw shapes)', () => {
-      // Verify tools reference schema imports
-      expect(indexSource).toContain('import * as schemas from \'./schemas.js\'');
+      // Verify tools reference schema imports (may use single or double quotes)
+      expect(indexSource).toMatch(
+        /import \* as schemas from ['"]\.\/schemas\.js['"]/,
+      );
 
       // Check that tools use schemas.XxxSchema as inputSchema
       const schemaUsages = [
@@ -172,6 +177,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.CreatePartnerSchema',
         'schemas.GetSectionsSchema',
         'schemas.GetTagsSchema',
+        'schemas.GetTaxCodesSchema',
         'schemas.GetInvoicesSchema',
         'schemas.CreateInvoiceSchema',
         'schemas.GetTrialBalanceSchema',
@@ -193,7 +199,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
     it('should register freee_get_companies without inputSchema', () => {
       // Find the freee_get_companies registration block
       const companiesBlock = indexSource.match(
-        /registerTool\(\s*'freee_get_companies'[\s\S]*?\)\s*;/,
+        /registerTool\(\s*["']freee_get_companies["'][\s\S]*?\)\s*;/,
       );
       expect(companiesBlock).toBeDefined();
       // It should NOT have inputSchema
@@ -207,15 +213,15 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
     });
 
     it('should use ResourceTemplate with correct URI pattern', () => {
-      expect(indexSource).toContain(
-        'new ResourceTemplate(\'freee://company/{companyId}\'',
+      expect(indexSource).toMatch(
+        /new ResourceTemplate\(['"]freee:\/\/company\/\{companyId\}['"]/,
       );
     });
 
     it('should configure resource with description and mimeType', () => {
       // Verify the metadata object in registerResource call
-      expect(indexSource).toContain('description: \'freee company data\'');
-      expect(indexSource).toContain('mimeType: \'application/json\'');
+      expect(indexSource).toMatch(/description:\s*['"]freee company data['"]/);
+      expect(indexSource).toMatch(/mimeType:\s*['"]application\/json['"]/);
     });
 
     it('should have list callback for ResourceTemplate', () => {
@@ -225,7 +231,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 
     it('should register resource with name "company"', () => {
       const registerResourceMatch = indexSource.match(
-        /server\.registerResource\(\s*'([^']+)'/,
+        /server\.registerResource\(\s*["']([^"']+)["']/,
       );
       expect(registerResourceMatch).toBeDefined();
       expect(registerResourceMatch![1]).toBe('company');
@@ -291,7 +297,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 
     it('should support FREEE_TOKEN_DATA_BASE64 for serverless environments', () => {
       expect(indexSource).toContain('FREEE_TOKEN_DATA_BASE64');
-      expect(indexSource).toContain('Buffer.from(envTokenData, \'base64\')');
+      expect(indexSource).toMatch(
+        /Buffer\.from\(envTokenData, ['"]base64['"]\)/,
+      );
     });
 
     it('should be called at module level', () => {
@@ -342,7 +350,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 27 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 28 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -391,7 +399,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 27 schemas', async () => {
+  it('should export exactly 28 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -399,7 +407,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(27);
+    expect(schemaExports).toHaveLength(28);
   });
 
   it('should use Zod types in schema fields', async () => {

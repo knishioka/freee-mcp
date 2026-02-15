@@ -170,6 +170,12 @@ export interface FreeeWalletTransaction {
   status: number;
 }
 
+export interface FreeeTaxCode {
+  code: number;
+  name: string;
+  name_ja: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{
@@ -245,6 +251,12 @@ export interface FormattedTag {
   id: number;
   name: string;
   shortcut?: string;
+}
+
+export interface FormattedTaxCode {
+  code: number;
+  name: string;
+  name_ja: string;
 }
 
 export interface FormattedWalletable {
