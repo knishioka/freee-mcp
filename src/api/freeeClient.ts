@@ -779,6 +779,32 @@ export class FreeeClient {
     return response.data.manual_journal;
   }
 
+  async createManualJournal(
+    companyId: number,
+    journal: {
+      issue_date: string;
+      adjustment?: boolean;
+      details: Array<{
+        entry_side: 'debit' | 'credit';
+        account_item_id: number;
+        tax_code: number;
+        amount: number;
+        description?: string;
+        section_id?: number;
+        tag_ids?: number[];
+        partner_id?: number;
+      }>;
+    },
+  ): Promise<FreeeManualJournal> {
+    const response = await this.api.post<{
+      manual_journal: FreeeManualJournal;
+    }>('/manual_journals', {
+      company_id: companyId,
+      ...journal,
+    });
+    return response.data.manual_journal;
+  }
+
   // Wallet Transaction methods
   async getWalletTxns(
     companyId: number,

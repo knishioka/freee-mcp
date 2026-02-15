@@ -574,6 +574,71 @@ describe('FreeeClient', () => {
       });
     });
 
+    describe('createManualJournal', () => {
+      it('should create a manual journal successfully', async () => {
+        const mockJournal = {
+          id: 1,
+          company_id: 123,
+          issue_date: '2024-03-31',
+          adjustment: true,
+          details: [
+            {
+              id: 1,
+              entry_side: 'debit',
+              account_item_id: 100,
+              tax_code: 0,
+              amount: 50000,
+              description: 'Depreciation expense',
+            },
+            {
+              id: 2,
+              entry_side: 'credit',
+              account_item_id: 200,
+              tax_code: 0,
+              amount: 50000,
+              description: 'Accumulated depreciation',
+            },
+          ],
+        };
+
+        mockAxiosInstance.post.mockResolvedValue({
+          data: { manual_journal: mockJournal },
+        });
+
+        const journalData = {
+          issue_date: '2024-03-31',
+          adjustment: true,
+          details: [
+            {
+              entry_side: 'debit' as const,
+              account_item_id: 100,
+              tax_code: 0,
+              amount: 50000,
+              description: 'Depreciation expense',
+            },
+            {
+              entry_side: 'credit' as const,
+              account_item_id: 200,
+              tax_code: 0,
+              amount: 50000,
+              description: 'Accumulated depreciation',
+            },
+          ],
+        };
+
+        const result = await client.createManualJournal(123, journalData);
+
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/manual_journals',
+          {
+            company_id: 123,
+            ...journalData,
+          },
+        );
+        expect(result).toEqual(mockJournal);
+      });
+    });
+
     describe('getTransfers', () => {
       it('should fetch transfers with parameters', async () => {
         const mockTransfers = [

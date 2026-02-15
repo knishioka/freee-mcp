@@ -965,6 +965,88 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_create_manual_journal',
+  {
+    description:
+      'Create a manual journal entry (振替伝票) - Creates a new manual journal with debit/credit entries. Essential for closing adjustments (決算整理仕訳) like depreciation, prepaid expense allocation, and provision entries. Set adjustment=true to mark as closing adjustment. Debit and credit totals must balance.',
+    inputSchema: schemas.CreateManualJournalSchema,
+  },
+  async ({ companyId, issueDate, adjustment, details }) => {
+    try {
+      // Validate debit/credit balance (single-pass)
+      const { debitTotal, creditTotal } = details.reduce(
+        (
+          totals: { debitTotal: number; creditTotal: number },
+          d: { entrySide: string; amount: number },
+        ) => {
+          if (d.entrySide === 'debit') {
+            totals.debitTotal += d.amount;
+          } else if (d.entrySide === 'credit') {
+            totals.creditTotal += d.amount;
+          }
+          return totals;
+        },
+        { debitTotal: 0, creditTotal: 0 },
+      );
+
+      if (debitTotal !== creditTotal) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Debit total (${debitTotal}) and credit total (${creditTotal}) must match.`,
+        );
+      }
+
+      if (debitTotal === 0) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          'Journal must contain at least one debit and one credit entry.',
+        );
+      }
+
+      const journal = await freeeClient.createManualJournal(
+        getCompanyId(companyId),
+        {
+          issue_date: issueDate,
+          adjustment: adjustment ?? false,
+          details: details.map(
+            (d: {
+              entrySide: string;
+              accountItemId: number;
+              taxCode: number;
+              amount: number;
+              description?: string;
+              sectionId?: number;
+              tagIds?: number[];
+              partnerId?: number;
+            }) => ({
+              entry_side: d.entrySide as 'debit' | 'credit',
+              account_item_id: d.accountItemId,
+              tax_code: d.taxCode,
+              amount: d.amount,
+              description: d.description,
+              section_id: d.sectionId,
+              tag_ids: d.tagIds,
+              partner_id: d.partnerId,
+            }),
+          ),
+        },
+      );
+      const formatted = ResponseFormatter.formatManualJournal(journal);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_create_manual_journal', error);
+    }
+  },
+);
+
 // === Wallet Transaction tools ===
 
 registerTool(

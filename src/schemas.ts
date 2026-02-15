@@ -327,6 +327,36 @@ export const GetManualJournalSchema = {
   manualJournalId: z.number().describe('Manual journal ID'),
 };
 
+export const CreateManualJournalSchema = {
+  companyId: companyIdField,
+  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  adjustment: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether this is a closing adjustment entry (決算整理仕訳). Defaults to false.',
+    ),
+  details: z
+    .array(
+      z.object({
+        entrySide: z
+          .enum(['debit', 'credit'])
+          .describe('Entry side (debit=借方, credit=貸方)'),
+        accountItemId: z.number().describe('Account item ID (勘定科目ID)'),
+        taxCode: z.number().describe('Tax code (税区分コード)'),
+        amount: z.number().min(1).describe('Amount (金額, must be positive)'),
+        description: z.string().optional().describe('Description (摘要)'),
+        sectionId: z.number().optional().describe('Section ID (部門ID)'),
+        tagIds: z.array(z.number()).optional().describe('Tag IDs (メモタグID)'),
+        partnerId: z.number().optional().describe('Partner ID (取引先ID)'),
+      }),
+    )
+    .min(2)
+    .describe(
+      'Journal entry details — must include at least one debit and one credit entry with matching totals',
+    ),
+};
+
 // Wallet Transaction schemas
 export const GetWalletTxnsSchema = {
   companyId: companyIdField,
