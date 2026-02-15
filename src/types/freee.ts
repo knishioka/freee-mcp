@@ -176,6 +176,18 @@ export interface FreeeTaxCode {
   name_ja: string;
 }
 
+export interface FreeeTransfer {
+  id: number;
+  company_id: number;
+  date: string;
+  amount: number;
+  from_walletable_id: number;
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  to_walletable_id: number;
+  to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  description?: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{
@@ -294,6 +306,17 @@ export interface FormattedWalletTransaction {
   entry_side: 'income' | 'expense';
   walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
+  description?: string;
+}
+
+export interface FormattedTransfer {
+  id: number;
+  date: string;
+  amount: number;
+  from_walletable_id: number;
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  to_walletable_id: number;
+  to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   description?: string;
 }
 

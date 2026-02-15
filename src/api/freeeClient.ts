@@ -29,6 +29,7 @@ import {
   FreeeManualJournal,
   FreeeWalletTransaction,
   FreeeTaxCode,
+  FreeeTransfer,
   FreeeApiError,
   DealAggregation,
   PartnerAggregation,
@@ -722,6 +723,56 @@ export class FreeeClient {
       params: { company_id: companyId, ...params },
     });
     return response.data.wallet_txns;
+  }
+
+  // Transfer methods
+  async getTransfers(
+    companyId: number,
+    params?: {
+      start_date?: string;
+      end_date?: string;
+      walletable_id?: number;
+      walletable_type?: 'bank_account' | 'credit_card' | 'wallet';
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeTransfer[]> {
+    const response = await this.api.get<{ transfers: FreeeTransfer[] }>(
+      '/transfers',
+      { params: { company_id: companyId, ...params } },
+    );
+    return response.data.transfers;
+  }
+
+  async getTransfer(
+    companyId: number,
+    transferId: number,
+  ): Promise<FreeeTransfer> {
+    const response = await this.api.get<{ transfer: FreeeTransfer }>(
+      `/transfers/${transferId}`,
+      { params: { company_id: companyId } },
+    );
+    return response.data.transfer;
+  }
+
+  async createTransfer(
+    companyId: number,
+    transfer: {
+      date: string;
+      amount: number;
+      from_walletable_id: number;
+      from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+      to_walletable_id: number;
+      to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+      description?: string;
+    },
+  ): Promise<FreeeTransfer> {
+    const response = await this.api.post<{ transfer: FreeeTransfer }>(
+      '/transfers',
+      { company_id: companyId, ...transfer },
+      { params: { company_id: companyId } },
+    );
+    return response.data.transfer;
   }
 
   // Auto-pagination: fetches all pages of a paginated endpoint

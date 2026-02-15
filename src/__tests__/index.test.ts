@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 28 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(28);
+    it('should register exactly 31 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(31);
     });
 
     it('should register all expected tool names', () => {
@@ -118,6 +118,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_manual_journals',
         'freee_get_manual_journal',
         'freee_get_wallet_txns',
+        'freee_get_transfers',
+        'freee_get_transfer',
+        'freee_create_transfer',
         'freee_get_trial_balance',
         'freee_get_profit_loss',
         'freee_get_balance_sheet',
@@ -151,7 +154,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(28);
+      expect(toolCalls.length).toBe(31);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -189,6 +192,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetManualJournalsSchema',
         'schemas.GetManualJournalSchema',
         'schemas.GetWalletTxnsSchema',
+        'schemas.GetTransfersSchema',
+        'schemas.GetTransferSchema',
+        'schemas.CreateTransferSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -346,11 +352,18 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'breakdown_display_type: breakdownDisplayType',
       );
     });
+
+    it('should map transfer fields from camelCase to snake_case', () => {
+      expect(indexSource).toContain('from_walletable_id: fromWalletableId');
+      expect(indexSource).toContain('from_walletable_type: fromWalletableType');
+      expect(indexSource).toContain('to_walletable_id: toWalletableId');
+      expect(indexSource).toContain('to_walletable_type: toWalletableType');
+    });
   });
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 28 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 31 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -375,9 +388,16 @@ describe('Schema Structure Verification', () => {
       'GetManualJournalsSchema',
       'GetManualJournalSchema',
       'GetWalletTxnsSchema',
+      'GetTransfersSchema',
+      'GetTransferSchema',
+      'CreateTransferSchema',
       'GetTrialBalanceSchema',
       'GetProfitLossSchema',
       'GetBalanceSheetSchema',
+      'ComparePeriodsSchema',
+      'MonthlyTrendsSchema',
+      'CashPositionSchema',
+      'GetTaxCodesSchema',
     ];
 
     schemaNames.forEach((name) => {
@@ -399,7 +419,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 28 schemas', async () => {
+  it('should export exactly 31 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -407,7 +427,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(28);
+    expect(schemaExports).toHaveLength(31);
   });
 
   it('should use Zod types in schema fields', async () => {
@@ -427,6 +447,45 @@ describe('Schema Structure Verification', () => {
     >;
     expect(createDealSchema.details).toBeDefined();
     expect(createDealSchema.type).toBeDefined();
+  });
+
+  it('should have correct fields in Transfer schemas', async () => {
+    const schemas = await import('../schemas.js');
+
+    // GetTransfersSchema should have optional filter fields
+    const getTransfersSchema = schemas.GetTransfersSchema as Record<
+      string,
+      unknown
+    >;
+    expect(getTransfersSchema.companyId).toBeDefined();
+    expect(getTransfersSchema.startDate).toBeDefined();
+    expect(getTransfersSchema.endDate).toBeDefined();
+    expect(getTransfersSchema.walletableId).toBeDefined();
+    expect(getTransfersSchema.walletableType).toBeDefined();
+    expect(getTransfersSchema.offset).toBeDefined();
+    expect(getTransfersSchema.limit).toBeDefined();
+
+    // GetTransferSchema should have transferId
+    const getTransferSchema = schemas.GetTransferSchema as Record<
+      string,
+      unknown
+    >;
+    expect(getTransferSchema.companyId).toBeDefined();
+    expect(getTransferSchema.transferId).toBeDefined();
+
+    // CreateTransferSchema should have all required fields
+    const createTransferSchema = schemas.CreateTransferSchema as Record<
+      string,
+      unknown
+    >;
+    expect(createTransferSchema.companyId).toBeDefined();
+    expect(createTransferSchema.date).toBeDefined();
+    expect(createTransferSchema.amount).toBeDefined();
+    expect(createTransferSchema.fromWalletableId).toBeDefined();
+    expect(createTransferSchema.fromWalletableType).toBeDefined();
+    expect(createTransferSchema.toWalletableId).toBeDefined();
+    expect(createTransferSchema.toWalletableType).toBeDefined();
+    expect(createTransferSchema.description).toBeDefined();
   });
 
   it('should have companyId as optional in most schemas', async () => {

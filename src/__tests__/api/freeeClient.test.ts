@@ -526,6 +526,171 @@ describe('FreeeClient', () => {
       });
     });
 
+    describe('getTransfers', () => {
+      it('should fetch transfers with parameters', async () => {
+        const mockTransfers = [
+          {
+            id: 1,
+            company_id: 123,
+            date: '2024-01-15',
+            amount: 50000,
+            from_walletable_id: 1,
+            from_walletable_type: 'bank_account',
+            to_walletable_id: 2,
+            to_walletable_type: 'bank_account',
+            description: 'Monthly transfer',
+          },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { transfers: mockTransfers },
+        });
+
+        const params = {
+          start_date: '2024-01-01',
+          end_date: '2024-01-31',
+          walletable_id: 1,
+          walletable_type: 'bank_account' as const,
+          offset: 0,
+          limit: 100,
+        };
+
+        const result = await client.getTransfers(123, params);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/transfers', {
+          params: { company_id: 123, ...params },
+        });
+        expect(result).toEqual(mockTransfers);
+      });
+
+      it('should fetch transfers without optional parameters', async () => {
+        const mockTransfers = [
+          {
+            id: 1,
+            company_id: 123,
+            date: '2024-01-15',
+            amount: 50000,
+            from_walletable_id: 1,
+            from_walletable_type: 'bank_account',
+            to_walletable_id: 2,
+            to_walletable_type: 'bank_account',
+          },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { transfers: mockTransfers },
+        });
+
+        const result = await client.getTransfers(123);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/transfers', {
+          params: { company_id: 123 },
+        });
+        expect(result).toEqual(mockTransfers);
+      });
+    });
+
+    describe('getTransfer', () => {
+      it('should fetch a single transfer by ID', async () => {
+        const mockTransfer = {
+          id: 42,
+          company_id: 123,
+          date: '2024-01-15',
+          amount: 100000,
+          from_walletable_id: 1,
+          from_walletable_type: 'bank_account',
+          to_walletable_id: 3,
+          to_walletable_type: 'credit_card',
+          description: 'Credit card payment',
+        };
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { transfer: mockTransfer },
+        });
+
+        const result = await client.getTransfer(123, 42);
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/transfers/42', {
+          params: { company_id: 123 },
+        });
+        expect(result).toEqual(mockTransfer);
+      });
+    });
+
+    describe('createTransfer', () => {
+      it('should create a transfer successfully', async () => {
+        const mockTransfer = {
+          id: 99,
+          company_id: 123,
+          date: '2024-02-01',
+          amount: 200000,
+          from_walletable_id: 1,
+          from_walletable_type: 'bank_account',
+          to_walletable_id: 2,
+          to_walletable_type: 'bank_account',
+          description: 'Inter-account transfer',
+        };
+
+        mockAxiosInstance.post.mockResolvedValue({
+          data: { transfer: mockTransfer },
+        });
+
+        const transferData = {
+          date: '2024-02-01',
+          amount: 200000,
+          from_walletable_id: 1,
+          from_walletable_type: 'bank_account' as const,
+          to_walletable_id: 2,
+          to_walletable_type: 'bank_account' as const,
+          description: 'Inter-account transfer',
+        };
+
+        const result = await client.createTransfer(123, transferData);
+
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/transfers',
+          { company_id: 123, ...transferData },
+          { params: { company_id: 123 } },
+        );
+        expect(result).toEqual(mockTransfer);
+      });
+
+      it('should create a transfer without optional description', async () => {
+        const mockTransfer = {
+          id: 100,
+          company_id: 123,
+          date: '2024-02-01',
+          amount: 50000,
+          from_walletable_id: 1,
+          from_walletable_type: 'bank_account',
+          to_walletable_id: 4,
+          to_walletable_type: 'wallet',
+        };
+
+        mockAxiosInstance.post.mockResolvedValue({
+          data: { transfer: mockTransfer },
+        });
+
+        const transferData = {
+          date: '2024-02-01',
+          amount: 50000,
+          from_walletable_id: 1,
+          from_walletable_type: 'bank_account' as const,
+          to_walletable_id: 4,
+          to_walletable_type: 'wallet' as const,
+        };
+
+        const result = await client.createTransfer(123, transferData);
+
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/transfers',
+          { company_id: 123, ...transferData },
+          { params: { company_id: 123 } },
+        );
+        expect(result).toEqual(mockTransfer);
+      });
+    });
+
     describe('getWalletTxns', () => {
       it('should fetch wallet transactions with parameters', async () => {
         const mockTxns = [

@@ -9,6 +9,7 @@ import type {
   FreeeManualJournal,
   FreeeTaxCode,
   FreeeWalletTransaction,
+  FreeeTransfer,
   FormattedDeal,
   FormattedDealDetail,
   FormattedInvoice,
@@ -21,6 +22,7 @@ import type {
   FormattedManualJournal,
   FormattedManualJournalDetail,
   FormattedWalletTransaction,
+  FormattedTransfer,
   ListSummary,
   FormattedListResponse,
 } from '../types/freee.js';
@@ -373,5 +375,42 @@ export class ResponseFormatter {
       summary,
       items: taxCodes.map((t) => this.formatTaxCode(t)),
     };
+  }
+
+  // Transfer formatting
+  static formatTransfer(transfer: FreeeTransfer): FormattedTransfer {
+    return stripEmpty({
+      id: transfer.id,
+      date: transfer.date,
+      amount: transfer.amount,
+      from_walletable_id: transfer.from_walletable_id,
+      from_walletable_type: transfer.from_walletable_type,
+      to_walletable_id: transfer.to_walletable_id,
+      to_walletable_type: transfer.to_walletable_type,
+      description: transfer.description,
+    }) as FormattedTransfer;
+  }
+
+  static formatTransfers(
+    transfers: FreeeTransfer[],
+  ): FormattedListResponse<FormattedTransfer> {
+    const summary = this.summarizeTransfers(transfers);
+    return {
+      summary,
+      items: transfers.map((t) => this.formatTransfer(t)),
+    };
+  }
+
+  private static summarizeTransfers(transfers: FreeeTransfer[]): ListSummary {
+    const sorted = [...transfers].sort((a, b) => a.date.localeCompare(b.date));
+    const totalAmount = transfers.reduce((sum, t) => sum + t.amount, 0);
+    const summary: ListSummary = {
+      total_count: transfers.length,
+      total_income: totalAmount,
+    };
+    if (sorted.length > 0) {
+      summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
+    }
+    return summary;
   }
 }
