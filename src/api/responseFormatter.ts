@@ -25,7 +25,7 @@ import type {
   FormattedTransfer,
   ListSummary,
   FormattedListResponse,
-} from "../types/freee.js";
+} from '../types/freee.js';
 
 /**
  * Strips null and undefined values from an object, preserving empty arrays.
@@ -83,7 +83,7 @@ export class ResponseFormatter {
     );
     const { income, expense } = deals.reduce(
       (acc, d) => {
-        if (d.type === "income") acc.income += d.amount;
+        if (d.type === 'income') acc.income += d.amount;
         else acc.expense += d.amount;
         return acc;
       },
@@ -337,7 +337,7 @@ export class ResponseFormatter {
     const sorted = [...txns].sort((a, b) => a.date.localeCompare(b.date));
     const { income, expense } = txns.reduce(
       (acc, t) => {
-        if (t.entry_side === "income") acc.income += t.amount;
+        if (t.entry_side === 'income') acc.income += t.amount;
         else acc.expense += t.amount;
         return acc;
       },
