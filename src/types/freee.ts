@@ -198,6 +198,59 @@ export interface FreeeTransfer {
   description?: string;
 }
 
+export interface FreeeExpenseApplicationLine {
+  id: number;
+  description?: string;
+  amount: number;
+  expense_application_line_template_id?: number;
+}
+
+export interface FreeeExpenseApplicationPurchaseLine {
+  id: number;
+  transaction_date?: string;
+  receipt_id?: number;
+  expense_application_lines: FreeeExpenseApplicationLine[];
+}
+
+export interface FreeeExpenseApplicationApprover {
+  step_id: number;
+  user_id: number;
+  status: string;
+  is_force_action: boolean;
+  resource_type: string;
+}
+
+export interface FreeeExpenseApplication {
+  id: number;
+  company_id: number;
+  title: string;
+  issue_date: string;
+  description?: string;
+  total_amount: number;
+  status: 'draft' | 'in_progress' | 'approved' | 'rejected' | 'feedback';
+  section_id?: number;
+  tag_ids?: number[];
+  purchase_lines: FreeeExpenseApplicationPurchaseLine[];
+  deal_id?: number;
+  deal_status?: string;
+  applicant_id: number;
+  application_number: string;
+  approval_flow_route_id: number;
+  current_step_id?: number;
+  current_round: number;
+  approvers?: FreeeExpenseApplicationApprover[];
+  comments?: Array<{
+    comment: string;
+    user_id: number;
+    posted_at: string;
+  }>;
+  approval_flow_logs?: Array<{
+    action: string;
+    user_id: number;
+    updated_at: string;
+  }>;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{
@@ -324,6 +377,28 @@ export interface FormattedWalletTransaction {
   walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
   description?: string;
+}
+
+export interface FormattedExpenseApplicationLine {
+  description?: string;
+  amount: number;
+}
+
+export interface FormattedExpenseApplication {
+  id: number;
+  title: string;
+  issue_date: string;
+  total_amount: number;
+  status: string;
+  applicant_id: number;
+  application_number: string;
+  description?: string;
+  section_id?: number;
+  current_step_id?: number;
+  current_round?: number;
+  deal_id?: number;
+  deal_status?: string;
+  lines?: FormattedExpenseApplicationLine[];
 }
 
 export interface FormattedTransfer {

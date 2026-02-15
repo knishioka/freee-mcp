@@ -11,6 +11,7 @@ import type {
   FreeeTaxCode,
   FreeeWalletTransaction,
   FreeeTransfer,
+  FreeeExpenseApplication,
   FormattedDeal,
   FormattedDealDetail,
   FormattedInvoice,
@@ -25,6 +26,8 @@ import type {
   FormattedManualJournalDetail,
   FormattedWalletTransaction,
   FormattedTransfer,
+  FormattedExpenseApplication,
+  FormattedExpenseApplicationLine,
   ListSummary,
   FormattedListResponse,
 } from '../types/freee.js';
@@ -433,6 +436,70 @@ export class ResponseFormatter {
     };
     if (sorted.length > 0) {
       summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
+    }
+    return summary;
+  }
+
+  // Expense Application formatting
+  static formatExpenseApplication(
+    app: FreeeExpenseApplication,
+  ): FormattedExpenseApplication {
+    const lines: FormattedExpenseApplicationLine[] = (
+      app.purchase_lines ?? []
+    ).flatMap((pl) =>
+      (pl.expense_application_lines ?? []).map((line) =>
+        stripEmpty({
+          description: line.description,
+          amount: line.amount,
+        }),
+      ),
+    ) as FormattedExpenseApplicationLine[];
+
+    return stripEmpty({
+      id: app.id,
+      title: app.title,
+      issue_date: app.issue_date,
+      total_amount: app.total_amount,
+      status: app.status,
+      applicant_id: app.applicant_id,
+      application_number: app.application_number,
+      description: app.description,
+      section_id: app.section_id,
+      current_step_id: app.current_step_id,
+      current_round: app.current_round,
+      deal_id: app.deal_id,
+      deal_status: app.deal_status,
+      lines: lines.length > 0 ? lines : undefined,
+    }) as FormattedExpenseApplication;
+  }
+
+  static formatExpenseApplications(
+    apps: FreeeExpenseApplication[],
+    compact?: boolean,
+  ): FormattedListResponse<FormattedExpenseApplication> {
+    const summary = this.summarizeExpenseApplications(apps);
+    if (compact) {
+      return { summary, items: [] };
+    }
+    return {
+      summary,
+      items: apps.map((a) => this.formatExpenseApplication(a)),
+    };
+  }
+
+  private static summarizeExpenseApplications(
+    apps: FreeeExpenseApplication[],
+  ): ListSummary {
+    const sorted = [...apps].sort((a, b) =>
+      a.issue_date.localeCompare(b.issue_date),
+    );
+    const totalExpense = apps.reduce((sum, a) => sum + a.total_amount, 0);
+    const summary: ListSummary = {
+      total_count: apps.length,
+      total_expense: totalExpense,
+    };
+    if (sorted.length > 0) {
+      summary.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
     }
     return summary;
   }

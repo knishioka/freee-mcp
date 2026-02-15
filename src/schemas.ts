@@ -434,6 +434,72 @@ export const CashPositionSchema = {
   companyId: companyIdField,
 };
 
+// Expense Application schemas
+export const GetExpenseApplicationsSchema = {
+  companyId: companyIdField,
+  status: z
+    .enum(['draft', 'in_progress', 'approved', 'rejected', 'feedback'])
+    .optional()
+    .describe(
+      'Filter by status (draft: 下書き, in_progress: 申請中, approved: 承認済, rejected: 却下, feedback: 差戻し)',
+    ),
+  startIssueDate: z
+    .string()
+    .optional()
+    .describe('Start issue date (YYYY-MM-DD)'),
+  endIssueDate: z.string().optional().describe('End issue date (YYYY-MM-DD)'),
+  startTransactionDate: z
+    .string()
+    .optional()
+    .describe('Start transaction date for line items (YYYY-MM-DD)'),
+  endTransactionDate: z
+    .string()
+    .optional()
+    .describe('End transaction date for line items (YYYY-MM-DD)'),
+  applicantId: z.number().optional().describe('Applicant user ID to filter by'),
+  approverId: z.number().optional().describe('Approver user ID to filter by'),
+  minAmount: z.number().optional().describe('Minimum total amount filter'),
+  maxAmount: z.number().optional().describe('Maximum total amount filter'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(500)
+    .optional()
+    .describe('Number of results (1-500, default 50)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
+};
+
+export const GetExpenseApplicationSchema = {
+  companyId: companyIdField,
+  expenseApplicationId: z.number().describe('Expense application ID'),
+};
+
+export const ApproveExpenseApplicationSchema = {
+  companyId: companyIdField,
+  expenseApplicationId: z.number().describe('Expense application ID'),
+  approvalAction: z
+    .enum(['approve', 'reject', 'feedback'])
+    .describe(
+      'Approval action (approve: 承認する, reject: 却下する, feedback: 差し戻す)',
+    ),
+  targetStepId: z
+    .number()
+    .describe(
+      'Target approval step ID (from expense application detail current_step_id)',
+    ),
+  targetRound: z
+    .number()
+    .describe(
+      'Target round number (from expense application detail current_round)',
+    ),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,

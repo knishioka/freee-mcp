@@ -31,6 +31,7 @@ import {
   FreeeWalletTransaction,
   FreeeTaxCode,
   FreeeTransfer,
+  FreeeExpenseApplication,
   FreeeApiError,
   DealAggregation,
   PartnerAggregation,
@@ -819,6 +820,61 @@ export class FreeeClient {
       { params: { company_id: companyId } },
     );
     return response.data.transfer;
+  }
+
+  // Expense Application methods
+  async getExpenseApplications(
+    companyId: number,
+    params?: {
+      status?: string;
+      start_issue_date?: string;
+      end_issue_date?: string;
+      start_transaction_date?: string;
+      end_transaction_date?: string;
+      applicant_id?: number;
+      approver_id?: number;
+      min_amount?: number;
+      max_amount?: number;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeExpenseApplication[]> {
+    const response = await this.api.get<{
+      expense_applications: FreeeExpenseApplication[];
+    }>('/expense_applications', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.expense_applications;
+  }
+
+  async getExpenseApplication(
+    companyId: number,
+    expenseApplicationId: number,
+  ): Promise<FreeeExpenseApplication> {
+    const response = await this.api.get<{
+      expense_application: FreeeExpenseApplication;
+    }>(`/expense_applications/${expenseApplicationId}`, {
+      params: { company_id: companyId },
+    });
+    return response.data.expense_application;
+  }
+
+  async approveExpenseApplication(
+    companyId: number,
+    expenseApplicationId: number,
+    params: {
+      approval_action: string;
+      target_step_id: number;
+      target_round: number;
+    },
+  ): Promise<FreeeExpenseApplication> {
+    const response = await this.api.post<{
+      expense_application: FreeeExpenseApplication;
+    }>(`/expense_applications/${expenseApplicationId}/actions`, {
+      company_id: companyId,
+      ...params,
+    });
+    return response.data.expense_application;
   }
 
   // Auto-pagination: fetches all pages of a paginated endpoint
