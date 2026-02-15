@@ -18,6 +18,8 @@ import {
   FreeeTokenResponse,
   FreeeCompany,
   FreeeDeal,
+  FreeeDealPayment,
+  FreeeDealUpdatePayload,
   FreeeAccountItem,
   FreeePartner,
   FreeeSection,
@@ -469,6 +471,32 @@ export class FreeeClient {
       ...deal,
     });
     return response.data.deal;
+  }
+
+  async updateDeal(
+    companyId: number,
+    dealId: number,
+    deal: FreeeDealUpdatePayload,
+  ): Promise<FreeeDeal> {
+    const response = await this.api.put<{ deal: FreeeDeal }>(
+      `/deals/${dealId}`,
+      { company_id: companyId, ...deal },
+      { params: { company_id: companyId } },
+    );
+    return response.data.deal;
+  }
+
+  async createDealPayment(
+    companyId: number,
+    dealId: number,
+    payment: Omit<FreeeDealPayment, 'id'>,
+  ): Promise<FreeeDealPayment> {
+    const response = await this.api.post<{ deal_payment: FreeeDealPayment }>(
+      `/deals/${dealId}/payments`,
+      { company_id: companyId, ...payment },
+      { params: { company_id: companyId } },
+    );
+    return response.data.deal_payment;
   }
 
   // Account Item methods

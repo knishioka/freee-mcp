@@ -39,6 +39,20 @@ export interface FreeeDealDetail {
   tag_ids?: number[];
 }
 
+export interface FreeeDealPayment {
+  id: number;
+  date: string;
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  from_walletable_id: number;
+  amount: number;
+}
+
+export interface FreeeDealUpdatePayload {
+  issue_date?: string;
+  type?: 'income' | 'expense';
+  details?: Array<Omit<FreeeDealDetail, 'id'>>;
+}
+
 export interface FreeeAccountItem {
   id: number;
   company_id: number;
