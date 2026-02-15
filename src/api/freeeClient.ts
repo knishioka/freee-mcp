@@ -23,6 +23,7 @@ import {
   FreeeTag,
   FreeeInvoice,
   FreeeTrialBalance,
+  FreeeTrialBalanceItem,
   FreeeWalletable,
   FreeeManualJournal,
   FreeeWalletTransaction,
@@ -34,6 +35,13 @@ import {
   InvoiceSummaryAggregation,
   InvoiceStatusAggregation,
   InvoicePartnerAggregation,
+  PeriodComparisonResult,
+  PeriodChange,
+  PeriodHighlight,
+  MonthlyMetrics,
+  MonthlyTrendsResult,
+  CashAccount,
+  CashPositionResult,
 } from '../types/freee.js';
 import { ApiCache, generateCacheKey } from './cache.js';
 
@@ -1018,6 +1026,292 @@ export class FreeeClient {
     }
 
     return result;
+  }
+
+  // === Analysis methods ===
+
+  async comparePeriods(
+    companyId: number,
+    reportType: 'profit_loss' | 'balance_sheet',
+    period1: { fiscal_year: number; start_month: number; end_month: number },
+    period2: { fiscal_year: number; start_month: number; end_month: number },
+    breakdownDisplayType?: 'partner' | 'item' | 'section' | 'tag',
+  ): Promise<PeriodComparisonResult> {
+    const fetchReport =
+      reportType === 'profit_loss'
+        ? (p: typeof period1) =>
+          this.getProfitLoss(companyId, {
+            ...p,
+            breakdown_display_type: breakdownDisplayType,
+          })
+        : (p: typeof period1) =>
+          this.getBalanceSheet(companyId, {
+            ...p,
+            breakdown_display_type: breakdownDisplayType,
+          });
+
+    const [report1, report2] = await Promise.all([
+      fetchReport(period1),
+      fetchReport(period2),
+    ]);
+
+    const metrics1 = this.extractBalanceMetrics(report1.balances);
+    const metrics2 = this.extractBalanceMetrics(report2.balances);
+
+    const allItems = new Set([
+      ...Object.keys(metrics1),
+      ...Object.keys(metrics2),
+    ]);
+    const changes: Record<string, PeriodChange> = {};
+    const intermediateHighlights: Array<
+      PeriodHighlight & { absPercentage: number }
+    > = [];
+
+    for (const item of allItems) {
+      const val1 = metrics1[item] ?? 0;
+      const val2 = metrics2[item] ?? 0;
+      const amount = val2 - val1;
+      const percentage =
+        val1 !== 0
+          ? Math.round(((val2 - val1) / Math.abs(val1)) * 10000) / 100
+          : val2 === val1
+            ? 0
+            : null;
+
+      changes[item] = { amount, percentage };
+
+      if (amount === 0) continue;
+
+      const absPercentage = percentage !== null ? Math.abs(percentage) : 0;
+      const significance: 'high' | 'medium' | 'low' =
+        absPercentage > 10 ? 'high' : absPercentage > 5 ? 'medium' : 'low';
+
+      if (significance !== 'low') {
+        const changeStr =
+          percentage !== null
+            ? `${percentage >= 0 ? '+' : ''}${percentage}%`
+            : 'new';
+        intermediateHighlights.push({
+          item,
+          change: changeStr,
+          significance,
+          absPercentage,
+        });
+      }
+    }
+
+    intermediateHighlights.sort((a, b) => b.absPercentage - a.absPercentage);
+
+    const highlights: PeriodHighlight[] = intermediateHighlights
+      .slice(0, 10)
+      .map(({ item, change, significance }) => ({
+        item,
+        change,
+        significance,
+      }));
+
+    return {
+      report_type: reportType,
+      period1: { ...period1, metrics: metrics1 },
+      period2: { ...period2, metrics: metrics2 },
+      changes,
+      highlights,
+    };
+  }
+
+  async getMonthlyTrends(
+    companyId: number,
+    fiscalYear: number,
+    reportType: 'profit_loss' | 'balance_sheet',
+    months?: number[],
+  ): Promise<MonthlyTrendsResult> {
+    const targetMonths = months ?? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+    const fetchReport =
+      reportType === 'profit_loss'
+        ? (m: number) =>
+          this.getProfitLoss(companyId, {
+            fiscal_year: fiscalYear,
+            start_month: m,
+            end_month: m,
+          })
+        : (m: number) =>
+          this.getBalanceSheet(companyId, {
+            fiscal_year: fiscalYear,
+            start_month: m,
+            end_month: m,
+          });
+
+    const reports = await Promise.all(targetMonths.map((m) => fetchReport(m)));
+
+    const monthlyData: MonthlyMetrics[] = reports.map((report, i) => ({
+      month: targetMonths[i],
+      metrics: this.extractBalanceMetrics(report.balances),
+    }));
+
+    // Compute summary using first available metric as primary
+    const allMetricNames =
+      monthlyData.length > 0 ? Object.keys(monthlyData[0].metrics) : [];
+    const primaryMetric = allMetricNames[0] ?? '';
+
+    const primaryValues = monthlyData.map((m) => ({
+      month: m.month,
+      value: m.metrics[primaryMetric] ?? 0,
+    }));
+
+    const avg =
+      primaryValues.length > 0
+        ? Math.round(
+          primaryValues.reduce((sum, v) => sum + v.value, 0) /
+              primaryValues.length,
+        )
+        : 0;
+
+    const max = primaryValues.reduce(
+      (best, v) => (v.value > best.value ? v : best),
+      primaryValues[0] ?? { month: 0, value: 0 },
+    );
+
+    const min = primaryValues.reduce(
+      (best, v) => (v.value < best.value ? v : best),
+      primaryValues[0] ?? { month: 0, value: 0 },
+    );
+
+    const trend = this.computeTrend(primaryValues.map((v) => v.value));
+
+    return {
+      fiscal_year: fiscalYear,
+      report_type: reportType,
+      months: monthlyData,
+      summary: {
+        primary_metric: primaryMetric,
+        avg,
+        max: { month: max.month, value: max.value },
+        min: { month: min.month, value: min.value },
+        trend,
+      },
+    };
+  }
+
+  async getCashPosition(companyId: number): Promise<CashPositionResult> {
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(new Date())
+      .replace(/\//g, '-');
+
+    const [walletables, unsettledInvoices, allDeals] = await Promise.all([
+      this.getWalletables(companyId, { with_balance: true }),
+      this.fetchAllPages<FreeeInvoice>(
+        '/invoices',
+        { company_id: companyId, payment_status: 'unsettled' },
+        'invoices',
+      ),
+      this.fetchAllPages<FreeeDeal>(
+        '/deals',
+        { company_id: companyId },
+        'deals',
+      ),
+    ]);
+
+    // Cash from walletables (bank accounts and wallets, exclude credit cards)
+    const accounts: CashAccount[] = walletables.map((w) => ({
+      name: w.name,
+      type: w.type,
+      balance: w.walletable_balance ?? w.last_balance ?? 0,
+    }));
+
+    const totalCash = accounts
+      .filter((a) => a.type !== 'credit_card')
+      .reduce((sum, a) => sum + a.balance, 0);
+
+    // Receivables from unsettled invoices and income deals
+    const unsettledIncomes = allDeals.filter(
+      (d) => d.type === 'income' && d.status !== 'settled',
+    );
+    const overdueInvoices = unsettledInvoices.filter(
+      (i) => i.due_date && i.due_date < today,
+    );
+    const overdueIncomes = unsettledIncomes.filter(
+      (d) => d.due_date && d.due_date < today,
+    );
+    const receivables = {
+      total:
+        unsettledInvoices.reduce((sum, i) => sum + i.total_amount, 0) +
+        unsettledIncomes.reduce((sum, d) => sum + d.amount, 0),
+      overdue:
+        overdueInvoices.reduce((sum, i) => sum + i.total_amount, 0) +
+        overdueIncomes.reduce((sum, d) => sum + d.amount, 0),
+      count: unsettledInvoices.length + unsettledIncomes.length,
+    };
+
+    // Payables from unsettled expense deals
+    const unsettledExpenses = allDeals.filter(
+      (d) => d.type === 'expense' && d.status !== 'settled',
+    );
+    const overdueExpenses = unsettledExpenses.filter(
+      (d) => d.due_date && d.due_date < today,
+    );
+    const payables = {
+      total: unsettledExpenses.reduce((sum, d) => sum + d.amount, 0),
+      overdue: overdueExpenses.reduce((sum, d) => sum + d.amount, 0),
+      count: unsettledExpenses.length,
+    };
+
+    return {
+      total_cash: totalCash,
+      accounts,
+      receivables,
+      payables,
+      net_position: totalCash + receivables.total - payables.total,
+    };
+  }
+
+  private extractBalanceMetrics(
+    balances: FreeeTrialBalanceItem[],
+  ): Record<string, number> {
+    const metrics: Record<string, number> = {};
+    for (const item of balances) {
+      if (item.account_item_name) {
+        metrics[item.account_item_name] = item.closing_balance;
+      }
+    }
+    return metrics;
+  }
+
+  private computeTrend(
+    values: number[],
+  ): 'increasing' | 'decreasing' | 'stable' | 'fluctuating' {
+    if (values.length < 2) return 'stable';
+
+    const thirdSize = Math.max(1, Math.floor(values.length / 3));
+    const firstThird = values.slice(0, thirdSize);
+    const lastThird = values.slice(-thirdSize);
+
+    const firstAvg = firstThird.reduce((a, b) => a + b, 0) / firstThird.length;
+    const lastAvg = lastThird.reduce((a, b) => a + b, 0) / lastThird.length;
+
+    if (firstAvg === 0 && lastAvg === 0) return 'stable';
+    if (firstAvg === 0) return lastAvg > 0 ? 'increasing' : 'decreasing';
+
+    const changePercent = ((lastAvg - firstAvg) / Math.abs(firstAvg)) * 100;
+
+    if (changePercent > 10) return 'increasing';
+    if (changePercent < -10) return 'decreasing';
+
+    // Check for fluctuation via coefficient of variation
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    if (avg === 0) return 'stable';
+
+    const variance =
+      values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length;
+    const cv = Math.sqrt(variance) / Math.abs(avg);
+
+    if (cv > 0.2) return 'fluctuating';
+    return 'stable';
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
