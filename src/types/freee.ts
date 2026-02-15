@@ -291,6 +291,48 @@ export interface FreeeReceipt {
   qualified_invoice?: string;
 }
 
+// Journal download types (async API)
+export interface FreeeJournalDownloadRequest {
+  id: number;
+  company_id: number;
+  download_type: 'generic' | 'generic_v2' | 'csv' | 'pdf';
+  encoding?: 'sjis' | 'utf-8' | null;
+  start_date?: string;
+  end_date?: string;
+  visible_tags?: string[];
+  visible_ids?: string[];
+  status_url: string;
+  up_to_date: boolean;
+  up_to_date_reasons?: Array<{
+    code: string;
+    message: string;
+  }>;
+  messages?: string[];
+}
+
+export interface FreeeJournalDownloadStatus {
+  id: number;
+  company_id: number;
+  download_type: string;
+  status: 'enqueued' | 'working' | 'uploaded' | 'failed';
+  start_date: string;
+  end_date: string;
+  download_url?: string;
+}
+
+export interface FreeeJournalEntry {
+  date: string;
+  txn_number: string;
+  detail_number: string;
+  debit_account_item: string;
+  debit_amount: number;
+  credit_account_item: string;
+  credit_amount: number;
+  description?: string;
+  partner?: string;
+  source_type?: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{
@@ -475,6 +517,17 @@ export interface FormattedReceipt {
   file_src?: string;
   user_name?: string;
   qualified_invoice?: string;
+}
+
+export interface FormattedJournalEntry {
+  date: string;
+  txn_number: string;
+  debit_account_item: string;
+  debit_amount: number;
+  credit_account_item: string;
+  credit_amount: number;
+  description?: string;
+  partner?: string;
 }
 
 export interface FormattedTransfer {

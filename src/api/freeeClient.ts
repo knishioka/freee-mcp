@@ -35,6 +35,9 @@ import {
   FreeeTransfer,
   FreeeExpenseApplication,
   FreeeReceipt,
+  FreeeJournalDownloadRequest,
+  FreeeJournalDownloadStatus,
+  FreeeJournalEntry,
   FreeeApiError,
   DealAggregation,
   PartnerAggregation,
@@ -1569,6 +1572,203 @@ export class FreeeClient {
 
     if (cv > 0.2) return 'fluctuating';
     return 'stable';
+  }
+
+  // Journal download methods (async API)
+  // Flow: 1) Request download → 2) Poll status → 3) Download CSV → 4) Parse entries
+  private static readonly JOURNAL_POLL_INTERVAL_MS = 3000;
+  private static readonly JOURNAL_POLL_MAX_ATTEMPTS = 40; // 120 seconds max
+
+  async getJournals(
+    companyId: number,
+    params: {
+      start_date: string;
+      end_date: string;
+      visible_tags?: string[];
+      visible_ids?: string[];
+    },
+  ): Promise<FreeeJournalEntry[]> {
+    // Step 1: Request download (returns 202)
+    logClient(
+      'Requesting journal download for company %d (%s to %s)',
+      companyId,
+      params.start_date,
+      params.end_date,
+    );
+
+    const downloadReq = await this.api.get<{
+      journals: FreeeJournalDownloadRequest;
+    }>('/journals', {
+      params: {
+        company_id: companyId,
+        download_type: 'generic',
+        start_date: params.start_date,
+        end_date: params.end_date,
+        'visible_tags[]': params.visible_tags ?? ['all'],
+        'visible_ids[]': params.visible_ids,
+      },
+      // freee returns 202 Accepted — axios treats 2xx as success
+    });
+
+    const reportId = downloadReq.data.journals.id;
+    logClient('Journal download request accepted: id=%d', reportId);
+
+    // Step 2: Poll status until uploaded or failed
+    let downloadUrl: string | undefined;
+    for (
+      let attempt = 0;
+      attempt < FreeeClient.JOURNAL_POLL_MAX_ATTEMPTS;
+      attempt++
+    ) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, FreeeClient.JOURNAL_POLL_INTERVAL_MS),
+      );
+
+      const statusResp = await this.api.get<{
+        journals: FreeeJournalDownloadStatus;
+      }>(`/journals/reports/${reportId}/status`, {
+        params: { company_id: companyId },
+      });
+
+      const { status } = statusResp.data.journals;
+      logClient(
+        'Journal download status: %s (attempt %d)',
+        status,
+        attempt + 1,
+      );
+
+      if (status === 'uploaded') {
+        downloadUrl = statusResp.data.journals.download_url;
+        break;
+      }
+      if (status === 'failed') {
+        throw new Error(
+          'Journal download failed on freee server. Please try again later.',
+        );
+      }
+      // enqueued or working → continue polling
+    }
+
+    if (!downloadUrl) {
+      throw new Error(
+        `Journal download timed out after ${(FreeeClient.JOURNAL_POLL_MAX_ATTEMPTS * FreeeClient.JOURNAL_POLL_INTERVAL_MS) / 1000} seconds. The data may be too large or the server is busy.`,
+      );
+    }
+
+    // Step 3: Download CSV
+    logClient('Downloading journal CSV from %s', downloadUrl);
+    const csvResp = await this.api.get<string>(
+      `/journals/reports/${reportId}/download`,
+      {
+        params: { company_id: companyId },
+        responseType: 'text',
+        headers: { Accept: 'text/csv' },
+      },
+    );
+
+    // Step 4: Parse CSV into structured entries
+    return FreeeClient.parseJournalCsv(csvResp.data);
+  }
+
+  static parseJournalCsv(csv: string): FreeeJournalEntry[] {
+    const lines = csv.split('\n');
+    if (lines.length < 2) return [];
+
+    // Find header row (first non-empty line)
+    const headerLine = lines.find((l) => l.trim().length > 0);
+    if (!headerLine) return [];
+
+    const headers = FreeeClient.parseCsvLine(headerLine);
+
+    // Build column index map using known Japanese headers from freee generic format
+    const colMap: Record<string, number> = {};
+    const headerMappings: Record<string, string> = {
+      発生日: 'date',
+      仕訳番号: 'txn_number',
+      明細行: 'detail_number',
+      借方勘定科目: 'debit_account_item',
+      '借方金額(税込)': 'debit_amount',
+      借方金額: 'debit_amount',
+      貸方勘定科目: 'credit_account_item',
+      '貸方金額(税込)': 'credit_amount',
+      貸方金額: 'credit_amount',
+      摘要: 'description',
+      取引先: 'partner',
+      仕訳種別: 'source_type',
+    };
+
+    for (let i = 0; i < headers.length; i++) {
+      const mapped = headerMappings[headers[i]];
+      if (mapped && !(mapped in colMap)) {
+        colMap[mapped] = i;
+      }
+    }
+
+    const entries: FreeeJournalEntry[] = [];
+    const headerIdx = lines.indexOf(headerLine);
+
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const cols = FreeeClient.parseCsvLine(line);
+
+      const getCol = (key: string): string => {
+        const idx = colMap[key];
+        return idx !== undefined ? (cols[idx] ?? '').trim() : '';
+      };
+
+      const date = getCol('date');
+      if (!date) continue; // Skip rows without a date
+
+      entries.push({
+        date,
+        txn_number: getCol('txn_number'),
+        detail_number: getCol('detail_number'),
+        debit_account_item: getCol('debit_account_item'),
+        debit_amount: parseInt(getCol('debit_amount') || '0', 10) || 0,
+        credit_account_item: getCol('credit_account_item'),
+        credit_amount: parseInt(getCol('credit_amount') || '0', 10) || 0,
+        description: getCol('description') || undefined,
+        partner: getCol('partner') || undefined,
+        source_type: getCol('source_type') || undefined,
+      });
+    }
+
+    return entries;
+  }
+
+  private static parseCsvLine(line: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ',') {
+          fields.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+    }
+    fields.push(current);
+    return fields;
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API

@@ -13,6 +13,7 @@ import type {
   FreeeTransfer,
   FreeeExpenseApplication,
   FreeeReceipt,
+  FreeeJournalEntry,
   FormattedDeal,
   FormattedDealDetail,
   FormattedInvoice,
@@ -25,6 +26,7 @@ import type {
   FormattedWalletable,
   FormattedManualJournal,
   FormattedManualJournalDetail,
+  FormattedJournalEntry,
   FormattedWalletTransaction,
   FormattedTransfer,
   FormattedExpenseApplication,
@@ -579,6 +581,47 @@ export class ResponseFormatter {
     };
     if (sorted.length > 0) {
       summary.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
+    }
+    return summary;
+  }
+
+  // Journal entry formatting (from CSV-parsed data)
+  static formatJournalEntry(entry: FreeeJournalEntry): FormattedJournalEntry {
+    return stripEmpty({
+      date: entry.date,
+      txn_number: entry.txn_number,
+      debit_account_item: entry.debit_account_item,
+      debit_amount: entry.debit_amount,
+      credit_account_item: entry.credit_account_item,
+      credit_amount: entry.credit_amount,
+      description: entry.description,
+      partner: entry.partner,
+    }) as FormattedJournalEntry;
+  }
+
+  static formatJournalEntries(
+    entries: FreeeJournalEntry[],
+  ): FormattedListResponse<FormattedJournalEntry> {
+    const summary = this.summarizeJournalEntries(entries);
+    return {
+      summary,
+      items: entries.map((e) => this.formatJournalEntry(e)),
+    };
+  }
+
+  private static summarizeJournalEntries(
+    entries: FreeeJournalEntry[],
+  ): ListSummary {
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    const totalDebit = entries.reduce((sum, e) => sum + e.debit_amount, 0);
+    const totalCredit = entries.reduce((sum, e) => sum + e.credit_amount, 0);
+    const summary: ListSummary = {
+      total_count: entries.length,
+      total_income: totalDebit,
+      total_expense: totalCredit,
+    };
+    if (sorted.length > 0) {
+      summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
     }
     return summary;
   }
