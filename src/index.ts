@@ -858,6 +858,124 @@ registerTool(
   },
 );
 
+// === Transfer tools ===
+
+registerTool(
+  'freee_get_transfers',
+  {
+    description:
+      'Get list of bank transfers (口座振替) - Retrieves fund movement records between bank accounts, credit cards, and wallets. Supports date range and account filtering with pagination. Use freee_get_walletables first to get account IDs. Max 100 records per page.',
+    inputSchema: schemas.GetTransfersSchema,
+  },
+  async ({
+    companyId,
+    startDate,
+    endDate,
+    walletableId,
+    walletableType,
+    offset,
+    limit,
+  }) => {
+    try {
+      const transfers = await freeeClient.getTransfers(
+        getCompanyId(companyId),
+        {
+          start_date: startDate,
+          end_date: endDate,
+          walletable_id: walletableId,
+          walletable_type: walletableType,
+          offset,
+          limit,
+        },
+      );
+      const formatted = ResponseFormatter.formatTransfers(transfers);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_transfers', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_get_transfer',
+  {
+    description:
+      'Get specific bank transfer details - Retrieves full details of a single fund transfer between accounts by ID.',
+    inputSchema: schemas.GetTransferSchema,
+  },
+  async ({ companyId, transferId }) => {
+    try {
+      const transfer = await freeeClient.getTransfer(
+        getCompanyId(companyId),
+        transferId,
+      );
+      const formatted = ResponseFormatter.formatTransfer(transfer);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_transfer', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_create_transfer',
+  {
+    description:
+      'Create a new bank transfer (口座振替) - Records a fund movement between accounts. Requires source and destination account IDs/types (use freee_get_walletables to look up). Supports bank_account, credit_card, and wallet types.',
+    inputSchema: schemas.CreateTransferSchema,
+  },
+  async ({
+    companyId,
+    date,
+    amount,
+    fromWalletableId,
+    fromWalletableType,
+    toWalletableId,
+    toWalletableType,
+    description,
+  }) => {
+    try {
+      const transfer = await freeeClient.createTransfer(
+        getCompanyId(companyId),
+        {
+          date,
+          amount,
+          from_walletable_id: fromWalletableId,
+          from_walletable_type: fromWalletableType,
+          to_walletable_id: toWalletableId,
+          to_walletable_type: toWalletableType,
+          description,
+        },
+      );
+      const formatted = ResponseFormatter.formatTransfer(transfer);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_create_transfer', error);
+    }
+  },
+);
+
 // === Search/Aggregation tools ===
 
 registerTool(

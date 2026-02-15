@@ -8,6 +8,7 @@ import type {
   FreeeAccountItem,
   FreeeSection,
   FreeeTag,
+  FreeeTransfer,
 } from '../../types/freee.js';
 
 // --- Test Data Factories ---
@@ -125,6 +126,21 @@ function makeTag(overrides?: Partial<FreeeTag>): FreeeTag {
     name: 'Project Alpha',
     shortcut: 'PA',
     available: true,
+    ...overrides,
+  };
+}
+
+function makeTransfer(overrides?: Partial<FreeeTransfer>): FreeeTransfer {
+  return {
+    id: 60,
+    company_id: 999,
+    date: '2024-01-15',
+    amount: 50000,
+    from_walletable_id: 1,
+    from_walletable_type: 'bank_account',
+    to_walletable_id: 2,
+    to_walletable_type: 'bank_account',
+    description: 'Monthly transfer',
     ...overrides,
   };
 }
@@ -937,6 +953,149 @@ describe('ResponseFormatter', () => {
       const result = ResponseFormatter.formatInvoices(invoices);
 
       expect(result.summary.total_income).toBe(0);
+    });
+  });
+
+  // =============================================
+  // Transfer Formatting
+  // =============================================
+  describe('formatTransfer', () => {
+    it('should preserve essential transfer fields', () => {
+      const transfer = makeTransfer();
+      const result = ResponseFormatter.formatTransfer(transfer);
+
+      expect(result.id).toBe(60);
+      expect(result.date).toBe('2024-01-15');
+      expect(result.amount).toBe(50000);
+      expect(result.from_walletable_id).toBe(1);
+      expect(result.from_walletable_type).toBe('bank_account');
+      expect(result.to_walletable_id).toBe(2);
+      expect(result.to_walletable_type).toBe('bank_account');
+      expect(result.description).toBe('Monthly transfer');
+    });
+
+    it('should strip company_id from transfer', () => {
+      const transfer = makeTransfer();
+      const result = ResponseFormatter.formatTransfer(transfer);
+      expect(result).not.toHaveProperty('company_id');
+    });
+
+    it('should strip null/undefined optional fields', () => {
+      const transfer = makeTransfer({ description: undefined });
+      const result = ResponseFormatter.formatTransfer(transfer);
+
+      expect(result).not.toHaveProperty('description');
+    });
+
+    it('should handle transfer with credit_card walletable type', () => {
+      const transfer = makeTransfer({
+        from_walletable_type: 'credit_card',
+        to_walletable_type: 'wallet',
+      });
+      const result = ResponseFormatter.formatTransfer(transfer);
+
+      expect(result.from_walletable_type).toBe('credit_card');
+      expect(result.to_walletable_type).toBe('wallet');
+    });
+  });
+
+  describe('formatTransfers', () => {
+    it('should return formatted items with summary', () => {
+      const transfers = [
+        makeTransfer({ id: 60, amount: 50000, date: '2024-01-15' }),
+        makeTransfer({ id: 61, amount: 30000, date: '2024-02-15' }),
+      ];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.summary.total_count).toBe(2);
+    });
+
+    it('should calculate total_income as sum of all transfer amounts', () => {
+      const transfers = [
+        makeTransfer({ amount: 50000, date: '2024-01-01' }),
+        makeTransfer({ amount: 30000, date: '2024-02-01' }),
+        makeTransfer({ amount: 20000, date: '2024-03-01' }),
+      ];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.total_income).toBe(100000);
+    });
+
+    it('should not include total_expense in transfer summary', () => {
+      const transfers = [makeTransfer({ date: '2024-01-01' })];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.total_expense).toBeUndefined();
+    });
+
+    it('should calculate date_range from earliest to latest date', () => {
+      const transfers = [
+        makeTransfer({ date: '2024-06-01' }),
+        makeTransfer({ date: '2024-01-15' }),
+        makeTransfer({ date: '2024-09-30' }),
+      ];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.date_range).toBe('2024-01-15 to 2024-09-30');
+    });
+
+    it('should set date_range for a single transfer', () => {
+      const transfers = [makeTransfer({ date: '2024-05-15' })];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.date_range).toBe('2024-05-15 to 2024-05-15');
+    });
+
+    it('should handle empty transfers array', () => {
+      const result = ResponseFormatter.formatTransfers([]);
+
+      expect(result.summary.total_count).toBe(0);
+      expect(result.summary.total_income).toBe(0);
+      expect(result.summary.date_range).toBeUndefined();
+      expect(result.items).toEqual([]);
+    });
+
+    it('should handle zero amount transfers', () => {
+      const transfers = [makeTransfer({ amount: 0, date: '2024-01-01' })];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.total_income).toBe(0);
+      expect(result.items[0].amount).toBe(0);
+    });
+
+    it('should strip company_id from all formatted transfer items', () => {
+      const transfers = [makeTransfer({ id: 60 }), makeTransfer({ id: 61 })];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      result.items.forEach((item) => {
+        expect(item).not.toHaveProperty('company_id');
+      });
+    });
+
+    it('should handle transfers with same date for date_range', () => {
+      const transfers = [
+        makeTransfer({ date: '2024-06-15' }),
+        makeTransfer({ date: '2024-06-15' }),
+      ];
+      const result = ResponseFormatter.formatTransfers(transfers);
+
+      expect(result.summary.date_range).toBe('2024-06-15 to 2024-06-15');
+    });
+  });
+
+  // =============================================
+  // Transfer Size Reduction
+  // =============================================
+  describe('transfer size reduction', () => {
+    it('should produce smaller output than raw transfer data', () => {
+      const transfer = makeTransfer();
+      const rawSize = JSON.stringify(transfer).length;
+      const formattedSize = JSON.stringify(
+        ResponseFormatter.formatTransfer(transfer),
+      ).length;
+
+      expect(formattedSize).toBeLessThan(rawSize);
     });
   });
 });

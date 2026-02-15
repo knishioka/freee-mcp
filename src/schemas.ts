@@ -287,6 +287,48 @@ export const GetWalletTxnsSchema = {
     .describe('Number of results (1-100)'),
 };
 
+// Transfer schemas
+export const GetTransfersSchema = {
+  companyId: companyIdField,
+  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  walletableId: z
+    .number()
+    .optional()
+    .describe('Filter by walletable account ID'),
+  walletableType: z
+    .enum(['bank_account', 'credit_card', 'wallet'])
+    .optional()
+    .describe('Filter by walletable account type'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+};
+
+export const GetTransferSchema = {
+  companyId: companyIdField,
+  transferId: z.number().describe('Transfer ID'),
+};
+
+export const CreateTransferSchema = {
+  companyId: companyIdField,
+  date: z.string().describe('Transfer date (YYYY-MM-DD)'),
+  amount: z.number().describe('Transfer amount'),
+  fromWalletableId: z.number().describe('Source walletable account ID'),
+  fromWalletableType: z
+    .enum(['bank_account', 'credit_card', 'wallet'])
+    .describe('Source walletable account type'),
+  toWalletableId: z.number().describe('Destination walletable account ID'),
+  toWalletableType: z
+    .enum(['bank_account', 'credit_card', 'wallet'])
+    .describe('Destination walletable account type'),
+  description: z.string().optional().describe('Transfer description/memo'),
+};
+
 // Trial Balance schemas
 export const GetTrialBalanceSchema = {
   companyId: companyIdField,

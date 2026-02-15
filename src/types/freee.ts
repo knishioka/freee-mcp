@@ -21,7 +21,7 @@ export interface FreeeDeal {
   issue_date: string;
   due_date?: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   partner_id?: number;
   partner_name?: string;
   ref_number?: string;
@@ -88,8 +88,8 @@ export interface FreeeInvoice {
   invoice_number: string;
   title?: string;
   total_amount: number;
-  invoice_status: 'draft' | 'issue' | 'sent' | 'settled';
-  payment_status?: 'empty' | 'unsettled' | 'settled';
+  invoice_status: "draft" | "issue" | "sent" | "settled";
+  payment_status?: "empty" | "unsettled" | "settled";
   invoice_lines: FreeeInvoiceLine[];
 }
 
@@ -128,7 +128,7 @@ export interface FreeeTrialBalance {
 export interface FreeeWalletable {
   id: number;
   name: string;
-  type: 'bank_account' | 'credit_card' | 'wallet';
+  type: "bank_account" | "credit_card" | "wallet";
   bank_id?: number;
   last_balance?: number;
   walletable_balance?: number;
@@ -136,7 +136,7 @@ export interface FreeeWalletable {
 
 export interface FreeeManualJournalDetail {
   id: number;
-  entry_side: 'debit' | 'credit';
+  entry_side: "debit" | "credit";
   account_item_id: number;
   amount: number;
   description?: string;
@@ -162,8 +162,8 @@ export interface FreeeWalletTransaction {
   amount: number;
   due_amount: number;
   balance?: number;
-  entry_side: 'income' | 'expense';
-  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  entry_side: "income" | "expense";
+  walletable_type: "bank_account" | "credit_card" | "wallet";
   walletable_id: number;
   description?: string;
   /** ステータス(1: 未対応, 2: 確認済み, 3: 登録済み, 4: 登録済み（古）, 5: 無視) */
@@ -174,6 +174,18 @@ export interface FreeeTaxCode {
   code: number;
   name: string;
   name_ja: string;
+}
+
+export interface FreeeTransfer {
+  id: number;
+  company_id: number;
+  date: string;
+  amount: number;
+  from_walletable_id: number;
+  from_walletable_type: "bank_account" | "credit_card" | "wallet";
+  to_walletable_id: number;
+  to_walletable_type: "bank_account" | "credit_card" | "wallet";
+  description?: string;
 }
 
 export interface FreeeApiError {
@@ -198,7 +210,7 @@ export interface FormattedDealDetail {
 export interface FormattedDeal {
   id: number;
   issue_date: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   amount: number;
   partner_name?: string;
   status: string;
@@ -262,13 +274,13 @@ export interface FormattedTaxCode {
 export interface FormattedWalletable {
   id: number;
   name: string;
-  type: 'bank_account' | 'credit_card' | 'wallet';
+  type: "bank_account" | "credit_card" | "wallet";
   last_balance?: number;
   walletable_balance?: number;
 }
 
 export interface FormattedManualJournalDetail {
-  entry_side: 'debit' | 'credit';
+  entry_side: "debit" | "credit";
   account_item_id: number;
   amount: number;
   description?: string;
@@ -291,9 +303,20 @@ export interface FormattedWalletTransaction {
   amount: number;
   due_amount: number;
   balance?: number;
-  entry_side: 'income' | 'expense';
-  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
+  entry_side: "income" | "expense";
+  walletable_type: "bank_account" | "credit_card" | "wallet";
   walletable_id: number;
+  description?: string;
+}
+
+export interface FormattedTransfer {
+  id: number;
+  date: string;
+  amount: number;
+  from_walletable_id: number;
+  from_walletable_type: "bank_account" | "credit_card" | "wallet";
+  to_walletable_id: number;
+  to_walletable_type: "bank_account" | "credit_card" | "wallet";
   description?: string;
 }
 
@@ -380,11 +403,11 @@ export interface PeriodChange {
 export interface PeriodHighlight {
   item: string;
   change: string;
-  significance: 'high' | 'medium' | 'low';
+  significance: "high" | "medium" | "low";
 }
 
 export interface PeriodComparisonResult {
-  report_type: 'profit_loss' | 'balance_sheet';
+  report_type: "profit_loss" | "balance_sheet";
   period1: {
     fiscal_year: number;
     start_month: number;
@@ -413,12 +436,12 @@ export interface MonthlyTrendsSummary {
   avg: number;
   max: { month: number; value: number };
   min: { month: number; value: number };
-  trend: 'increasing' | 'decreasing' | 'stable' | 'fluctuating';
+  trend: "increasing" | "decreasing" | "stable" | "fluctuating";
 }
 
 export interface MonthlyTrendsResult {
   fiscal_year: number;
-  report_type: 'profit_loss' | 'balance_sheet';
+  report_type: "profit_loss" | "balance_sheet";
   months: MonthlyMetrics[];
   summary: MonthlyTrendsSummary;
 }
@@ -427,7 +450,7 @@ export interface MonthlyTrendsResult {
 
 export interface CashAccount {
   name: string;
-  type: 'bank_account' | 'credit_card' | 'wallet';
+  type: "bank_account" | "credit_card" | "wallet";
   balance: number;
 }
 
