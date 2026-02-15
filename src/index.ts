@@ -415,6 +415,107 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_update_deal',
+  {
+    description:
+      'Update an existing deal (transaction) - Modify issue date, type, or detail lines (amount, account item, tax code, description). Details array replaces all existing details. Use freee_get_deal first to review current state before updating.',
+    inputSchema: schemas.UpdateDealSchema,
+  },
+  async ({ companyId, dealId, issueDate, type, details }) => {
+    try {
+      const updateData: {
+        issue_date?: string;
+        type?: 'income' | 'expense';
+        details?: Array<{
+          account_item_id: number;
+          tax_code: number;
+          amount: number;
+          description?: string;
+          section_id?: number;
+          tag_ids?: number[];
+        }>;
+      } = {};
+      if (issueDate !== undefined) updateData.issue_date = issueDate;
+      if (type !== undefined) updateData.type = type;
+      if (details !== undefined) {
+        updateData.details = details.map(
+          (d: {
+            accountItemId: number;
+            taxCode: number;
+            amount: number;
+            description?: string;
+            sectionId?: number;
+            tagIds?: number[];
+          }) => ({
+            account_item_id: d.accountItemId,
+            tax_code: d.taxCode,
+            amount: d.amount,
+            description: d.description,
+            section_id: d.sectionId,
+            tag_ids: d.tagIds,
+          }),
+        );
+      }
+      const deal = await freeeClient.updateDeal(
+        getCompanyId(companyId),
+        dealId,
+        updateData,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(deal, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_update_deal', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_create_deal_payment',
+  {
+    description:
+      'Record a payment for a deal (支払消込) - Add a payment entry to settle accounts receivable/payable. Supports partial payments (amount less than deal total). Use freee_get_walletables to look up wallet account IDs. Essential for monthly closing and cash management.',
+    inputSchema: schemas.CreateDealPaymentSchema,
+  },
+  async ({
+    companyId,
+    dealId,
+    date,
+    fromWalletableId,
+    fromWalletableType,
+    amount,
+  }) => {
+    try {
+      const payment = await freeeClient.createDealPayment(
+        getCompanyId(companyId),
+        dealId,
+        {
+          date,
+          from_walletable_type: fromWalletableType,
+          from_walletable_id: fromWalletableId,
+          amount,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(payment, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_create_deal_payment', error);
+    }
+  },
+);
+
 // === Account Item tools ===
 
 registerTool(
