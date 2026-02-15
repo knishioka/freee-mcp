@@ -1843,7 +1843,10 @@ export class FreeeClient {
     const name =
       type === 'income' ? '売掛金滞留チェック' : '買掛金滞留チェック';
     const unsettled = deals.filter(
-      (d) => d.type === type && d.status !== 'settled',
+      (d) =>
+        d.type === type &&
+        d.status !== 'settled' &&
+        d.issue_date <= referenceDate,
     );
 
     if (unsettled.length === 0) {
@@ -1941,7 +1944,7 @@ export class FreeeClient {
   private checkUnattachedReceipts(): MonthlyClosingCheckItem {
     return {
       name: '未紐付け証憑チェック',
-      status: 'ok',
+      status: 'warning',
       details:
         'この機能は現在準備中です（証憑APIの実装後に利用可能になります）',
     };

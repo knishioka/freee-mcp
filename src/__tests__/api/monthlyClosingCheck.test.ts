@@ -496,15 +496,15 @@ describe('FreeeClient Monthly Closing Check', () => {
   });
 
   describe('unattached_receipts check', () => {
-    it('returns ok stub with preparation message', async () => {
+    it('returns warning stub with preparation message', async () => {
       // No API mocking needed — this is a stub
       const result = await client.getMonthlyClosingChecklist(123, 2024, 12, [
         'unattached_receipts',
       ]);
 
-      expect(result.overall_status).toBe('ok');
+      expect(result.overall_status).toBe('warning');
       expect(result.checks[0].name).toBe('未紐付け証憑チェック');
-      expect(result.checks[0].status).toBe('ok');
+      expect(result.checks[0].status).toBe('warning');
       expect(result.checks[0].details).toContain('準備中');
     });
   });
@@ -546,9 +546,10 @@ describe('FreeeClient Monthly Closing Check', () => {
       const result = await client.getMonthlyClosingChecklist(123, 2024, 12);
 
       expect(result.period).toBe('2024年12月');
-      expect(result.overall_status).toBe('ok');
+      // unattached_receipts stub returns warning, so overall is warning
+      expect(result.overall_status).toBe('warning');
       expect(result.checks).toHaveLength(6);
-      expect(result.summary).toBe('6項目すべてOKです');
+      expect(result.summary).toContain('1項目で要確認');
     });
 
     it('computes correct overall status with mixed results', async () => {
