@@ -28,6 +28,9 @@ import type {
   FormattedTransfer,
   FormattedExpenseApplication,
   FormattedExpenseApplicationLine,
+  FormattedExpenseApplicationApprover,
+  FormattedExpenseApplicationComment,
+  FormattedExpenseApplicationFlowLog,
   ListSummary,
   FormattedListResponse,
 } from '../types/freee.js';
@@ -455,6 +458,35 @@ export class ResponseFormatter {
       ),
     ) as FormattedExpenseApplicationLine[];
 
+    const approvers: FormattedExpenseApplicationApprover[] | undefined =
+      app.approvers && app.approvers.length > 0
+        ? app.approvers.map((a) => ({
+          step_id: a.step_id,
+          user_id: a.user_id,
+          status: a.status,
+          is_force_action: a.is_force_action,
+          resource_type: a.resource_type,
+        }))
+        : undefined;
+
+    const comments: FormattedExpenseApplicationComment[] | undefined =
+      app.comments && app.comments.length > 0
+        ? app.comments.map((c) => ({
+          comment: c.comment,
+          user_id: c.user_id,
+          posted_at: c.posted_at,
+        }))
+        : undefined;
+
+    const approvalFlowLogs: FormattedExpenseApplicationFlowLog[] | undefined =
+      app.approval_flow_logs && app.approval_flow_logs.length > 0
+        ? app.approval_flow_logs.map((l) => ({
+          action: l.action,
+          user_id: l.user_id,
+          updated_at: l.updated_at,
+        }))
+        : undefined;
+
     return stripEmpty({
       id: app.id,
       title: app.title,
@@ -470,6 +502,9 @@ export class ResponseFormatter {
       deal_id: app.deal_id,
       deal_status: app.deal_status,
       lines: lines.length > 0 ? lines : undefined,
+      approvers,
+      comments,
+      approval_flow_logs: approvalFlowLogs,
     }) as FormattedExpenseApplication;
   }
 

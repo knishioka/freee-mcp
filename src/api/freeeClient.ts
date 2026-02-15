@@ -870,10 +870,11 @@ export class FreeeClient {
   ): Promise<FreeeExpenseApplication> {
     const response = await this.api.post<{
       expense_application: FreeeExpenseApplication;
-    }>(`/expense_applications/${expenseApplicationId}/actions`, {
-      company_id: companyId,
-      ...params,
-    });
+    }>(
+      `/expense_applications/${expenseApplicationId}/actions`,
+      { company_id: companyId, ...params },
+      { params: { company_id: companyId } },
+    );
     return response.data.expense_application;
   }
 

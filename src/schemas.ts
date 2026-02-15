@@ -464,9 +464,9 @@ export const GetExpenseApplicationsSchema = {
   limit: z
     .number()
     .min(1)
-    .max(500)
+    .max(100)
     .optional()
-    .describe('Number of results (1-500, default 50)'),
+    .describe('Number of results (1-100, default 50)'),
   compact: z
     .boolean()
     .optional()

@@ -220,6 +220,18 @@ export interface FreeeExpenseApplicationApprover {
   resource_type: string;
 }
 
+export interface FreeeExpenseApplicationComment {
+  comment: string;
+  user_id: number;
+  posted_at: string;
+}
+
+export interface FreeeExpenseApplicationFlowLog {
+  action: string;
+  user_id: number;
+  updated_at: string;
+}
+
 export interface FreeeExpenseApplication {
   id: number;
   company_id: number;
@@ -239,16 +251,8 @@ export interface FreeeExpenseApplication {
   current_step_id?: number;
   current_round: number;
   approvers?: FreeeExpenseApplicationApprover[];
-  comments?: Array<{
-    comment: string;
-    user_id: number;
-    posted_at: string;
-  }>;
-  approval_flow_logs?: Array<{
-    action: string;
-    user_id: number;
-    updated_at: string;
-  }>;
+  comments?: FreeeExpenseApplicationComment[];
+  approval_flow_logs?: FreeeExpenseApplicationFlowLog[];
 }
 
 export interface FreeeApiError {
@@ -384,6 +388,26 @@ export interface FormattedExpenseApplicationLine {
   amount: number;
 }
 
+export interface FormattedExpenseApplicationApprover {
+  step_id: number;
+  user_id: number;
+  status: string;
+  is_force_action: boolean;
+  resource_type: string;
+}
+
+export interface FormattedExpenseApplicationComment {
+  comment: string;
+  user_id: number;
+  posted_at: string;
+}
+
+export interface FormattedExpenseApplicationFlowLog {
+  action: string;
+  user_id: number;
+  updated_at: string;
+}
+
 export interface FormattedExpenseApplication {
   id: number;
   title: string;
@@ -399,6 +423,9 @@ export interface FormattedExpenseApplication {
   deal_id?: number;
   deal_status?: string;
   lines?: FormattedExpenseApplicationLine[];
+  approvers?: FormattedExpenseApplicationApprover[];
+  comments?: FormattedExpenseApplicationComment[];
+  approval_flow_logs?: FormattedExpenseApplicationFlowLog[];
 }
 
 export interface FormattedTransfer {
