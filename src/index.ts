@@ -974,18 +974,21 @@ registerTool(
   },
   async ({ companyId, issueDate, adjustment, details }) => {
     try {
-      // Validate debit/credit balance
-      const debitTotal = details
-        .filter(
-          (d: { entrySide: string; amount: number }) => d.entrySide === 'debit',
-        )
-        .reduce((sum: number, d: { amount: number }) => sum + d.amount, 0);
-      const creditTotal = details
-        .filter(
-          (d: { entrySide: string; amount: number }) =>
-            d.entrySide === 'credit',
-        )
-        .reduce((sum: number, d: { amount: number }) => sum + d.amount, 0);
+      // Validate debit/credit balance (single-pass)
+      const { debitTotal, creditTotal } = details.reduce(
+        (
+          totals: { debitTotal: number; creditTotal: number },
+          d: { entrySide: string; amount: number },
+        ) => {
+          if (d.entrySide === 'debit') {
+            totals.debitTotal += d.amount;
+          } else if (d.entrySide === 'credit') {
+            totals.creditTotal += d.amount;
+          }
+          return totals;
+        },
+        { debitTotal: 0, creditTotal: 0 },
+      );
 
       if (debitTotal !== creditTotal) {
         throw new McpError(
