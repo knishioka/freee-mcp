@@ -12,6 +12,7 @@ import type {
   FreeeWalletTransaction,
   FreeeTransfer,
   FreeeExpenseApplication,
+  FreeeReceipt,
   FreeeJournalEntry,
   FormattedDeal,
   FormattedDealDetail,
@@ -30,6 +31,7 @@ import type {
   FormattedTransfer,
   FormattedExpenseApplication,
   FormattedExpenseApplicationLine,
+  FormattedReceipt,
   FormattedExpenseApplicationApprover,
   FormattedExpenseApplicationComment,
   FormattedExpenseApplicationFlowLog,
@@ -441,6 +443,48 @@ export class ResponseFormatter {
     };
     if (sorted.length > 0) {
       summary.date_range = `${sorted[0].date} to ${sorted[sorted.length - 1].date}`;
+    }
+    return summary;
+  }
+
+  // Receipt formatting
+  static formatReceipt(receipt: FreeeReceipt): FormattedReceipt {
+    return stripEmpty({
+      id: receipt.id,
+      status: receipt.status,
+      description: receipt.description,
+      mime_type: receipt.mime_type,
+      issue_date: receipt.issue_date,
+      origin: receipt.origin,
+      created_at: receipt.created_at,
+      file_src: receipt.file_src,
+      user_name: receipt.user?.display_name || receipt.user?.email,
+      qualified_invoice: receipt.qualified_invoice,
+    }) as FormattedReceipt;
+  }
+
+  static formatReceipts(
+    receipts: FreeeReceipt[],
+    compact?: boolean,
+  ): FormattedListResponse<FormattedReceipt> {
+    const summary = this.summarizeReceipts(receipts);
+    if (compact) {
+      return { summary, items: [] };
+    }
+    return {
+      summary,
+      items: receipts.map((r) => this.formatReceipt(r)),
+    };
+  }
+
+  private static summarizeReceipts(receipts: FreeeReceipt[]): ListSummary {
+    const summary: ListSummary = { total_count: receipts.length };
+    const withDate = receipts.filter((r) => r.issue_date);
+    if (withDate.length > 0) {
+      const sorted = [...withDate].sort((a, b) =>
+        a.issue_date!.localeCompare(b.issue_date!),
+      );
+      summary.date_range = `${sorted[0].issue_date} to ${sorted[sorted.length - 1].issue_date}`;
     }
     return summary;
   }

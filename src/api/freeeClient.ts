@@ -34,6 +34,7 @@ import {
   FreeeTaxCode,
   FreeeTransfer,
   FreeeExpenseApplication,
+  FreeeReceipt,
   FreeeJournalDownloadRequest,
   FreeeJournalDownloadStatus,
   FreeeJournalEntry,
@@ -880,6 +881,38 @@ export class FreeeClient {
       { params: { company_id: companyId } },
     );
     return response.data.transfer;
+  }
+
+  // Receipt methods
+  async getReceipts(
+    companyId: number,
+    params?: {
+      start_date?: string;
+      end_date?: string;
+      user_name?: string;
+      status?: string;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeReceipt[]> {
+    const response = await this.api.get<{ receipts: FreeeReceipt[] }>(
+      '/receipts',
+      {
+        params: { company_id: companyId, ...params },
+      },
+    );
+    return response.data.receipts;
+  }
+
+  async getReceipt(
+    companyId: number,
+    receiptId: number,
+  ): Promise<FreeeReceipt> {
+    const response = await this.api.get<{ receipt: FreeeReceipt }>(
+      `/receipts/${receiptId}`,
+      { params: { company_id: companyId } },
+    );
+    return response.data.receipt;
   }
 
   // Expense Application methods
