@@ -583,6 +583,38 @@ export const MonthlyClosingCheckSchema = {
     ),
 };
 
+// Journal schemas (async download API)
+export const GetJournalsSchema = {
+  companyId: companyIdField,
+  startDate: z.string().describe('Start date (YYYY-MM-DD)'),
+  endDate: z.string().describe('End date (YYYY-MM-DD)'),
+  visibleTags: z
+    .array(
+      z.enum([
+        'partner',
+        'item',
+        'tag',
+        'section',
+        'description',
+        'wallet_txn_description',
+        'all',
+        'segment_1_tag',
+        'segment_2_tag',
+        'segment_3_tag',
+      ]),
+    )
+    .optional()
+    .describe(
+      'Additional fields to include in output (partner, item, tag, section, description, all, etc.). Defaults to ["all"].',
+    ),
+  visibleIds: z
+    .array(z.enum(['deal_id', 'transfer_id', 'manual_journal_id']))
+    .optional()
+    .describe(
+      'Additional ID fields to include (deal_id, transfer_id, manual_journal_id)',
+    ),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,
