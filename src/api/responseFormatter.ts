@@ -5,6 +5,7 @@ import type {
   FreeeAccountItem,
   FreeeSection,
   FreeeTag,
+  FreeeSegmentTag,
   FreeeWalletable,
   FreeeManualJournal,
   FreeeTaxCode,
@@ -18,6 +19,7 @@ import type {
   FormattedSection,
   FormattedTag,
   FormattedTaxCode,
+  FormattedSegmentTag,
   FormattedWalletable,
   FormattedManualJournal,
   FormattedManualJournalDetail,
@@ -232,6 +234,27 @@ export class ResponseFormatter {
       return { summary, items: [] };
     }
     return { summary, items: tags.map((t) => this.formatTag(t)) };
+  }
+
+  // Segment Tag formatting
+  static formatSegmentTag(tag: FreeeSegmentTag): FormattedSegmentTag {
+    return stripEmpty({
+      id: tag.id,
+      name: tag.name,
+      description: tag.description,
+      shortcut1: tag.shortcut1,
+    }) as FormattedSegmentTag;
+  }
+
+  static formatSegmentTags(
+    tags: FreeeSegmentTag[],
+    compact?: boolean,
+  ): FormattedListResponse<FormattedSegmentTag> {
+    const summary: ListSummary = { total_count: tags.length };
+    if (compact) {
+      return { summary, items: [] };
+    }
+    return { summary, items: tags.map((t) => this.formatSegmentTag(t)) };
   }
 
   // Walletable formatting

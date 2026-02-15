@@ -73,6 +73,8 @@ describe('MCP Tool Handlers', () => {
         'GetPartnersSchema',
         'GetSectionsSchema',
         'GetTagsSchema',
+        'GetSegmentTagsSchema',
+        'CreateSegmentTagSchema',
         'GetProfitLossSchema',
         'GetBalanceSheetSchema',
         'GetTrialBalanceSchema',

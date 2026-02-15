@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 31 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(31);
+    it('should register exactly 33 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(33);
     });
 
     it('should register all expected tool names', () => {
@@ -110,6 +110,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_sections',
         'freee_get_tags',
         'freee_get_tax_codes',
+        'freee_get_segment_tags',
+        'freee_create_segment_tag',
         'freee_get_invoices',
         'freee_create_invoice',
         'freee_search_deals',
@@ -154,7 +156,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(31);
+      expect(toolCalls.length).toBe(33);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -181,6 +183,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetSectionsSchema',
         'schemas.GetTagsSchema',
         'schemas.GetTaxCodesSchema',
+        'schemas.GetSegmentTagsSchema',
+        'schemas.CreateSegmentTagSchema',
         'schemas.GetInvoicesSchema',
         'schemas.CreateInvoiceSchema',
         'schemas.GetTrialBalanceSchema',
@@ -363,7 +367,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 31 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 33 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -380,6 +384,9 @@ describe('Schema Structure Verification', () => {
       'CreatePartnerSchema',
       'GetSectionsSchema',
       'GetTagsSchema',
+      'GetTaxCodesSchema',
+      'GetSegmentTagsSchema',
+      'CreateSegmentTagSchema',
       'GetInvoicesSchema',
       'CreateInvoiceSchema',
       'SearchDealsSchema',
@@ -397,7 +404,6 @@ describe('Schema Structure Verification', () => {
       'ComparePeriodsSchema',
       'MonthlyTrendsSchema',
       'CashPositionSchema',
-      'GetTaxCodesSchema',
     ];
 
     schemaNames.forEach((name) => {
@@ -419,7 +425,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 31 schemas', async () => {
+  it('should export exactly 33 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -427,7 +433,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(31);
+    expect(schemaExports).toHaveLength(33);
   });
 
   it('should use Zod types in schema fields', async () => {

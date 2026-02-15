@@ -149,6 +149,38 @@ export const GetTagsSchema = {
     ),
 };
 
+// Segment Tag schemas
+export const GetSegmentTagsSchema = {
+  companyId: companyIdField,
+  segmentId: z
+    .union([z.literal(1), z.literal(2), z.literal(3)])
+    .describe('Segment number (1-3): タグ1, タグ2, タグ3'),
+  offset: z.number().optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
+};
+
+export const CreateSegmentTagSchema = {
+  companyId: companyIdField,
+  segmentId: z
+    .union([z.literal(1), z.literal(2), z.literal(3)])
+    .describe('Segment number (1-3): タグ1, タグ2, タグ3'),
+  name: z.string().describe('Segment tag name'),
+  description: z.string().optional().describe('Description'),
+  shortcut1: z.string().optional().describe('Shortcut 1'),
+  shortcut2: z.string().optional().describe('Shortcut 2'),
+};
+
 // Invoice schemas
 export const GetInvoicesSchema = {
   companyId: companyIdField,

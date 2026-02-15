@@ -22,6 +22,7 @@ import {
   FreeePartner,
   FreeeSection,
   FreeeTag,
+  FreeeSegmentTag,
   FreeeInvoice,
   FreeeTrialBalance,
   FreeeTrialBalanceItem,
@@ -569,6 +570,51 @@ export class FreeeClient {
     );
     this.cache.set(cacheKey, response.data.taxes, CACHE_TTL_TAX_CODES);
     return response.data.taxes;
+  }
+
+  // Segment Tag methods
+  async getSegmentTags(
+    companyId: number,
+    segmentId: 1 | 2 | 3,
+    params?: {
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeSegmentTag[]> {
+    const cacheKey = generateCacheKey(
+      companyId,
+      `segment_${segmentId}_tags`,
+      params,
+    );
+    const cached = this.cache.get<FreeeSegmentTag[]>(cacheKey);
+    if (cached) return cached;
+
+    const response = await this.api.get<{ segment_tags: FreeeSegmentTag[] }>(
+      `/segments/${segmentId}/tags`,
+      {
+        params: { company_id: companyId, ...params },
+      },
+    );
+    this.cache.set(cacheKey, response.data.segment_tags, CACHE_TTL_TAGS);
+    return response.data.segment_tags;
+  }
+
+  async createSegmentTag(
+    companyId: number,
+    segmentId: 1 | 2 | 3,
+    tag: {
+      name: string;
+      description?: string;
+      shortcut1?: string;
+      shortcut2?: string;
+    },
+  ): Promise<FreeeSegmentTag> {
+    const response = await this.api.post<{ segment_tag: FreeeSegmentTag }>(
+      `/segments/${segmentId}/tags`,
+      { company_id: companyId, ...tag },
+    );
+    this.cache.invalidate(`${companyId}:segment_${segmentId}_tags`);
+    return response.data.segment_tag;
   }
 
   // Invoice methods
