@@ -1209,6 +1209,132 @@ registerTool(
   },
 );
 
+// === Expense Application tools ===
+
+registerTool(
+  'freee_get_expense_applications',
+  {
+    description:
+      'Get list of expense applications (経費精算申請) - Retrieves expense reports with filtering by status, date, applicant, approver, and amount. Supports approval workflow visibility. Use compact mode for summary statistics only.',
+    inputSchema: schemas.GetExpenseApplicationsSchema,
+  },
+  async ({
+    companyId,
+    status,
+    startIssueDate,
+    endIssueDate,
+    startTransactionDate,
+    endTransactionDate,
+    applicantId,
+    approverId,
+    minAmount,
+    maxAmount,
+    offset,
+    limit,
+    compact,
+  }) => {
+    try {
+      const apps = await freeeClient.getExpenseApplications(
+        getCompanyId(companyId),
+        {
+          status,
+          start_issue_date: startIssueDate,
+          end_issue_date: endIssueDate,
+          start_transaction_date: startTransactionDate,
+          end_transaction_date: endTransactionDate,
+          applicant_id: applicantId,
+          approver_id: approverId,
+          min_amount: minAmount,
+          max_amount: maxAmount,
+          offset,
+          limit,
+        },
+      );
+      const formatted = ResponseFormatter.formatExpenseApplications(
+        apps,
+        compact,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_expense_applications', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_get_expense_application',
+  {
+    description:
+      'Get specific expense application details (経費精算申請詳細) - Retrieves full details including line items, approvers, comments, and approval flow logs. Use this to get current_step_id and current_round needed for approval actions.',
+    inputSchema: schemas.GetExpenseApplicationSchema,
+  },
+  async ({ companyId, expenseApplicationId }) => {
+    try {
+      const app = await freeeClient.getExpenseApplication(
+        getCompanyId(companyId),
+        expenseApplicationId,
+      );
+      const formatted = ResponseFormatter.formatExpenseApplication(app);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_expense_application', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_approve_expense_application',
+  {
+    description:
+      'Approve, reject, or send back an expense application (経費精算承認) - Executes approval workflow actions. Requires target_step_id and target_round from the expense application detail (use freee_get_expense_application first). Actions: approve (承認), reject (却下), feedback (差戻し).',
+    inputSchema: schemas.ApproveExpenseApplicationSchema,
+  },
+  async ({
+    companyId,
+    expenseApplicationId,
+    approvalAction,
+    targetStepId,
+    targetRound,
+  }) => {
+    try {
+      const app = await freeeClient.approveExpenseApplication(
+        getCompanyId(companyId),
+        expenseApplicationId,
+        {
+          approval_action: approvalAction,
+          target_step_id: targetStepId,
+          target_round: targetRound,
+        },
+      );
+      const formatted = ResponseFormatter.formatExpenseApplication(app);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_approve_expense_application', error);
+    }
+  },
+);
+
 // === Search/Aggregation tools ===
 
 registerTool(
