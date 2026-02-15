@@ -78,6 +78,16 @@ export interface FreeeTag {
   available: boolean;
 }
 
+export interface FreeeSegmentTag {
+  id: number;
+  company_id: number;
+  name: string;
+  description?: string;
+  shortcut1?: string;
+  shortcut2?: string;
+  available: boolean;
+}
+
 export interface FreeeInvoice {
   id: number;
   company_id: number;
@@ -269,6 +279,13 @@ export interface FormattedTaxCode {
   code: number;
   name: string;
   name_ja: string;
+}
+
+export interface FormattedSegmentTag {
+  id: number;
+  name: string;
+  description?: string;
+  shortcut1?: string;
 }
 
 export interface FormattedWalletable {

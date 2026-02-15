@@ -596,6 +596,66 @@ registerTool(
   },
 );
 
+// === Segment Tag tools ===
+
+registerTool(
+  'freee_get_segment_tags',
+  {
+    description:
+      'Get list of segment tags (セグメントタグ) for multi-axis analysis - Retrieves segment tags (タグ1-3) used for department/project tracking. Use with profit_loss breakdown for segment-based P&L analysis. Requires paid freee plan. Different from regular tags (freee_get_tags): segment tags enable up to 3 independent classification axes.',
+    inputSchema: schemas.GetSegmentTagsSchema,
+  },
+  async ({ companyId, segmentId, offset, limit, compact }) => {
+    try {
+      const tags = await freeeClient.getSegmentTags(
+        getCompanyId(companyId),
+        segmentId,
+        { offset, limit },
+      );
+      const formatted = ResponseFormatter.formatSegmentTags(tags, compact);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_segment_tags', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_create_segment_tag',
+  {
+    description:
+      'Create a new segment tag (セグメントタグ) - Creates a tag under segment 1-3 for department/project classification. Requires paid freee plan.',
+    inputSchema: schemas.CreateSegmentTagSchema,
+  },
+  async ({ companyId, segmentId, name, description, shortcut1, shortcut2 }) => {
+    try {
+      const tag = await freeeClient.createSegmentTag(
+        getCompanyId(companyId),
+        segmentId,
+        { name, description, shortcut1, shortcut2 },
+      );
+      const formatted = ResponseFormatter.formatSegmentTag(tag);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_create_segment_tag', error);
+    }
+  },
+);
+
 // === Invoice tools ===
 
 registerTool(

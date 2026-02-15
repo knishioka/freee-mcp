@@ -360,6 +360,54 @@ describe('FreeeClient', () => {
         });
         expect(result).toEqual(mockTags);
       });
+
+      it('should fetch segment tags', async () => {
+        const mockSegmentTags = [
+          { id: 1, name: 'Department A', description: 'Main dept' },
+          { id: 2, name: 'Department B' },
+        ];
+
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { segment_tags: mockSegmentTags },
+        });
+
+        const result = await client.getSegmentTags(123, 1, {
+          offset: 0,
+          limit: 50,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/segments/1/tags', {
+          params: { company_id: 123, offset: 0, limit: 50 },
+        });
+        expect(result).toEqual(mockSegmentTags);
+      });
+
+      it('should create a segment tag', async () => {
+        const mockSegmentTag = {
+          id: 1,
+          name: 'New Department',
+          description: 'A new department',
+        };
+
+        mockAxiosInstance.post.mockResolvedValue({
+          data: { segment_tag: mockSegmentTag },
+        });
+
+        const result = await client.createSegmentTag(123, 2, {
+          name: 'New Department',
+          description: 'A new department',
+        });
+
+        expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+          '/segments/2/tags',
+          {
+            company_id: 123,
+            name: 'New Department',
+            description: 'A new department',
+          },
+        );
+        expect(result).toEqual(mockSegmentTag);
+      });
     });
 
     describe('authentication methods', () => {

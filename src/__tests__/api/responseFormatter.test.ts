@@ -9,6 +9,7 @@ import type {
   FreeeSection,
   FreeeTag,
   FreeeTransfer,
+  FreeeSegmentTag,
 } from '../../types/freee.js';
 
 // --- Test Data Factories ---
@@ -141,6 +142,19 @@ function makeTransfer(overrides?: Partial<FreeeTransfer>): FreeeTransfer {
     to_walletable_id: 2,
     to_walletable_type: 'bank_account',
     description: 'Monthly transfer',
+    ...overrides,
+  };
+}
+
+function makeSegmentTag(overrides?: Partial<FreeeSegmentTag>): FreeeSegmentTag {
+  return {
+    id: 60,
+    company_id: 999,
+    name: 'Department A',
+    description: 'Main department',
+    shortcut1: 'DA',
+    shortcut2: 'DEPTA',
+    available: true,
     ...overrides,
   };
 }
@@ -797,6 +811,87 @@ describe('ResponseFormatter', () => {
   });
 
   // =============================================
+  // Segment Tag Formatting
+  // =============================================
+  describe('formatSegmentTag', () => {
+    it('should preserve essential segment tag fields', () => {
+      const tag = makeSegmentTag();
+      const result = ResponseFormatter.formatSegmentTag(tag);
+
+      expect(result.id).toBe(60);
+      expect(result.name).toBe('Department A');
+      expect(result.description).toBe('Main department');
+      expect(result.shortcut1).toBe('DA');
+    });
+
+    it('should strip company_id from segment tag', () => {
+      const tag = makeSegmentTag();
+      const result = ResponseFormatter.formatSegmentTag(tag);
+      expect(result).not.toHaveProperty('company_id');
+    });
+
+    it('should strip available from segment tag', () => {
+      const tag = makeSegmentTag();
+      const result = ResponseFormatter.formatSegmentTag(tag);
+      expect(result).not.toHaveProperty('available');
+    });
+
+    it('should strip shortcut2 from segment tag', () => {
+      const tag = makeSegmentTag();
+      const result = ResponseFormatter.formatSegmentTag(tag);
+      expect(result).not.toHaveProperty('shortcut2');
+    });
+
+    it('should strip null/undefined optional fields', () => {
+      const tag = makeSegmentTag({
+        description: undefined,
+        shortcut1: undefined,
+      });
+      const result = ResponseFormatter.formatSegmentTag(tag);
+
+      expect(result).not.toHaveProperty('description');
+      expect(result).not.toHaveProperty('shortcut1');
+    });
+  });
+
+  describe('formatSegmentTags', () => {
+    it('should return formatted items with summary', () => {
+      const tags = [
+        makeSegmentTag({ id: 60, name: 'Department A' }),
+        makeSegmentTag({ id: 61, name: 'Department B' }),
+      ];
+      const result = ResponseFormatter.formatSegmentTags(tags);
+
+      expect(result.items).toHaveLength(2);
+      expect(result.summary.total_count).toBe(2);
+    });
+
+    it('should return empty items array when compact=true', () => {
+      const tags = [makeSegmentTag(), makeSegmentTag()];
+      const result = ResponseFormatter.formatSegmentTags(tags, true);
+
+      expect(result.items).toEqual([]);
+      expect(result.summary.total_count).toBe(2);
+    });
+
+    it('should handle empty segment tags array', () => {
+      const result = ResponseFormatter.formatSegmentTags([]);
+
+      expect(result.summary.total_count).toBe(0);
+      expect(result.items).toEqual([]);
+    });
+
+    it('should have no income/expense/date_range in segment tag summary', () => {
+      const tags = [makeSegmentTag()];
+      const result = ResponseFormatter.formatSegmentTags(tags);
+
+      expect(result.summary.total_income).toBeUndefined();
+      expect(result.summary.total_expense).toBeUndefined();
+      expect(result.summary.date_range).toBeUndefined();
+    });
+  });
+
+  // =============================================
   // Size Reduction Verification
   // =============================================
   describe('size reduction', () => {
@@ -855,6 +950,16 @@ describe('ResponseFormatter', () => {
       const rawSize = JSON.stringify(tag).length;
       const formattedSize = JSON.stringify(
         ResponseFormatter.formatTag(tag),
+      ).length;
+
+      expect(formattedSize).toBeLessThan(rawSize);
+    });
+
+    it('should produce smaller output than raw segment tag data', () => {
+      const tag = makeSegmentTag();
+      const rawSize = JSON.stringify(tag).length;
+      const formattedSize = JSON.stringify(
+        ResponseFormatter.formatSegmentTag(tag),
       ).length;
 
       expect(formattedSize).toBeLessThan(rawSize);
