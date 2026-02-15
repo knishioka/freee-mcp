@@ -1623,6 +1623,35 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_monthly_closing_check',
+  {
+    description:
+      'Run monthly closing checklist (月次決算チェックリスト) - Executes up to 6 automated checks for a given month: unprocessed bank transactions, cash/deposit balance verification against walletables, temporary account (仮払金/仮受金/立替金) review, receivable aging, payable aging, and unattached receipts. Returns per-check status (ok/warning/error) with details and an overall assessment. Use after month-end to identify outstanding items before closing.',
+    inputSchema: schemas.MonthlyClosingCheckSchema,
+  },
+  async ({ companyId, year, month, checks }) => {
+    try {
+      const result = await freeeClient.getMonthlyClosingChecklist(
+        getCompanyId(companyId),
+        year,
+        month,
+        checks,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_monthly_closing_check', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(

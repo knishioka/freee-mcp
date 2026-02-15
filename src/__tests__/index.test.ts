@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 39 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(39);
+    it('should register exactly 40 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(40);
     });
 
     it('should register all expected tool names', () => {
@@ -135,6 +135,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_monthly_trends',
         'freee_cash_position',
         'freee_create_manual_journal',
+        'freee_monthly_closing_check',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -162,7 +163,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(39);
+      expect(toolCalls.length).toBe(40);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -379,7 +380,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 39 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 40 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -422,6 +423,7 @@ describe('Schema Structure Verification', () => {
       'MonthlyTrendsSchema',
       'CashPositionSchema',
       'CreateManualJournalSchema',
+      'MonthlyClosingCheckSchema',
     ];
 
     schemaNames.forEach((name) => {
@@ -443,7 +445,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 39 schemas', async () => {
+  it('should export exactly 40 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -451,7 +453,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(39);
+    expect(schemaExports).toHaveLength(40);
   });
 
   it('should use Zod types in schema fields', async () => {

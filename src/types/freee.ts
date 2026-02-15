@@ -269,6 +269,30 @@ export interface FreeeExpenseApplication {
   approval_flow_logs?: FreeeExpenseApplicationFlowLog[];
 }
 
+// Monthly closing check types
+
+export type MonthlyClosingCheckType =
+  | 'unprocessed_transactions'
+  | 'balance_verification'
+  | 'temporary_accounts'
+  | 'receivable_aging'
+  | 'payable_aging'
+  | 'unattached_receipts';
+
+export interface MonthlyClosingCheckItem {
+  name: string;
+  status: 'ok' | 'warning' | 'error';
+  details: string;
+  items?: unknown[];
+}
+
+export interface MonthlyClosingCheckResult {
+  period: string;
+  overall_status: 'ok' | 'warning' | 'error';
+  checks: MonthlyClosingCheckItem[];
+  summary: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{

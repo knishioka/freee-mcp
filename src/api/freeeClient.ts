@@ -49,6 +49,9 @@ import {
   MonthlyTrendsResult,
   CashAccount,
   CashPositionResult,
+  MonthlyClosingCheckType,
+  MonthlyClosingCheckItem,
+  MonthlyClosingCheckResult,
 } from '../types/freee.js';
 import { ApiCache, generateCacheKey } from './cache.js';
 
@@ -1536,6 +1539,374 @@ export class FreeeClient {
 
     if (cv > 0.2) return 'fluctuating';
     return 'stable';
+  }
+
+  // === Monthly Closing Check ===
+
+  private static readonly ALL_CLOSING_CHECKS: MonthlyClosingCheckType[] = [
+    'unprocessed_transactions',
+    'balance_verification',
+    'temporary_accounts',
+    'receivable_aging',
+    'payable_aging',
+    'unattached_receipts',
+  ];
+
+  private static readonly CASH_ACCOUNT_KEYWORDS = [
+    '現金',
+    '普通預金',
+    '当座預金',
+    '定期預金',
+  ];
+
+  private static readonly TEMPORARY_ACCOUNT_NAMES = [
+    '仮払金',
+    '仮受金',
+    '立替金',
+  ];
+
+  async getMonthlyClosingChecklist(
+    companyId: number,
+    year: number,
+    month: number,
+    checks?: MonthlyClosingCheckType[],
+  ): Promise<MonthlyClosingCheckResult> {
+    const targetChecks = checks ?? FreeeClient.ALL_CLOSING_CHECKS;
+
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    // Determine which APIs need to be called
+    const needsTrialBalance = targetChecks.some((c) =>
+      ['balance_verification', 'temporary_accounts'].includes(c),
+    );
+    const needsWalletables = targetChecks.includes('balance_verification');
+    const needsWalletTxns = targetChecks.includes('unprocessed_transactions');
+    const needsDeals = targetChecks.some((c) =>
+      ['receivable_aging', 'payable_aging'].includes(c),
+    );
+
+    // Parallel API calls — only fetch what's needed
+    const [trialBalance, walletables, walletTxns, deals] = await Promise.all([
+      needsTrialBalance
+        ? this.getTrialBalance(companyId, {
+          fiscal_year: year,
+          start_month: month,
+          end_month: month,
+        })
+        : Promise.resolve(undefined),
+      needsWalletables
+        ? this.getWalletables(companyId, { with_balance: true })
+        : Promise.resolve(undefined),
+      needsWalletTxns
+        ? this.fetchAllPages<FreeeWalletTransaction>(
+          '/wallet_txns',
+          { company_id: companyId, start_date: startDate, end_date: endDate },
+          'wallet_txns',
+        )
+        : Promise.resolve(undefined),
+      needsDeals
+        ? this.fetchAllPages<FreeeDeal>(
+          '/deals',
+          { company_id: companyId },
+          'deals',
+        )
+        : Promise.resolve(undefined),
+    ]);
+
+    // Execute checks
+    const checkResults: MonthlyClosingCheckItem[] = [];
+
+    for (const check of targetChecks) {
+      switch (check) {
+      case 'unprocessed_transactions':
+        checkResults.push(
+          this.checkUnprocessedTransactions(walletTxns ?? []),
+        );
+        break;
+      case 'balance_verification':
+        checkResults.push(
+          this.checkBalanceVerification(trialBalance!, walletables ?? []),
+        );
+        break;
+      case 'temporary_accounts':
+        checkResults.push(this.checkTemporaryAccounts(trialBalance!));
+        break;
+      case 'receivable_aging':
+        checkResults.push(
+          this.checkAgingDeals(deals ?? [], 'income', endDate),
+        );
+        break;
+      case 'payable_aging':
+        checkResults.push(
+          this.checkAgingDeals(deals ?? [], 'expense', endDate),
+        );
+        break;
+      case 'unattached_receipts':
+        checkResults.push(this.checkUnattachedReceipts());
+        break;
+      }
+    }
+
+    // Compute overall status
+    const overallStatus: 'ok' | 'warning' | 'error' = checkResults.some(
+      (c) => c.status === 'error',
+    )
+      ? 'error'
+      : checkResults.some((c) => c.status === 'warning')
+        ? 'warning'
+        : 'ok';
+
+    const okCount = checkResults.filter((c) => c.status === 'ok').length;
+    const warningCount = checkResults.filter(
+      (c) => c.status === 'warning',
+    ).length;
+    const errorCount = checkResults.filter((c) => c.status === 'error').length;
+
+    let summary: string;
+    if (overallStatus === 'ok') {
+      summary = `${checkResults.length}項目すべてOKです`;
+    } else {
+      const parts: string[] = [];
+      if (okCount > 0) parts.push(`${okCount}項目OK`);
+      if (warningCount > 0) parts.push(`${warningCount}項目で要確認`);
+      if (errorCount > 0) parts.push(`${errorCount}項目でエラー`);
+      summary = `${checkResults.length}項目中${parts.join('、')}`;
+    }
+
+    return {
+      period: `${year}年${month}月`,
+      overall_status: overallStatus,
+      checks: checkResults,
+      summary,
+    };
+  }
+
+  private checkUnprocessedTransactions(
+    walletTxns: FreeeWalletTransaction[],
+  ): MonthlyClosingCheckItem {
+    const unprocessed = walletTxns.filter((txn) => txn.status === 1);
+
+    if (unprocessed.length === 0) {
+      return {
+        name: '未処理明細チェック',
+        status: 'ok',
+        details: '未処理の明細はありません',
+      };
+    }
+
+    return {
+      name: '未処理明細チェック',
+      status: 'warning',
+      details: `${unprocessed.length}件の未処理明細があります`,
+      items: unprocessed.map((txn) => ({
+        id: txn.id,
+        date: txn.date,
+        amount: txn.amount,
+        entry_side: txn.entry_side,
+        walletable_type: txn.walletable_type,
+        description: txn.description,
+      })),
+    };
+  }
+
+  private checkBalanceVerification(
+    trialBalance: FreeeTrialBalance,
+    walletables: FreeeWalletable[],
+  ): MonthlyClosingCheckItem {
+    // Sum walletable balances (excluding credit cards)
+    const walletableTotal = walletables
+      .filter((w) => w.type !== 'credit_card')
+      .reduce((sum, w) => sum + (w.walletable_balance ?? w.last_balance ?? 0), 0);
+
+    // Sum cash/bank related trial balance items
+    const cashBalances = (trialBalance.balances ?? []).filter((b) =>
+      FreeeClient.CASH_ACCOUNT_KEYWORDS.some((kw) =>
+        b.account_item_name.includes(kw),
+      ),
+    );
+    const trialBalanceTotal = cashBalances.reduce(
+      (sum, b) => sum + b.closing_balance,
+      0,
+    );
+
+    const diff = Math.abs(walletableTotal - trialBalanceTotal);
+
+    if (diff === 0) {
+      return {
+        name: '残高突合チェック',
+        status: 'ok',
+        details: '全口座の残高が一致しています',
+      };
+    }
+
+    return {
+      name: '残高突合チェック',
+      status: 'warning',
+      details: `口座残高と帳簿残高に${diff}円の差異があります（口座: ${walletableTotal}円、帳簿: ${trialBalanceTotal}円）`,
+      items: [
+        {
+          walletable_total: walletableTotal,
+          trial_balance_total: trialBalanceTotal,
+          difference: diff,
+          cash_accounts: cashBalances.map((b) => ({
+            name: b.account_item_name,
+            balance: b.closing_balance,
+          })),
+          walletable_accounts: walletables.map((w) => ({
+            name: w.name,
+            type: w.type,
+            balance: w.walletable_balance ?? w.last_balance ?? 0,
+          })),
+        },
+      ],
+    };
+  }
+
+  private checkTemporaryAccounts(
+    trialBalance: FreeeTrialBalance,
+  ): MonthlyClosingCheckItem {
+    const nonZeroAccounts = (trialBalance.balances ?? []).filter(
+      (b) =>
+        FreeeClient.TEMPORARY_ACCOUNT_NAMES.includes(b.account_item_name) &&
+        b.closing_balance !== 0,
+    );
+
+    if (nonZeroAccounts.length === 0) {
+      return {
+        name: '仮勘定残高チェック',
+        status: 'ok',
+        details: '仮勘定の残高はすべて0円です',
+      };
+    }
+
+    const details = nonZeroAccounts
+      .map((a) => `${a.account_item_name}: ${a.closing_balance}円`)
+      .join('、');
+
+    return {
+      name: '仮勘定残高チェック',
+      status: 'warning',
+      details: `仮勘定に残高があります（${details}）`,
+      items: nonZeroAccounts.map((a) => ({
+        name: a.account_item_name,
+        balance: a.closing_balance,
+      })),
+    };
+  }
+
+  private checkAgingDeals(
+    deals: FreeeDeal[],
+    type: 'income' | 'expense',
+    referenceDate: string,
+  ): MonthlyClosingCheckItem {
+    const name =
+      type === 'income' ? '売掛金滞留チェック' : '買掛金滞留チェック';
+    const unsettled = deals.filter(
+      (d) => d.type === type && d.status !== 'settled',
+    );
+
+    if (unsettled.length === 0) {
+      return {
+        name,
+        status: 'ok',
+        details:
+          type === 'income'
+            ? '未回収の売掛金はありません'
+            : '未払いの買掛金はありません',
+      };
+    }
+
+    const refTime = new Date(referenceDate).getTime();
+    const buckets = { current: 0, days31_60: 0, days61_90: 0, days90plus: 0 };
+    const bucketAmounts = {
+      current: 0,
+      days31_60: 0,
+      days61_90: 0,
+      days90plus: 0,
+    };
+
+    const agingItems = unsettled.map((d) => {
+      const issueTime = new Date(d.issue_date).getTime();
+      const daysOutstanding = Math.floor(
+        (refTime - issueTime) / (1000 * 60 * 60 * 24),
+      );
+
+      if (daysOutstanding <= 30) {
+        buckets.current++;
+        bucketAmounts.current += d.amount;
+      } else if (daysOutstanding <= 60) {
+        buckets.days31_60++;
+        bucketAmounts.days31_60 += d.amount;
+      } else if (daysOutstanding <= 90) {
+        buckets.days61_90++;
+        bucketAmounts.days61_90 += d.amount;
+      } else {
+        buckets.days90plus++;
+        bucketAmounts.days90plus += d.amount;
+      }
+
+      return {
+        deal_id: d.id,
+        issue_date: d.issue_date,
+        due_date: d.due_date,
+        amount: d.amount,
+        partner_name: d.partner_name,
+        days_outstanding: daysOutstanding,
+      };
+    });
+
+    const totalAmount = unsettled.reduce((sum, d) => sum + d.amount, 0);
+    const status: 'ok' | 'warning' = buckets.days90plus > 0 ? 'warning' : 'ok';
+    const label =
+      type === 'income' ? '未回収売掛金' : '未払買掛金';
+
+    return {
+      name,
+      status,
+      details: `${unsettled.length}件（合計${totalAmount}円）の${label}があります`,
+      items: [
+        {
+          total_count: unsettled.length,
+          total_amount: totalAmount,
+          buckets: [
+            {
+              label: '0-30日',
+              count: buckets.current,
+              amount: bucketAmounts.current,
+            },
+            {
+              label: '31-60日',
+              count: buckets.days31_60,
+              amount: bucketAmounts.days31_60,
+            },
+            {
+              label: '61-90日',
+              count: buckets.days61_90,
+              amount: bucketAmounts.days61_90,
+            },
+            {
+              label: '90日超',
+              count: buckets.days90plus,
+              amount: bucketAmounts.days90plus,
+            },
+          ],
+          details: agingItems
+            .sort((a, b) => b.days_outstanding - a.days_outstanding)
+            .slice(0, 20),
+        },
+      ],
+    };
+  }
+
+  private checkUnattachedReceipts(): MonthlyClosingCheckItem {
+    return {
+      name: '未紐付け証憑チェック',
+      status: 'ok',
+      details:
+        'この機能は現在準備中です（証憑APIの実装後に利用可能になります）',
+    };
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
