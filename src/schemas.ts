@@ -561,6 +561,28 @@ export const ApproveExpenseApplicationSchema = {
     ),
 };
 
+// Monthly Closing Check schemas
+export const MonthlyClosingCheckSchema = {
+  companyId: companyIdField,
+  year: z.number().describe('Fiscal year'),
+  month: z.number().min(1).max(12).describe('Month to check (1-12)'),
+  checks: z
+    .array(
+      z.enum([
+        'unprocessed_transactions',
+        'balance_verification',
+        'temporary_accounts',
+        'receivable_aging',
+        'payable_aging',
+        'unattached_receipts',
+      ]),
+    )
+    .optional()
+    .describe(
+      'Check types to execute (all if omitted): unprocessed_transactions, balance_verification, temporary_accounts, receivable_aging, payable_aging, unattached_receipts',
+    ),
+};
+
 // Receipt schemas
 export const GetReceiptsSchema = {
   companyId: companyIdField,
