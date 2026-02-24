@@ -76,14 +76,14 @@ Build the server first (`npm run build`), then configure one of the clients belo
 
 #### Environment Variables
 
-| Variable | Required | Description | Default |
-| --- | --- | --- | --- |
-| `FREEE_CLIENT_ID` | Yes | freee OAuth app client ID. The server exits on startup if this is missing. | — |
-| `FREEE_CLIENT_SECRET` | Yes | freee OAuth app client secret. The server exits on startup if this is missing. | — |
-| `FREEE_DEFAULT_COMPANY_ID` | No | Default company ID used when tool calls omit `companyId`. | — |
-| `TOKEN_STORAGE_PATH` | No | Encrypted token storage file path. | Platform-specific (`TokenManager.getDefaultStoragePath()`) |
-| `FREEE_TOKEN_ENCRYPTION_KEY` | No | Secret used to derive the AES-256-GCM key for token encryption. | Built-in default key (`freee-mcp-default-key`) |
-| `FREEE_TOKEN_DATA_BASE64` | No | Base64-encoded JSON of `[companyId, tokenData]` tuples loaded at startup. | — |
+| Variable                     | Required | Description                                                                                                                                                                                               | Default                                                    |
+| ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `FREEE_CLIENT_ID`            | Yes      | freee OAuth app client ID. The server exits on startup if this is missing.                                                                                                                                | —                                                          |
+| `FREEE_CLIENT_SECRET`        | Yes      | freee OAuth app client secret. The server exits on startup if this is missing.                                                                                                                            | —                                                          |
+| `FREEE_DEFAULT_COMPANY_ID`   | No       | Default company ID used when tool calls omit `companyId`.                                                                                                                                                 | —                                                          |
+| `TOKEN_STORAGE_PATH`         | No       | Encrypted token storage file path.                                                                                                                                                                        | Platform-specific (`TokenManager.getDefaultStoragePath()`) |
+| `FREEE_TOKEN_ENCRYPTION_KEY` | Yes      | Secret used to derive the AES-256-GCM key for token encryption. The server exits on startup if this is missing. Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | —                                                          |
+| `FREEE_TOKEN_DATA_BASE64`    | No       | Base64-encoded JSON of `[companyId, tokenData]` tuples loaded at startup.                                                                                                                                 | —                                                          |
 
 <details>
 <summary>Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` or `%APPDATA%\\Claude\\claude_desktop_config.json`)</summary>

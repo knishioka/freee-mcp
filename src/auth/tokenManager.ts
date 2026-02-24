@@ -20,11 +20,21 @@ export class TokenManager {
   private encryptionKey?: Buffer;
 
   constructor(storagePath?: string) {
+    const encryptionKey = process.env.FREEE_TOKEN_ENCRYPTION_KEY;
+    if (!encryptionKey) {
+      throw new Error(
+        'FREEE_TOKEN_ENCRYPTION_KEY environment variable is required. ' +
+          'Generate a secure key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"',
+      );
+    }
+    this.secret = encryptionKey;
     this.storagePath = storagePath;
-    this.secret =
-      process.env.FREEE_TOKEN_ENCRYPTION_KEY || 'freee-mcp-default-key';
     if (storagePath) {
       this.saltPath = `${storagePath}.salt`;
+    } else {
+      console.error(
+        'Warning: Running in memory mode. Tokens will not be persisted across restarts.',
+      );
     }
   }
 
@@ -46,7 +56,7 @@ export class TokenManager {
         return salt;
       }
     }
-    return Buffer.from('salt');
+    return crypto.randomBytes(16);
   }
 
   private deriveKey(salt: Buffer | string): Buffer {
