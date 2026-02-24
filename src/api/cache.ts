@@ -27,6 +27,12 @@ export class ApiCache {
   set<T>(key: string, data: T, ttlMs: number): void {
     if (this.cache.size >= ApiCache.MAX_ENTRIES) {
       this.evictExpired();
+      if (this.cache.size >= ApiCache.MAX_ENTRIES) {
+        const oldestKey = this.cache.keys().next().value;
+        if (oldestKey !== undefined) {
+          this.cache.delete(oldestKey);
+        }
+      }
     }
     this.cache.set(key, new CacheEntry(data, Date.now() + ttlMs));
   }
@@ -70,9 +76,10 @@ export function generateCacheKey(
     return `${companyId}:${endpoint}:all`;
   }
 
-  const hash = createHash('md5')
+  const hash = createHash('sha256')
     .update(JSON.stringify(filteredParams))
-    .digest('hex');
+    .digest('hex')
+    .slice(0, 16);
 
   return `${companyId}:${endpoint}:${hash}`;
 }
