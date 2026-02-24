@@ -8,6 +8,19 @@ const companyIdField = z
     'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)',
   );
 
+const dateField = (description: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+    .describe(description);
+
+const optionalDateField = (description: string) =>
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+    .optional()
+    .describe(description);
+
 // Auth schemas
 export const AuthorizeSchema = {
   state: z
@@ -39,9 +52,9 @@ export const GetDealsSchema = {
   companyId: companyIdField,
   partnerId: z.number().optional().describe('Partner ID to filter by'),
   accountItemId: z.number().optional().describe('Account item ID to filter by'),
-  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
-  offset: z.number().optional().describe('Pagination offset'),
+  startIssueDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End date (YYYY-MM-DD)'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -63,17 +76,17 @@ export const GetDealSchema = {
 
 export const CreateDealSchema = {
   companyId: companyIdField,
-  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  issueDate: dateField('Issue date (YYYY-MM-DD)'),
   type: z.enum(['income', 'expense']).describe('Transaction type'),
   partnerId: z.number().optional().describe('Partner ID'),
-  dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
+  dueDate: optionalDateField('Due date (YYYY-MM-DD)'),
   refNumber: z.string().optional().describe('Reference number'),
   details: z
     .array(
       z.object({
         accountItemId: z.number().describe('Account item ID'),
         taxCode: z.number().describe('Tax code'),
-        amount: z.number().describe('Amount'),
+        amount: z.number().min(1).describe('Amount (must be positive)'),
         description: z.string().optional().describe('Description'),
         sectionId: z.number().optional().describe('Section ID'),
         tagIds: z.array(z.number()).optional().describe('Tag IDs'),
@@ -85,14 +98,14 @@ export const CreateDealSchema = {
 export const UpdateDealSchema = {
   companyId: companyIdField,
   dealId: z.number().describe('Deal ID to update'),
-  issueDate: z.string().optional().describe('Issue date (YYYY-MM-DD)'),
+  issueDate: optionalDateField('Issue date (YYYY-MM-DD)'),
   type: z.enum(['income', 'expense']).optional().describe('Transaction type'),
   details: z
     .array(
       z.object({
         accountItemId: z.number().describe('Account item ID'),
         taxCode: z.number().describe('Tax code'),
-        amount: z.number().describe('Amount'),
+        amount: z.number().min(1).describe('Amount (must be positive)'),
         description: z.string().optional().describe('Description'),
         sectionId: z.number().optional().describe('Section ID'),
         tagIds: z.array(z.number()).optional().describe('Tag IDs'),
@@ -105,12 +118,12 @@ export const UpdateDealSchema = {
 export const CreateDealPaymentSchema = {
   companyId: companyIdField,
   dealId: z.number().describe('Deal ID to add payment to'),
-  date: z.string().describe('Payment date (YYYY-MM-DD)'),
+  date: dateField('Payment date (YYYY-MM-DD)'),
   fromWalletableId: z.number().describe('Source wallet account ID'),
   fromWalletableType: z
     .enum(['bank_account', 'credit_card', 'wallet'])
     .describe('Source wallet account type'),
-  amount: z.number().describe('Payment amount'),
+  amount: z.number().min(1).describe('Payment amount (must be positive)'),
 };
 
 // Account Item schemas
@@ -133,7 +146,7 @@ export const GetPartnersSchema = {
   companyId: companyIdField,
   name: z.string().optional().describe('Partner name to search'),
   shortcut1: z.string().optional().describe('Shortcut 1 to search'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -186,7 +199,7 @@ export const GetSegmentTagsSchema = {
   segmentId: z
     .union([z.literal(1), z.literal(2), z.literal(3)])
     .describe('Segment number (1-3): タグ1, タグ2, タグ3'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -218,9 +231,9 @@ export const GetInvoicesSchema = {
   partnerId: z.number().optional().describe('Partner ID to filter by'),
   invoiceStatus: z.string().optional().describe('Invoice status to filter by'),
   paymentStatus: z.string().optional().describe('Payment status to filter by'),
-  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
-  offset: z.number().optional().describe('Pagination offset'),
+  startIssueDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End date (YYYY-MM-DD)'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -237,9 +250,9 @@ export const GetInvoicesSchema = {
 
 export const CreateInvoiceSchema = {
   companyId: companyIdField,
-  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  issueDate: dateField('Issue date (YYYY-MM-DD)'),
   partnerId: z.number().describe('Partner ID'),
-  dueDate: z.string().optional().describe('Due date (YYYY-MM-DD)'),
+  dueDate: optionalDateField('Due date (YYYY-MM-DD)'),
   title: z.string().optional().describe('Invoice title'),
   invoiceStatus: z
     .enum(['draft', 'issue', 'sent', 'settled'])
@@ -263,8 +276,8 @@ export const SearchDealsSchema = {
   companyId: companyIdField,
   partnerId: z.number().optional().describe('Partner ID to filter by'),
   accountItemId: z.number().optional().describe('Account item ID to filter by'),
-  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startIssueDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End date (YYYY-MM-DD)'),
   maxRecords: z
     .number()
     .min(1)
@@ -278,8 +291,8 @@ export const SummarizeInvoicesSchema = {
   partnerId: z.number().optional().describe('Partner ID to filter by'),
   invoiceStatus: z.string().optional().describe('Invoice status to filter by'),
   paymentStatus: z.string().optional().describe('Payment status to filter by'),
-  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startIssueDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End date (YYYY-MM-DD)'),
   maxRecords: z
     .number()
     .min(1)
@@ -302,8 +315,8 @@ export const GetWalletablesSchema = {
 // Manual Journal schemas
 export const GetManualJournalsSchema = {
   companyId: companyIdField,
-  startIssueDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startIssueDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End date (YYYY-MM-DD)'),
   entrySide: z
     .enum(['debit', 'credit'])
     .optional()
@@ -313,7 +326,7 @@ export const GetManualJournalsSchema = {
   maxAmount: z.number().optional().describe('Maximum amount filter'),
   partnerId: z.number().optional().describe('Partner ID to filter by'),
   sectionId: z.number().optional().describe('Section ID to filter by'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -329,7 +342,7 @@ export const GetManualJournalSchema = {
 
 export const CreateManualJournalSchema = {
   companyId: companyIdField,
-  issueDate: z.string().describe('Issue date (YYYY-MM-DD)'),
+  issueDate: dateField('Issue date (YYYY-MM-DD)'),
   adjustment: z
     .boolean()
     .optional()
@@ -365,13 +378,13 @@ export const GetWalletTxnsSchema = {
     .optional()
     .describe('Type of wallet account to filter'),
   walletableId: z.number().optional().describe('Wallet account ID to filter'),
-  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endDate: optionalDateField('End date (YYYY-MM-DD)'),
   entrySide: z
     .enum(['income', 'expense'])
     .optional()
     .describe('Filter by income or expense'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -383,8 +396,8 @@ export const GetWalletTxnsSchema = {
 // Transfer schemas
 export const GetTransfersSchema = {
   companyId: companyIdField,
-  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endDate: optionalDateField('End date (YYYY-MM-DD)'),
   walletableId: z
     .number()
     .optional()
@@ -393,7 +406,7 @@ export const GetTransfersSchema = {
     .enum(['bank_account', 'credit_card', 'wallet'])
     .optional()
     .describe('Filter by walletable account type'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -409,8 +422,8 @@ export const GetTransferSchema = {
 
 export const CreateTransferSchema = {
   companyId: companyIdField,
-  date: z.string().describe('Transfer date (YYYY-MM-DD)'),
-  amount: z.number().describe('Transfer amount'),
+  date: dateField('Transfer date (YYYY-MM-DD)'),
+  amount: z.number().min(1).describe('Transfer amount (must be positive)'),
   fromWalletableId: z.number().describe('Source walletable account ID'),
   fromWalletableType: z
     .enum(['bank_account', 'credit_card', 'wallet'])
@@ -504,24 +517,19 @@ export const GetExpenseApplicationsSchema = {
     .describe(
       'Filter by status (draft: 下書き, in_progress: 申請中, approved: 承認済, rejected: 却下, feedback: 差戻し)',
     ),
-  startIssueDate: z
-    .string()
-    .optional()
-    .describe('Start issue date (YYYY-MM-DD)'),
-  endIssueDate: z.string().optional().describe('End issue date (YYYY-MM-DD)'),
-  startTransactionDate: z
-    .string()
-    .optional()
-    .describe('Start transaction date for line items (YYYY-MM-DD)'),
-  endTransactionDate: z
-    .string()
-    .optional()
-    .describe('End transaction date for line items (YYYY-MM-DD)'),
+  startIssueDate: optionalDateField('Start issue date (YYYY-MM-DD)'),
+  endIssueDate: optionalDateField('End issue date (YYYY-MM-DD)'),
+  startTransactionDate: optionalDateField(
+    'Start transaction date for line items (YYYY-MM-DD)',
+  ),
+  endTransactionDate: optionalDateField(
+    'End transaction date for line items (YYYY-MM-DD)',
+  ),
   applicantId: z.number().optional().describe('Applicant user ID to filter by'),
   approverId: z.number().optional().describe('Approver user ID to filter by'),
   minAmount: z.number().optional().describe('Minimum total amount filter'),
   maxAmount: z.number().optional().describe('Maximum total amount filter'),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -586,8 +594,8 @@ export const MonthlyClosingCheckSchema = {
 // Receipt schemas
 export const GetReceiptsSchema = {
   companyId: companyIdField,
-  startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-  endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  startDate: optionalDateField('Start date (YYYY-MM-DD)'),
+  endDate: optionalDateField('End date (YYYY-MM-DD)'),
   userName: z.string().optional().describe('Filter by upload user name'),
   status: z
     .enum(['unconfirmed', 'confirmed', 'deleted'])
@@ -595,7 +603,7 @@ export const GetReceiptsSchema = {
     .describe(
       'Filter by status (unconfirmed: 未確認, confirmed: 確認済み, deleted: 削除済み)',
     ),
-  offset: z.number().optional().describe('Pagination offset'),
+  offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
     .min(1)
@@ -618,8 +626,8 @@ export const GetReceiptSchema = {
 // Journal schemas (async download API)
 export const GetJournalsSchema = {
   companyId: companyIdField,
-  startDate: z.string().describe('Start date (YYYY-MM-DD)'),
-  endDate: z.string().describe('End date (YYYY-MM-DD)'),
+  startDate: dateField('Start date (YYYY-MM-DD)'),
+  endDate: dateField('End date (YYYY-MM-DD)'),
   visibleTags: z
     .array(
       z.enum([
