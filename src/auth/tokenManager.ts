@@ -97,7 +97,7 @@ export class TokenManager {
         // Try to fix permissions
         await fs.chmod(filePath, 0o600);
       }
-    } catch (error) {
+    } catch {
       // File doesn't exist yet, which is ok
     }
   }
@@ -166,7 +166,7 @@ export class TokenManager {
           this.tokens = new Map();
         }
       }
-    } catch (error) {
+    } catch {
       // File doesn't exist or is invalid, start with empty tokens
       this.tokens = new Map();
     }
