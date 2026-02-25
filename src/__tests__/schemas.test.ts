@@ -59,13 +59,24 @@ describe('dateField validation', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should reject out-of-range date "2024-13-45" (regex only, not calendar validation)', () => {
-    // The regex /^\d{4}-\d{2}-\d{2}$/ matches the format but does not validate
-    // actual month/day ranges. "2024-13-45" matches \d{4}-\d{2}-\d{2}.
-    // This test documents the current behavior: regex-only validation passes
-    // for syntactically correct but semantically invalid dates.
+  it('should reject semantically invalid date "2024-13-45"', () => {
     const result = schema.safeParse({ issueDate: '2024-13-45' });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject impossible date "2024-02-30"', () => {
+    const result = schema.safeParse({ issueDate: '2024-02-30' });
+    expect(result.success).toBe(false);
+  });
+
+  it('should accept valid leap year date "2024-02-29"', () => {
+    const result = schema.safeParse({ issueDate: '2024-02-29' });
     expect(result.success).toBe(true);
+  });
+
+  it('should reject invalid leap year date "2023-02-29"', () => {
+    const result = schema.safeParse({ issueDate: '2023-02-29' });
+    expect(result.success).toBe(false);
   });
 
   it('should reject empty string ""', () => {
@@ -137,27 +148,26 @@ describe('dateField applied to multiple schemas', () => {
     },
   ];
 
-  it.each(dateFieldCases)(
-    '$schemaName.$field should reject invalid format "2024/01/01"',
-    ({ schema, field }) => {
-      const wrapped = z.object({
-        [field]: (schema as Record<string, z.ZodTypeAny>)[field],
-      });
+  describe.each(dateFieldCases)('$schemaName.$field', ({ schema, field }) => {
+    const wrapped = z.object({
+      [field]: (schema as Record<string, z.ZodTypeAny>)[field],
+    });
+
+    it('should reject invalid format "2024/01/01"', () => {
       const result = wrapped.safeParse({ [field]: '2024/01/01' });
       expect(result.success).toBe(false);
-    },
-  );
+    });
 
-  it.each(dateFieldCases)(
-    '$schemaName.$field should accept valid format "2024-01-15"',
-    ({ schema, field }) => {
-      const wrapped = z.object({
-        [field]: (schema as Record<string, z.ZodTypeAny>)[field],
-      });
+    it('should accept valid format "2024-01-15"', () => {
       const result = wrapped.safeParse({ [field]: '2024-01-15' });
       expect(result.success).toBe(true);
-    },
-  );
+    });
+
+    it('should reject semantically invalid date "2024-13-45"', () => {
+      const result = wrapped.safeParse({ [field]: '2024-13-45' });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 // ── optionalDateField validation ───────────────────────────────────────────
@@ -276,25 +286,27 @@ describe('optionalDateField applied to multiple schemas', () => {
     },
   ];
 
-  it.each(optionalDateFieldCases)(
-    '$schemaName.$field should allow undefined',
+  describe.each(optionalDateFieldCases)(
+    '$schemaName.$field',
     ({ schema, field }) => {
       const wrapped = z.object({
         [field]: (schema as Record<string, z.ZodTypeAny>)[field],
       });
-      const result = wrapped.safeParse({});
-      expect(result.success).toBe(true);
-    },
-  );
 
-  it.each(optionalDateFieldCases)(
-    '$schemaName.$field should reject invalid format "2024/01/01"',
-    ({ schema, field }) => {
-      const wrapped = z.object({
-        [field]: (schema as Record<string, z.ZodTypeAny>)[field],
+      it('should allow undefined', () => {
+        const result = wrapped.safeParse({});
+        expect(result.success).toBe(true);
       });
-      const result = wrapped.safeParse({ [field]: '2024/01/01' });
-      expect(result.success).toBe(false);
+
+      it('should reject invalid format "2024/01/01"', () => {
+        const result = wrapped.safeParse({ [field]: '2024/01/01' });
+        expect(result.success).toBe(false);
+      });
+
+      it('should reject semantically invalid date "2024-13-45"', () => {
+        const result = wrapped.safeParse({ [field]: '2024-13-45' });
+        expect(result.success).toBe(false);
+      });
     },
   );
 });

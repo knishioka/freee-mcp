@@ -8,18 +8,26 @@ const companyIdField = z
     'Company ID (optional, uses FREEE_DEFAULT_COMPANY_ID if not provided)',
   );
 
-const dateField = (description: string) =>
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
-    .describe(description);
+const yyyyMmDdDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+  .refine(
+    (val) => {
+      const [y, m, d] = val.split('-').map(Number);
+      const date = new Date(Date.UTC(y, m - 1, d));
+      return (
+        date.getUTCFullYear() === y &&
+        date.getUTCMonth() === m - 1 &&
+        date.getUTCDate() === d
+      );
+    },
+    { message: 'Date is not a valid calendar date' },
+  );
+
+const dateField = (description: string) => yyyyMmDdDate.describe(description);
 
 const optionalDateField = (description: string) =>
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
-    .optional()
-    .describe(description);
+  yyyyMmDdDate.optional().describe(description);
 
 // Auth schemas
 export const AuthorizeSchema = {
