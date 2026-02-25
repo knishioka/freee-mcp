@@ -105,7 +105,7 @@ export class FreeeClient {
       if (!companyId && config.url) {
         const companyMatch = config.url.match(/\/companies\/(\d+)/);
         if (companyMatch) {
-          companyId = parseInt(companyMatch[1]);
+          companyId = parseInt(companyMatch[1], 10);
         }
       }
 
@@ -204,7 +204,7 @@ export class FreeeClient {
       if (!companyId && error.config?.url) {
         const companyMatch = error.config.url.match(/\/companies\/(\d+)/);
         if (companyMatch) {
-          companyId = parseInt(companyMatch[1]);
+          companyId = parseInt(companyMatch[1], 10);
         }
       }
 
