@@ -21,12 +21,20 @@
       "error",
       { "argsIgnorePattern": "^_" }
     ],
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
     "prefer-const": "error",
     "no-var": "error",
     "object-shorthand": "error",
     "prefer-template": "error",
     "radix": "error"
   },
-  "ignorePatterns": ["dist/", "node_modules/", "*.js"]
+  "ignorePatterns": ["dist/", "node_modules/", "*.js"],
+  "overrides": [
+    {
+      "files": ["src/__tests__/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "warn"
+      }
+    }
+  ]
 }

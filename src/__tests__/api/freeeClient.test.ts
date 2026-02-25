@@ -1,7 +1,42 @@
 import { jest } from '@jest/globals';
 import axios from 'axios';
+import type { AxiosError as AxiosErrorType } from 'axios';
 import { FreeeClient } from '../../api/freeeClient.js';
 import { TokenManager } from '../../auth/tokenManager.js';
+
+// Get the REAL (unmocked) AxiosError class and AxiosHeaders.
+// jest.mock('axios') auto-mocks the module, replacing AxiosError with a stub
+// that does not extend Error and ignores constructor arguments.
+// The production code's catch blocks use `refreshError instanceof Error` and
+// `axios.isAxiosError(refreshError)` for type narrowing, both of which require
+// real AxiosError instances.
+const { AxiosError: RealAxiosError, AxiosHeaders: RealAxiosHeaders } =
+  jest.requireActual<typeof import('axios')>('axios');
+
+/**
+ * Helper to create a real AxiosError with response data.
+ * Required because handleApiError uses axios.isAxiosError() for type narrowing
+ * (Issue #114: catch blocks use `unknown` with proper type narrowing).
+ */
+function createAxiosError(
+  responseData: Record<string, unknown>,
+  message = 'Request failed',
+): AxiosErrorType {
+  const error = new RealAxiosError(
+    message,
+    'ERR_BAD_REQUEST',
+    undefined,
+    undefined,
+    {
+      data: responseData,
+      status: 400,
+      statusText: 'Bad Request',
+      headers: {},
+      config: { headers: new RealAxiosHeaders() },
+    },
+  );
+  return error;
+}
 
 // Mock axios
 jest.mock('axios');
@@ -47,6 +82,14 @@ describe('FreeeClient', () => {
       createCallCount++;
       return createCallCount === 1 ? mockAxiosInstance : mockAuthAxiosInstance;
     });
+
+    // Restore real isAxiosError behavior (needed for type narrowing in catch blocks).
+    // jest.mock('axios') auto-mocks isAxiosError, so we restore it using the real
+    // AxiosError class obtained via jest.requireActual.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mockedAxios.isAxiosError as any).mockImplementation(
+      (error: unknown) => error instanceof RealAxiosError,
+    );
 
     // Create mock TokenManager
     mockTokenManager = {
@@ -1167,11 +1210,11 @@ describe('FreeeClient', () => {
       mockTokenManager.getToken.mockReturnValue(mockOldToken);
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
-      // Mock refreshToken to fail with invalid_grant
-      const invalidGrantError = {
-        response: { data: { error: 'invalid_grant' } },
-        message: 'invalid_grant',
-      };
+      // Mock refreshToken to fail with invalid_grant (AxiosError required for type narrowing)
+      const invalidGrantError = createAxiosError(
+        { error: 'invalid_grant' },
+        'invalid_grant',
+      );
       (client as any).refreshToken = jest.fn(() =>
         Promise.reject(invalidGrantError),
       );
@@ -1204,11 +1247,11 @@ describe('FreeeClient', () => {
       mockTokenManager.getToken.mockReturnValue(mockOldToken);
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
-      // Mock refreshToken to fail with invalid_client
-      const invalidClientError = {
-        response: { data: { error: 'invalid_client' } },
-        message: 'invalid_client',
-      };
+      // Mock refreshToken to fail with invalid_client (AxiosError required for type narrowing)
+      const invalidClientError = createAxiosError(
+        { error: 'invalid_client' },
+        'invalid_client',
+      );
       (client as any).refreshToken = jest.fn(() =>
         Promise.reject(invalidClientError),
       );
@@ -1232,6 +1275,108 @@ describe('FreeeClient', () => {
       expect(mockTokenManager.removeToken).toHaveBeenCalledWith(123);
     });
 
+    // Issue #114: Tests for type-narrowing behavior in catch blocks
+    // When refreshError is caught as `unknown`, the code uses:
+    //   - axios.isAxiosError(refreshError) for AxiosError narrowing
+    //   - refreshError instanceof Error for generic Error narrowing
+    //   - Falls back to 'Unknown error' for non-Error thrown values
+
+    it('should use error_description from AxiosError response data when available', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Create AxiosError with error_description in response data
+      // This tests FreeeErrorResponse type extraction
+      const axiosError = createAxiosError(
+        {
+          error: 'some_other_error',
+          error_description: 'Detailed description of the error',
+        },
+        'Request failed',
+      );
+      (client as any).refreshToken = jest.fn(() => Promise.reject(axiosError));
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        config: {
+          params: { company_id: 123 },
+          headers: {},
+        },
+        response: { status: 401 },
+      };
+
+      // Should use error_description from FreeeErrorResponse
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Token refresh failed: Detailed description of the error',
+      );
+    });
+
+    it('should fall back to Unknown error when refresh rejects with non-Error value', async () => {
+      const mockOldToken = {
+        access_token: 'old-token',
+        refresh_token: 'refresh-token',
+      };
+
+      mockTokenManager.getToken.mockReturnValue(mockOldToken);
+      mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
+
+      // Reject with a string (non-Error, non-AxiosError)
+      // This exercises the `catch (refreshError: unknown)` fallback path
+      (client as any).refreshToken = jest.fn(() =>
+        // eslint-disable-next-line prefer-promise-reject-errors
+        Promise.reject('string error'),
+      );
+
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        config: {
+          params: { company_id: 123 },
+          headers: {},
+        },
+        response: { status: 401 },
+      };
+
+      // Should fall back to 'Unknown error' since string is not instanceof Error
+      await expect(errorHandler(error)).rejects.toThrow(
+        'Token refresh failed: Unknown error',
+      );
+
+      // Token should NOT be deleted (not AxiosError, no refreshErrorData)
+      expect(mockTokenManager.removeToken).not.toHaveBeenCalled();
+    });
+
+    it('should handle getAccessToken failure with AxiosError and re-throw', async () => {
+      // This tests the `catch (error: unknown)` block in getAccessToken
+      const axiosError = createAxiosError(
+        { error: 'invalid_request', message: 'Bad request' },
+        'Request failed with status code 400',
+      );
+      mockAuthAxiosInstance.post.mockRejectedValue(axiosError);
+
+      await expect(client.getAccessToken('invalid-code')).rejects.toThrow(
+        'Request failed with status code 400',
+      );
+    });
+
+    it('should handle getAccessToken failure with non-AxiosError and re-throw', async () => {
+      // This tests the instanceof Error branch in getAccessToken catch
+      const genericError = new Error('Connection refused');
+      mockAuthAxiosInstance.post.mockRejectedValue(genericError);
+
+      await expect(client.getAccessToken('some-code')).rejects.toThrow(
+        'Connection refused',
+      );
+    });
+
     it('should re-check token state on invalid_grant before deleting', async () => {
       const mockOldToken = {
         access_token: 'old-token',
@@ -1248,11 +1393,11 @@ describe('FreeeClient', () => {
         .mockReturnValueOnce(mockNewToken);
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
-      // Mock refreshToken to fail with invalid_grant
-      const invalidGrantError = {
-        response: { data: { error: 'invalid_grant' } },
-        message: 'invalid_grant',
-      };
+      // Mock refreshToken to fail with invalid_grant (AxiosError required for type narrowing)
+      const invalidGrantError = createAxiosError(
+        { error: 'invalid_grant' },
+        'invalid_grant',
+      );
       (client as any).refreshToken = jest.fn(() =>
         Promise.reject(invalidGrantError),
       );
