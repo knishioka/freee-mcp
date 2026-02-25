@@ -62,12 +62,12 @@ if (!clientId || !clientSecret) {
   console.error('\nPlease set the following environment variables:');
   console.error('  - FREEE_CLIENT_ID: Your freee OAuth app client ID');
   console.error('  - FREEE_CLIENT_SECRET: Your freee OAuth app client secret');
+  console.error(
+    '  - FREEE_TOKEN_ENCRYPTION_KEY: Encryption key for token storage',
+  );
   console.error('\nOptional configuration:');
   console.error('  - FREEE_DEFAULT_COMPANY_ID: Default company ID to use');
   console.error('  - TOKEN_STORAGE_PATH: Custom path for token storage');
-  console.error(
-    '  - FREEE_TOKEN_ENCRYPTION_KEY: Custom encryption key for tokens',
-  );
   console.error(
     '  - FREEE_TOKEN_DATA_BASE64: Base64 encoded token data for serverless environments',
   );

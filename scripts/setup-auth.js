@@ -33,6 +33,36 @@ async function main() {
   console.log("freee MCP Authentication Setup");
   console.log("==============================\n");
 
+  // Ensure encryption key exists before constructing TokenManager
+  if (!process.env.FREEE_TOKEN_ENCRYPTION_KEY) {
+    const crypto = await import("crypto");
+    const generatedKey = crypto.randomBytes(32).toString("hex");
+    process.env.FREEE_TOKEN_ENCRYPTION_KEY = generatedKey;
+
+    // Persist to .env file
+    const envPath = path.join(process.cwd(), ".env");
+    try {
+      let existingEnv = "";
+      try {
+        existingEnv = await fs.readFile(envPath, "utf-8");
+      } catch {
+        // File doesn't exist yet
+      }
+      if (!/^FREEE_TOKEN_ENCRYPTION_KEY=/m.test(existingEnv)) {
+        const line = `FREEE_TOKEN_ENCRYPTION_KEY=${generatedKey}\n`;
+        await fs.appendFile(envPath, line);
+        console.log("Generated encryption key and saved to .env file");
+      }
+    } catch (e) {
+      console.warn(
+        `Warning: Could not save encryption key to .env: ${e.message}`,
+      );
+      console.log(
+        `Please add this to your .env file: FREEE_TOKEN_ENCRYPTION_KEY=${generatedKey}`,
+      );
+    }
+  }
+
   // Check for existing tokens using TokenManager (encrypted storage)
   const tokenPath =
     process.env.TOKEN_STORAGE_PATH || TokenManager.getDefaultStoragePath();
