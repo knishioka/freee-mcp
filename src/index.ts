@@ -50,7 +50,7 @@ const redirectUri =
 const tokenStoragePath =
   process.env.TOKEN_STORAGE_PATH || TokenManager.getDefaultStoragePath();
 const defaultCompanyId = process.env.FREEE_DEFAULT_COMPANY_ID
-  ? parseInt(process.env.FREEE_DEFAULT_COMPANY_ID)
+  ? parseInt(process.env.FREEE_DEFAULT_COMPANY_ID, 10)
   : undefined;
 
 // Support for base64 encoded tokens in environment
@@ -1819,21 +1819,32 @@ async function main() {
 
   // Check for base64 encoded token data first (for serverless/restricted environments)
   if (envTokenData) {
+    const tokenJson = Buffer.from(envTokenData, 'base64').toString('utf-8');
+    let parsed: unknown;
     try {
-      const tokenJson = Buffer.from(envTokenData, 'base64').toString('utf-8');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const tokenArray: Array<[number, any]> = JSON.parse(tokenJson);
-
-      for (const [companyId, tokenData] of tokenArray) {
-        await tokenManager.setToken(companyId, tokenData);
-      }
-
-      logServer(
-        'Loaded tokens from FREEE_TOKEN_DATA_BASE64 environment variable',
-      );
+      parsed = JSON.parse(tokenJson);
     } catch (error) {
-      console.error('Failed to parse FREEE_TOKEN_DATA_BASE64:', error);
+      throw new Error(
+        'FREEE_TOKEN_DATA_BASE64 contains invalid JSON. Ensure the value is a valid base64-encoded JSON array.',
+        { cause: error },
+      );
     }
+
+    const result = schemas.FreeeTokenDataArraySchema.safeParse(parsed);
+    if (!result.success) {
+      const issues = result.error.issues
+        .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+        .join('\n');
+      throw new Error(`FREEE_TOKEN_DATA_BASE64 validation failed:\n${issues}`);
+    }
+
+    for (const [companyId, tokenData] of result.data) {
+      await tokenManager.setToken(companyId, tokenData);
+    }
+
+    logServer(
+      'Loaded tokens from FREEE_TOKEN_DATA_BASE64 environment variable',
+    );
   }
 
   // Check for individual token environment variables (legacy support)
@@ -1844,17 +1855,18 @@ async function main() {
 
   if (envAccessToken && envRefreshToken && envCompanyId) {
     logServer('Setting tokens from individual environment variables...');
-    const createdAt = envTokenExpiry
-      ? parseInt(envTokenExpiry) - 86400 // Assume 24h expiry if expires_at is provided
-      : Math.floor(Date.now() / 1000);
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = envTokenExpiry
+      ? Math.max(0, parseInt(envTokenExpiry, 10) - now)
+      : 86400;
 
-    await tokenManager.setToken(parseInt(envCompanyId), {
+    await tokenManager.setToken(parseInt(envCompanyId, 10), {
       access_token: envAccessToken,
       refresh_token: envRefreshToken,
-      expires_in: 86400, // 24 hours
+      expires_in: expiresIn,
       token_type: 'Bearer',
       scope: 'read write',
-      created_at: createdAt,
+      created_at: now,
     });
   }
 

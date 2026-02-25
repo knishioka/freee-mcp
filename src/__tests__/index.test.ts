@@ -455,7 +455,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 43 schemas', async () => {
+  it('should export exactly 45 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -463,7 +463,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(43);
+    expect(schemaExports).toHaveLength(45);
   });
 
   it('should use Zod types in schema fields', async () => {
@@ -593,5 +593,157 @@ describe('Build & Quality Verification', () => {
   it('should use CallToolResult type from SDK types', () => {
     expect(indexSource).toContain('CallToolResult');
     expect(indexSource).toContain('type CallToolResult');
+  });
+});
+
+describe('FREEE_TOKEN_DATA_BASE64 Zod Validation (Issue #110)', () => {
+  describe('Source Code Verification', () => {
+    it('should use Zod schema validation instead of any cast', () => {
+      expect(indexSource).toContain('FreeeTokenDataArraySchema.safeParse');
+      expect(indexSource).not.toMatch(/tokenArray:\s*Array<\[number,\s*any\]>/);
+    });
+
+    it('should throw on invalid JSON instead of silent console.error', () => {
+      // The old pattern caught errors and only logged them
+      expect(indexSource).not.toMatch(
+        /catch.*\{[\s\S]*?console\.error\(['"]Failed to parse FREEE_TOKEN_DATA_BASE64/,
+      );
+      // New pattern throws descriptive errors
+      expect(indexSource).toContain(
+        'FREEE_TOKEN_DATA_BASE64 contains invalid JSON',
+      );
+      expect(indexSource).toContain(
+        'FREEE_TOKEN_DATA_BASE64 validation failed',
+      );
+    });
+
+    it('should use parseInt with radix 10 for FREEE_DEFAULT_COMPANY_ID', () => {
+      expect(indexSource).toMatch(
+        /parseInt\(process\.env\.FREEE_DEFAULT_COMPANY_ID,\s*10\)/,
+      );
+    });
+
+    it('should use parseInt with radix 10 for envCompanyId', () => {
+      expect(indexSource).toMatch(/parseInt\(envCompanyId,\s*10\)/);
+    });
+
+    it('should use parseInt with radix 10 for envTokenExpiry', () => {
+      expect(indexSource).toMatch(/parseInt\(envTokenExpiry,\s*10\)/);
+    });
+
+    it('should compute expires_in from actual expires_at instead of hardcoding 86400', () => {
+      // The legacy env var path should calculate expiresIn dynamically
+      expect(indexSource).toMatch(/Math\.max\(0,\s*parseInt\(envTokenExpiry/);
+      // Should not have the old hardcoded pattern in the legacy section
+      expect(indexSource).not.toMatch(/parseInt\(envTokenExpiry\)\s*-\s*86400/);
+    });
+  });
+
+  describe('FreeeTokenDataArraySchema Validation', () => {
+    let FreeeTokenDataArraySchema: typeof import('../schemas.js').FreeeTokenDataArraySchema;
+
+    beforeAll(async () => {
+      const schemas = await import('../schemas.js');
+      FreeeTokenDataArraySchema = schemas.FreeeTokenDataArraySchema;
+    });
+
+    const validTokenData = {
+      access_token: 'test-access-token',
+      refresh_token: 'test-refresh-token',
+      token_type: 'Bearer',
+      expires_in: 86400,
+      scope: 'read write',
+      created_at: 1700000000,
+    };
+
+    it('should accept valid token data array', () => {
+      const input = [[1, validTokenData]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept multiple company entries', () => {
+      const input = [
+        [1, validTokenData],
+        [2, { ...validTokenData, access_token: 'other-token' }],
+      ];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept empty array', () => {
+      const result = FreeeTokenDataArraySchema.safeParse([]);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject non-positive company ID', () => {
+      const input = [[0, validTokenData]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject negative company ID', () => {
+      const input = [[-1, validTokenData]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject non-integer company ID', () => {
+      const input = [[1.5, validTokenData]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing access_token', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { access_token: _, ...tokenWithoutAccess } = validTokenData;
+      const input = [[1, tokenWithoutAccess]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty access_token', () => {
+      const input = [[1, { ...validTokenData, access_token: '' }]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing refresh_token', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { refresh_token: _, ...tokenWithoutRefresh } = validTokenData;
+      const input = [[1, tokenWithoutRefresh]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject empty refresh_token', () => {
+      const input = [[1, { ...validTokenData, refresh_token: '' }]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject missing expires_in', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { expires_in: _, ...tokenWithoutExpiry } = validTokenData;
+      const input = [[1, tokenWithoutExpiry]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject non-number expires_in', () => {
+      const input = [[1, { ...validTokenData, expires_in: 'not-a-number' }]];
+      const result = FreeeTokenDataArraySchema.safeParse(input);
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject non-array input', () => {
+      const result = FreeeTokenDataArraySchema.safeParse('not-an-array');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject object input', () => {
+      const result = FreeeTokenDataArraySchema.safeParse({ 1: validTokenData });
+      expect(result.success).toBe(false);
+    });
   });
 });
