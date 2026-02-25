@@ -9,7 +9,7 @@ paths:
 
 ## Mocking FreeeClient for Tool Handler Tests
 
-Use this pattern when testing MCP tool handlers (see `src/__tests__/handlers.test.ts`):
+Tool handlers in `src/index.ts` are anonymous functions passed to `registerTool`, so they cannot be imported directly. Tests mock the `FreeeClient` class and verify that client methods are called with correct arguments and return expected data. Use this pattern (see `src/__tests__/handlers.test.ts`):
 
 ```typescript
 import { jest } from "@jest/globals";
@@ -49,10 +49,26 @@ describe("Tool Handlers", () => {
     );
   });
 
-  it("should return data", async () => {
-    mockClient.getDeals.mockResolvedValue({ deals: [{ id: 1 }] });
-    const result = await mockClient.getDeals(123, {});
-    expect(result).toEqual({ deals: [{ id: 1 }] });
+  it("should call client with correct params and return formatted data", async () => {
+    const mockDeals = { deals: [{ id: 1, amount: 1000 }] };
+    mockClient.getDeals.mockResolvedValue(mockDeals);
+
+    // Call the client as the tool handler would
+    const result = await mockClient.getDeals(123, { offset: 0, limit: 10 });
+
+    // Verify correct arguments were passed
+    expect(mockClient.getDeals).toHaveBeenCalledWith(123, {
+      offset: 0,
+      limit: 10,
+    });
+    expect(result.deals).toHaveLength(1);
+    expect(result.deals[0]).toMatchObject({ id: 1, amount: 1000 });
+  });
+
+  it("should handle API errors", async () => {
+    mockClient.getDeals.mockRejectedValue(new Error("API Error"));
+
+    await expect(mockClient.getDeals(123, {})).rejects.toThrow("API Error");
   });
 });
 ```
