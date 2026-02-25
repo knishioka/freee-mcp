@@ -97,8 +97,9 @@ export class TokenManager {
         // Try to fix permissions
         await fs.chmod(filePath, 0o600);
       }
-    } catch {
-      // File doesn't exist yet, which is ok
+    } catch (error) {
+      // File doesn't exist yet, which is ok - log other errors for debugging
+      logToken('Error checking or fixing token file permissions: %o', error);
     }
   }
 
@@ -166,8 +167,9 @@ export class TokenManager {
           this.tokens = new Map();
         }
       }
-    } catch {
+    } catch (error) {
       // File doesn't exist or is invalid, start with empty tokens
+      logToken('Error loading tokens from file: %o', error);
       this.tokens = new Map();
     }
   }
