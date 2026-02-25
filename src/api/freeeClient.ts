@@ -56,7 +56,14 @@ import {
   MonthlyClosingCheckType,
   MonthlyClosingCheckItem,
   MonthlyClosingCheckResult,
+  FreeeErrorResponse,
 } from '../types/freee.js';
+
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    __retried?: boolean;
+  }
+}
 import { ApiCache, generateCacheKey } from './cache.js';
 
 const logAuth = createDebug('freee-mcp:auth');
@@ -187,7 +194,7 @@ export class FreeeClient {
   private async handleApiError(error: AxiosError): Promise<never> {
     if (error.response?.status === 401) {
       // Check for specific freee API error codes
-      const errorData = error.response?.data as any;
+      const errorData = error.response?.data as FreeeErrorResponse | undefined;
       const isExpiredToken = errorData?.code === 'expired_access_token';
       const errorCode = errorData?.code || 'unknown';
 
@@ -220,7 +227,7 @@ export class FreeeClient {
         const token = this.tokenManager.getToken(companyId);
         if (token?.refresh_token) {
           // Retry guard: prevent infinite 401 retry loops
-          if ((error.config as any)?.__retried) {
+          if (error.config?.__retried) {
             throw new Error(
               'Authentication failed after token refresh. Please re-authenticate.',
             );
@@ -234,18 +241,24 @@ export class FreeeClient {
             await this.refreshTokenWithLock(companyId, token.refresh_token);
             // Retry the original request
             if (error.config) {
-              (error.config as any).__retried = true;
+              error.config.__retried = true;
               logAuth(
                 'Token refreshed successfully. Retrying original request...',
               );
               const retryResult = await this.api.request(error.config);
               return retryResult as never;
             }
-          } catch (refreshError: any) {
-            const refreshErrorData = refreshError.response?.data;
+          } catch (refreshError: unknown) {
+            const refreshErrorData = axios.isAxiosError(refreshError)
+              ? (refreshError.response?.data as FreeeErrorResponse | undefined)
+              : undefined;
+            const refreshErrorMessage =
+              refreshError instanceof Error
+                ? refreshError.message
+                : 'Unknown error';
             logAuth(
               'Token refresh failed: %s',
-              refreshErrorData?.error || refreshError.message,
+              refreshErrorData?.error || refreshErrorMessage,
             );
 
             // On invalid_grant, re-check token state before deleting
@@ -292,9 +305,7 @@ export class FreeeClient {
             }
 
             const baseErrorMessage =
-              refreshErrorData?.error_description ||
-              refreshError.message ||
-              'Unknown error';
+              refreshErrorData?.error_description || refreshErrorMessage;
 
             throw new TokenRefreshError(
               `Token refresh failed: ${baseErrorMessage}`,
@@ -328,7 +339,7 @@ export class FreeeClient {
       );
     }
 
-    const apiError = error.response?.data as FreeeApiError;
+    const apiError = error.response?.data as FreeeApiError | undefined;
     const errorMessage =
       apiError?.errors?.[0]?.messages?.join(', ') || error.message;
     throw new Error(`freee API Error: ${errorMessage}`);
@@ -366,11 +377,13 @@ export class FreeeClient {
       );
       logAuth('Token request successful');
       return response.data;
-    } catch (error: any) {
-      logAuth(
-        'Token request failed: %O',
-        error.response?.data || error.message,
-      );
+    } catch (error: unknown) {
+      const errorInfo = axios.isAxiosError(error)
+        ? error.response?.data || error.message
+        : error instanceof Error
+          ? error.message
+          : error;
+      logAuth('Token request failed: %O', errorInfo);
       throw error;
     }
   }

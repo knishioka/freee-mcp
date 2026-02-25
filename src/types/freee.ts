@@ -365,6 +365,15 @@ export interface FreeeApiError {
   }>;
 }
 
+/** freee API error response for authentication and OAuth errors */
+export interface FreeeErrorResponse {
+  code?: string;
+  error?: string;
+  error_description?: string;
+  message?: string;
+  status_code?: number;
+}
+
 // Formatted response types for LLM-optimized output
 
 export interface FormattedDealDetail {
