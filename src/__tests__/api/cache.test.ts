@@ -161,6 +161,20 @@ describe('ApiCache', () => {
       expect(cache.get('new-key')).toBe('new-value');
       expect(cache.get('key0')).toBeUndefined();
     });
+
+    it('should not evict when updating an existing key at capacity', () => {
+      // Fill cache to capacity
+      for (let i = 0; i < 1000; i++) {
+        cache.set(`key${i}`, `value${i}`, 60000);
+      }
+      expect(cache.size).toBe(1000);
+
+      // Overwriting existing key should not evict any other entry
+      cache.set('key0', 'updated', 60000);
+      expect(cache.size).toBe(1000);
+      expect(cache.get('key0')).toBe('updated');
+      expect(cache.get('key1')).toBe('value1');
+    });
   });
 
   describe('size', () => {
@@ -224,7 +238,7 @@ describe('generateCacheKey', () => {
 
   it('should generate hashed key when params have values', () => {
     const key = generateCacheKey(123, 'partners', { name: 'ABC Corp' });
-    expect(key).toMatch(/^123:partners:[a-f0-9]{16}$/);
+    expect(key).toMatch(/^123:partners:[a-f0-9]{32}$/);
   });
 
   it('should generate consistent hash for same params', () => {

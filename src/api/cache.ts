@@ -25,7 +25,7 @@ export class ApiCache {
   }
 
   set<T>(key: string, data: T, ttlMs: number): void {
-    if (this.cache.size >= ApiCache.MAX_ENTRIES) {
+    if (this.cache.size >= ApiCache.MAX_ENTRIES && !this.cache.has(key)) {
       this.evictExpired();
       if (this.cache.size >= ApiCache.MAX_ENTRIES) {
         const oldestKey = this.cache.keys().next().value;
@@ -79,7 +79,7 @@ export function generateCacheKey(
   const hash = createHash('sha256')
     .update(JSON.stringify(filteredParams))
     .digest('hex')
-    .slice(0, 16);
+    .slice(0, 32);
 
   return `${companyId}:${endpoint}:${hash}`;
 }
