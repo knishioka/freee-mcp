@@ -1865,8 +1865,8 @@ async function main() {
   await server.connect(transport);
 
   if (!process.env.FREEE_TOKEN_ENCRYPTION_KEY) {
-    logServer(
-      'FREEE_TOKEN_ENCRYPTION_KEY is not set. Using default encryption key for token storage. Set this environment variable for stronger security.',
+    console.error(
+      'Warning: FREEE_TOKEN_ENCRYPTION_KEY is not set. Using default encryption key for token storage. Set this environment variable for stronger security.',
     );
   }
 
@@ -1877,7 +1877,7 @@ async function main() {
   if (companyIds.length > 0) {
     logServer('Authenticated companies: %s', companyIds.join(', '));
   } else {
-    logServer(
+    console.error(
       'No authenticated companies. Use freee_get_auth_url to start OAuth flow.',
     );
   }
