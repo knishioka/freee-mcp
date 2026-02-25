@@ -63,14 +63,15 @@ const logAuth = createDebug('freee-mcp:auth');
 const logClient = createDebug('freee-mcp:client');
 
 export class FreeeClient {
-  private api: AxiosInstance;
-  private authApi: AxiosInstance;
+  private api!: AxiosInstance;
+  private authApi!: AxiosInstance;
   private tokenManager: TokenManager;
   private clientId: string;
   private clientSecret: string;
   private redirectUri: string;
   private refreshPromises: Map<number, Promise<void>> = new Map();
   private cache: ApiCache = new ApiCache();
+  private static readonly COMPANY_ID_URL_PATTERN = /\/companies\/(\d+)/;
 
   constructor(
     clientId: string,
@@ -83,6 +84,16 @@ export class FreeeClient {
     this.redirectUri = redirectUri;
     this.tokenManager = tokenManager;
 
+    this.setupAxiosInstances();
+    this.setupInterceptors();
+  }
+
+  private extractCompanyIdFromUrl(url: string): number | undefined {
+    const match = url.match(FreeeClient.COMPANY_ID_URL_PATTERN);
+    return match ? parseInt(match[1], 10) : undefined;
+  }
+
+  private setupAxiosInstances(): void {
     this.api = axios.create({
       baseURL: FREEE_API_BASE_URL,
       headers: {
@@ -96,17 +107,16 @@ export class FreeeClient {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+  }
 
+  private setupInterceptors(): void {
     // Add request interceptor to add auth token
     this.api.interceptors.request.use(async (config) => {
       let companyId = config.params?.company_id;
 
       // Try to extract company_id from URL if not in params
       if (!companyId && config.url) {
-        const companyMatch = config.url.match(/\/companies\/(\d+)/);
-        if (companyMatch) {
-          companyId = parseInt(companyMatch[1]);
-        }
+        companyId = this.extractCompanyIdFromUrl(config.url);
       }
 
       let token;
@@ -202,10 +212,7 @@ export class FreeeClient {
 
       // Try to extract company_id from URL if not in params
       if (!companyId && error.config?.url) {
-        const companyMatch = error.config.url.match(/\/companies\/(\d+)/);
-        if (companyMatch) {
-          companyId = parseInt(companyMatch[1]);
-        }
+        companyId = this.extractCompanyIdFromUrl(error.config.url);
       }
 
       // If no company_id in params or URL, try to get the first available company
