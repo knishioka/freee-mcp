@@ -11,6 +11,7 @@ import {
   type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'node:fs';
+import createDebug from 'debug';
 import dotenv from 'dotenv';
 import type { z } from 'zod';
 import { FreeeClient } from './api/freeeClient.js';
@@ -19,6 +20,8 @@ import type { FreeeDealUpdatePayload } from './types/freee.js';
 import { TokenManager } from './auth/tokenManager.js';
 import { SERVER_NAME } from './constants.js';
 import * as schemas from './schemas.js';
+
+const logServer = createDebug('freee-mcp:server');
 
 const packageJson = (() => {
   try {
@@ -29,8 +32,8 @@ const packageJson = (() => {
     const parsed = JSON.parse(content);
     return { version: String(parsed.version ?? 'unknown') };
   } catch (error) {
-    console.error(
-      'Warning: Could not read version from package.json. Using fallback.',
+    logServer(
+      'Could not read version from package.json, using fallback: %O',
       error,
     );
     return { version: 'unknown' };
@@ -1825,7 +1828,7 @@ async function main() {
         await tokenManager.setToken(companyId, tokenData);
       }
 
-      console.error(
+      logServer(
         'Loaded tokens from FREEE_TOKEN_DATA_BASE64 environment variable',
       );
     } catch (error) {
@@ -1840,7 +1843,7 @@ async function main() {
   const envTokenExpiry = process.env.FREEE_TOKEN_EXPIRES_AT;
 
   if (envAccessToken && envRefreshToken && envCompanyId) {
-    console.error('Setting tokens from individual environment variables...');
+    logServer('Setting tokens from individual environment variables...');
     const createdAt = envTokenExpiry
       ? parseInt(envTokenExpiry) - 86400 // Assume 24h expiry if expires_at is provided
       : Math.floor(Date.now() / 1000);
@@ -1861,12 +1864,18 @@ async function main() {
   // Connect server to transport
   await server.connect(transport);
 
-  console.error('freee MCP server started');
-  console.error(`Token storage: ${tokenStoragePath}`);
+  if (!process.env.FREEE_TOKEN_ENCRYPTION_KEY) {
+    console.error(
+      'Warning: FREEE_TOKEN_ENCRYPTION_KEY is not set. Using default encryption key for token storage. Set this environment variable for stronger security.',
+    );
+  }
+
+  logServer('freee MCP server started');
+  logServer('Token storage: %s', tokenStoragePath);
 
   const companyIds = tokenManager.getAllCompanyIds();
   if (companyIds.length > 0) {
-    console.error(`Authenticated companies: ${companyIds.join(', ')}`);
+    logServer('Authenticated companies: %s', companyIds.join(', '));
   } else {
     console.error(
       'No authenticated companies. Use freee_get_auth_url to start OAuth flow.',
