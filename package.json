@@ -16,7 +16,7 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "setup-auth": "node scripts/setup-auth.js",
-    "prepare": "husky",
+    "prepare": "npm run build && (husky || true)",
     "gitleaks": "gitleaks detect --source . --verbose --no-banner",
     "gitleaks:ci": "gitleaks detect --source . --verbose --no-banner --exit-code 1"
   },

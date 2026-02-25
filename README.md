@@ -24,6 +24,65 @@ A Model Context Protocol (MCP) server that provides integration with freee accou
 - freee API credentials (Client ID and Client Secret)
 - freee account with API access
 
+## Quick Start
+
+Choose one of the following methods to get started:
+
+### Option A: npx (no local build required)
+
+Add the following to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "freee": {
+      "command": "npx",
+      "args": ["-y", "github:knishioka/freee-mcp"],
+      "env": {
+        "FREEE_CLIENT_ID": "your_client_id",
+        "FREEE_CLIENT_SECRET": "your_client_secret",
+        "FREEE_TOKEN_ENCRYPTION_KEY": "replace-with-strong-random-value"
+      }
+    }
+  }
+}
+```
+
+> **Note**: The first launch with `npx` may take 30–60 seconds while dependencies are downloaded and TypeScript is compiled. Subsequent launches will be faster.
+
+### Option B: Local build
+
+```bash
+git clone https://github.com/knishioka/freee-mcp.git
+cd freee-mcp
+npm install && npm run build
+```
+
+```json
+{
+  "mcpServers": {
+    "freee": {
+      "command": "node",
+      "args": ["/absolute/path/to/freee-mcp/dist/index.js"],
+      "env": {
+        "FREEE_CLIENT_ID": "your_client_id",
+        "FREEE_CLIENT_SECRET": "your_client_secret",
+        "FREEE_TOKEN_ENCRYPTION_KEY": "replace-with-strong-random-value"
+      }
+    }
+  }
+}
+```
+
+See the [Installation](#installation) section for detailed setup instructions including environment variables and additional MCP client configurations.
+
+### Which method should I use?
+
+| Use case                                | Recommended method |
+| --------------------------------------- | ------------------ |
+| Quick evaluation / no Node.js dev setup | npx                |
+| Active development / offline use        | Local build        |
+
 ## Installation
 
 1. Clone the repository:
