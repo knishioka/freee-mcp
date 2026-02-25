@@ -253,15 +253,18 @@ describe('setup-auth.js script', () => {
   });
 
   describe('encryption round-trip with TokenManager', () => {
-    const originalEnv = process.env;
+    const originalEncryptionKey = process.env.FREEE_TOKEN_ENCRYPTION_KEY;
 
     beforeEach(() => {
-      process.env = { ...originalEnv };
       process.env.FREEE_TOKEN_ENCRYPTION_KEY = 'test-encryption-key';
     });
 
     afterEach(() => {
-      process.env = originalEnv;
+      if (originalEncryptionKey !== undefined) {
+        process.env.FREEE_TOKEN_ENCRYPTION_KEY = originalEncryptionKey;
+      } else {
+        delete process.env.FREEE_TOKEN_ENCRYPTION_KEY;
+      }
     });
 
     it('should produce tokens readable by TokenManager when using setToken', async () => {
