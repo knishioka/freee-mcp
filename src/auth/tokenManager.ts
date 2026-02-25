@@ -56,7 +56,7 @@ export class TokenManager {
         return salt;
       }
     }
-    return crypto.randomBytes(16);
+    return crypto.randomBytes(32);
   }
 
   private deriveKey(salt: Buffer | string): Buffer {
