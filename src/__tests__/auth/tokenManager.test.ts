@@ -3,6 +3,7 @@ import { FreeeTokenResponse } from '../../types/freee.js';
 
 describe('TokenManager', () => {
   let tokenManager: TokenManager;
+  const originalEnv = process.env;
 
   const mockTokenResponse: FreeeTokenResponse = {
     access_token: 'test_access_token',
@@ -14,8 +15,59 @@ describe('TokenManager', () => {
   };
 
   beforeEach(() => {
+    process.env = { ...originalEnv };
+    process.env.FREEE_TOKEN_ENCRYPTION_KEY = 'test-encryption-key';
     // Create TokenManager without storage path to test in-memory operations
     tokenManager = new TokenManager();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  describe('encryption key validation', () => {
+    it('should throw when FREEE_TOKEN_ENCRYPTION_KEY is not set', () => {
+      delete process.env.FREEE_TOKEN_ENCRYPTION_KEY;
+      expect(() => new TokenManager()).toThrow(
+        'FREEE_TOKEN_ENCRYPTION_KEY environment variable is required',
+      );
+    });
+
+    it('should throw when FREEE_TOKEN_ENCRYPTION_KEY is empty string', () => {
+      process.env.FREEE_TOKEN_ENCRYPTION_KEY = '';
+      expect(() => new TokenManager()).toThrow(
+        'FREEE_TOKEN_ENCRYPTION_KEY environment variable is required',
+      );
+    });
+
+    it('should succeed when FREEE_TOKEN_ENCRYPTION_KEY is set', () => {
+      process.env.FREEE_TOKEN_ENCRYPTION_KEY = 'my-secure-key';
+      expect(() => new TokenManager()).not.toThrow();
+    });
+  });
+
+  describe('memory mode', () => {
+    it('should log warning when running in memory mode', () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      new TokenManager();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Warning: Running in memory mode. Tokens will not be persisted across restarts.',
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should not log memory mode warning when storagePath is provided', () => {
+      const consoleSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      new TokenManager('/tmp/test-tokens.enc');
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        'Warning: Running in memory mode. Tokens will not be persisted across restarts.',
+      );
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('token management', () => {
