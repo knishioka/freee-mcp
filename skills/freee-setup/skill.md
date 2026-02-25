@@ -215,7 +215,7 @@ If `INVALID`, display error and instruct user to check the config file manually.
 Read the config file and display the freee section:
 
 ```bash
-jq '.mcpServers.freee' "$CONFIG_PATH"
+jq '.mcpServers.freee | .env.FREEE_CLIENT_SECRET = "***" | .env.FREEE_TOKEN_ENCRYPTION_KEY = "***"' "$CONFIG_PATH"
 ```
 
 Then display the completion message:

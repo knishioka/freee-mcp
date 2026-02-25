@@ -112,6 +112,11 @@ action_update_config() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --config|--client-id|--client-secret|--encryption-key|--mode|--local-path)
+        if [[ $# -lt 2 ]]; then
+          echo "Error: $1 requires a value" >&2; return 1
+        fi
+        ;;&
       --config) config_path="$2"; shift 2 ;;
       --client-id) client_id="$2"; shift 2 ;;
       --client-secret) client_secret="$2"; shift 2 ;;
@@ -186,8 +191,12 @@ action_update_config() {
   # jq creates intermediate objects (.mcpServers) automatically if absent
   local tmp_file
   tmp_file=$(mktemp "$(dirname "$config_path")/.config.XXXXXX")
-  trap 'rm -f "$tmp_file"' RETURN
-  jq --argjson config "$mcp_config" '.mcpServers.freee = $config' "$config_path" > "$tmp_file" && mv "$tmp_file" "$config_path"
+  if ! jq --argjson config "$mcp_config" '.mcpServers.freee = $config' "$config_path" > "$tmp_file"; then
+    rm -f "$tmp_file"
+    echo "Error: failed to generate config JSON" >&2
+    return 1
+  fi
+  mv "$tmp_file" "$config_path"
 
   echo "OK"
 }
