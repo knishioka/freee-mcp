@@ -253,6 +253,17 @@ describe('setup-auth.js script', () => {
   });
 
   describe('encryption round-trip with TokenManager', () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv };
+      process.env.FREEE_TOKEN_ENCRYPTION_KEY = 'test-encryption-key';
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
     it('should produce tokens readable by TokenManager when using setToken', async () => {
       // Acceptance Criteria #1: Tokens saved via setup-auth are encrypted AND readable by server
       // Simulate what setup-auth.js does: create TokenManager, setToken, then read back
