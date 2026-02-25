@@ -2,11 +2,14 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import createDebug from 'debug';
 import { FreeeTokenResponse } from '../types/freee.js';
 import {
   TOKEN_EXPIRY_BUFFER_SECONDS,
   TOKEN_NEAR_EXPIRY_THRESHOLD_SECONDS,
 } from '../constants.js';
+
+const logToken = createDebug('freee-mcp:token');
 
 export interface TokenData extends FreeeTokenResponse {
   expires_at: number;
@@ -77,8 +80,9 @@ export class TokenManager {
 
       // Check if file is readable/writable only by owner (0600)
       if (mode !== parseInt('600', 8)) {
-        console.error(
-          `Warning: Token file permissions are ${mode.toString(8)}, should be 600`,
+        logToken(
+          'Token file permissions are %s, should be 600',
+          mode.toString(8),
         );
         // Try to fix permissions
         await fs.chmod(filePath, 0o600);
@@ -147,7 +151,7 @@ export class TokenManager {
           const tokenArray: Array<[number, TokenData]> = JSON.parse(data);
           this.tokens = new Map(tokenArray);
           await this.saveTokens();
-          console.error('Migrated tokens from legacy salt to random salt');
+          logToken('Migrated tokens from legacy salt to random salt');
         } catch {
           this.tokens = new Map();
         }
