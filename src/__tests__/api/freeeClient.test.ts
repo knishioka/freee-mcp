@@ -887,37 +887,77 @@ describe('FreeeClient', () => {
   });
 
   describe('error handling', () => {
-    it('should handle API errors with error message', async () => {
-      // We need to trigger the error handler in the response interceptor
+    it('should format 400 error with flattened messages and hint', async () => {
       const errorHandler =
         mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
 
       const error = {
         response: {
           status: 400,
+          statusText: 'Bad Request',
           data: {
+            status_code: 400,
             errors: [
               {
-                messages: ['Invalid request parameters'],
+                type: 'validation',
+                messages: ['取引日は必須です', '勘定科目IDが不正です'],
               },
             ],
           },
         },
+        message: 'Request failed',
         config: {},
       };
 
-      await expect(errorHandler(error)).rejects.toThrow(
-        'freee API Error: Invalid request parameters',
-      );
+      expect.assertions(4);
+      try {
+        await errorHandler(error);
+      } catch (e: unknown) {
+        const msg = (e as Error).message;
+        expect(msg).toContain('APIリクエストエラー: 400 Bad Request');
+        expect(msg).toContain('- 取引日は必須です');
+        expect(msg).toContain('- 勘定科目IDが不正です');
+        expect(msg).toContain('ヒント: 不正なリクエストエラーが発生しました');
+      }
     });
 
-    it('should handle API errors without message', async () => {
+    it('should format 403 error with permission hint', async () => {
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        response: {
+          status: 403,
+          statusText: 'Forbidden',
+          data: {
+            status_code: 403,
+            errors: [{ type: 'status', messages: ['権限がありません'] }],
+          },
+        },
+        message: 'Request failed',
+        config: {},
+      };
+
+      expect.assertions(3);
+      try {
+        await errorHandler(error);
+      } catch (e: unknown) {
+        const msg = (e as Error).message;
+        expect(msg).toContain('APIリクエストエラー: 403 Forbidden');
+        expect(msg).toContain('- 権限がありません');
+        expect(msg).toContain('ヒント: 権限が不足しています');
+      }
+    });
+
+    it('should fall back to raw message when errors field is absent', async () => {
       const errorHandler =
         mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
 
       const error = {
         response: {
           status: 400,
+          statusText: 'Bad Request',
+          data: {},
         },
         message: 'Network error',
         config: {},
@@ -926,6 +966,55 @@ describe('FreeeClient', () => {
       await expect(errorHandler(error)).rejects.toThrow(
         'freee API Error: Network error',
       );
+    });
+
+    it('should fall back when response has no data', async () => {
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        response: {
+          status: 500,
+          statusText: 'Internal Server Error',
+        },
+        message: 'Server error',
+        config: {},
+      };
+
+      await expect(errorHandler(error)).rejects.toThrow(
+        'freee API Error: Server error',
+      );
+    });
+
+    it('should flatten messages from multiple error objects', async () => {
+      const errorHandler =
+        mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
+
+      const error = {
+        response: {
+          status: 400,
+          statusText: 'Bad Request',
+          data: {
+            status_code: 400,
+            errors: [
+              { type: 'validation', messages: ['エラーA'] },
+              { type: 'validation', messages: ['エラーB', 'エラーC'] },
+            ],
+          },
+        },
+        message: 'Request failed',
+        config: {},
+      };
+
+      expect.assertions(3);
+      try {
+        await errorHandler(error);
+      } catch (e: unknown) {
+        const msg = (e as Error).message;
+        expect(msg).toContain('- エラーA');
+        expect(msg).toContain('- エラーB');
+        expect(msg).toContain('- エラーC');
+      }
     });
   });
 
