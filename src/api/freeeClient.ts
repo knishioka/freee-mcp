@@ -607,12 +607,17 @@ export class FreeeClient {
   }
 
   async getItem(companyId: number, itemId: number): Promise<FreeeItem> {
+    const cacheKey = generateCacheKey(companyId, 'item', { itemId });
+    const cached = this.cache.get<FreeeItem>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.api.get<{ item: FreeeItem }>(
       `/items/${itemId}`,
       {
         params: { company_id: companyId },
       },
     );
+    this.cache.set(cacheKey, response.data.item, CACHE_TTL_ITEMS);
     return response.data.item;
   }
 
