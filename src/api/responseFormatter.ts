@@ -1,6 +1,7 @@
 import type {
   FreeeDeal,
   FreeeInvoice,
+  FreeeItem,
   FreeePartner,
   FreeeAccountItem,
   FreeeSection,
@@ -17,6 +18,7 @@ import type {
   FormattedDeal,
   FormattedDealDetail,
   FormattedInvoice,
+  FormattedItem,
   FormattedPartner,
   FormattedAccountItem,
   FormattedSection,
@@ -182,6 +184,28 @@ export class ResponseFormatter {
       return { summary, items: [] };
     }
     return { summary, items: partners.map((p) => this.formatPartner(p)) };
+  }
+
+  // Item formatting
+  static formatItem(item: FreeeItem): FormattedItem {
+    return stripEmpty({
+      id: item.id,
+      name: item.name,
+      shortcut1: item.shortcut1,
+      code: item.code,
+      description: item.description,
+    }) as FormattedItem;
+  }
+
+  static formatItems(
+    items: FreeeItem[],
+    compact?: boolean,
+  ): FormattedListResponse<FormattedItem> {
+    const summary: ListSummary = { total_count: items.length };
+    if (compact) {
+      return { summary, items: [] };
+    }
+    return { summary, items: items.map((i) => this.formatItem(i)) };
   }
 
   // Account Item formatting

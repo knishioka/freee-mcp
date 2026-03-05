@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 45 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(45);
+    it('should register exactly 47 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(47);
     });
 
     it('should register all expected tool names', () => {
@@ -111,6 +111,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_account_items',
         'freee_get_partners',
         'freee_create_partner',
+        'freee_get_items',
+        'freee_get_item',
         'freee_get_sections',
         'freee_get_tags',
         'freee_get_tax_codes',
@@ -168,7 +170,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(45);
+      expect(toolCalls.length).toBe(47);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -194,6 +196,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetAccountItemsSchema',
         'schemas.GetPartnersSchema',
         'schemas.CreatePartnerSchema',
+        'schemas.GetItemsSchema',
+        'schemas.GetItemSchema',
         'schemas.GetSectionsSchema',
         'schemas.GetTagsSchema',
         'schemas.GetTaxCodesSchema',
@@ -391,7 +395,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 44 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 46 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -409,6 +413,8 @@ describe('Schema Structure Verification', () => {
       'GetAccountItemsSchema',
       'GetPartnersSchema',
       'CreatePartnerSchema',
+      'GetItemsSchema',
+      'GetItemSchema',
       'GetSectionsSchema',
       'GetTagsSchema',
       'GetTaxCodesSchema',
@@ -461,7 +467,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 47 schemas', async () => {
+  it('should export exactly 49 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -469,7 +475,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(47);
+    expect(schemaExports).toHaveLength(49);
   });
 
   it('should use Zod types in schema fields', async () => {

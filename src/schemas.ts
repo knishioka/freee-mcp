@@ -206,6 +206,29 @@ export const CreatePartnerSchema = {
   countryCode: z.string().optional().describe('Country code'),
 };
 
+// Item schemas
+export const GetItemsSchema = {
+  companyId: companyIdField,
+  offset: z.number().min(0).optional().describe('Pagination offset'),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of results (1-100)'),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics only without individual records. Useful for quick overviews.',
+    ),
+};
+
+export const GetItemSchema = {
+  companyId: companyIdField,
+  itemId: z.number().describe('Item ID (品目ID)'),
+};
+
 // Section schemas
 export const GetSectionsSchema = {
   companyId: companyIdField,
