@@ -62,6 +62,10 @@ export const SetCompanyTokenSchema = {
   expiresIn: z.number().describe('Token expiration time in seconds'),
 };
 
+export const AuthStatusSchema = {
+  companyId: companyIdField,
+};
+
 // Company schemas
 export const GetCompaniesSchema = {};
 

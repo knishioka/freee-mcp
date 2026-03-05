@@ -78,6 +78,7 @@ describe('MCP Tool Handlers', () => {
         'GetProfitLossSchema',
         'GetBalanceSheetSchema',
         'GetTrialBalanceSchema',
+        'AuthStatusSchema',
       ];
 
       expectedSchemas.forEach((schemaName) => {
