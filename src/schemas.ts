@@ -62,6 +62,15 @@ export const SetCompanyTokenSchema = {
   expiresIn: z.number().describe('Token expiration time in seconds'),
 };
 
+export const ClearAuthSchema = {
+  companyId: z
+    .number()
+    .optional()
+    .describe(
+      'Company ID to clear authentication for. If omitted, clears all companies.',
+    ),
+};
+
 // Company schemas
 export const GetCompaniesSchema = {};
 
