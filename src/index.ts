@@ -257,25 +257,6 @@ registerTool(
         ? [companyId]
         : tokenManager.getAllCompanyIds();
 
-      if (companyIds.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(
-                {
-                  authenticated: false,
-                  message:
-                    'No authenticated companies found. Please authenticate using freee_get_auth_url and freee_get_access_token.',
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
-      }
-
       const statuses = companyIds.map((id) => {
         const token = tokenManager.getToken(id);
         if (!token) {
