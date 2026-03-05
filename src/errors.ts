@@ -31,7 +31,9 @@ export function formatFreeeApiError(
   fallbackMessage: string,
 ): string {
   const apiError = data as FreeeApiError | undefined;
-  const messages = apiError?.errors?.flatMap((e) => e.messages);
+  const messages = Array.isArray(apiError?.errors)
+    ? apiError.errors.flatMap((e) => e.messages ?? [])
+    : [];
 
   if (!messages || messages.length === 0) {
     return `freee API Error: ${fallbackMessage}`;

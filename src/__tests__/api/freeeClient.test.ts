@@ -909,13 +909,12 @@ describe('FreeeClient', () => {
         config: {},
       };
 
-      await expect(errorHandler(error)).rejects.toThrow(
-        'APIリクエストエラー: 400 Bad Request',
-      );
+      expect.assertions(4);
       try {
         await errorHandler(error);
       } catch (e: unknown) {
         const msg = (e as Error).message;
+        expect(msg).toContain('APIリクエストエラー: 400 Bad Request');
         expect(msg).toContain('- 取引日は必須です');
         expect(msg).toContain('- 勘定科目IDが不正です');
         expect(msg).toContain('ヒント: 不正なリクエストエラーが発生しました');
@@ -939,6 +938,7 @@ describe('FreeeClient', () => {
         config: {},
       };
 
+      expect.assertions(3);
       try {
         await errorHandler(error);
       } catch (e: unknown) {
@@ -1006,6 +1006,7 @@ describe('FreeeClient', () => {
         config: {},
       };
 
+      expect.assertions(3);
       try {
         await errorHandler(error);
       } catch (e: unknown) {
