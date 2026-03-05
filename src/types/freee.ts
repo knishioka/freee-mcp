@@ -92,6 +92,17 @@ export interface FreeeTag {
   available: boolean;
 }
 
+export interface FreeeItem {
+  id: number;
+  company_id: number;
+  name: string;
+  shortcut1?: string;
+  shortcut2?: string;
+  code?: string;
+  description?: string;
+  available: boolean;
+}
+
 export interface FreeeSegmentTag {
   id: number;
   company_id: number;
@@ -447,6 +458,14 @@ export interface FormattedTaxCode {
   code: number;
   name: string;
   name_ja: string;
+}
+
+export interface FormattedItem {
+  id: number;
+  name: string;
+  shortcut1?: string;
+  code?: string;
+  description?: string;
 }
 
 export interface FormattedSegmentTag {

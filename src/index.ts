@@ -790,6 +790,61 @@ registerTool(
   },
 );
 
+// === Item tools ===
+
+registerTool(
+  'freee_get_items',
+  {
+    description:
+      'Get list of items (品目) - Retrieves product/service item master data used in invoices and deals. Items are cached for 15 minutes as master data changes infrequently. Foundation for item suggestion and bulk master context retrieval.',
+    inputSchema: schemas.GetItemsSchema,
+  },
+  async ({ companyId, offset, limit, compact }) => {
+    try {
+      const items = await freeeClient.getItems(getCompanyId(companyId), {
+        offset,
+        limit,
+      });
+      const formatted = ResponseFormatter.formatItems(items, compact);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_items', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_get_item',
+  {
+    description:
+      'Get a single item (品目) by ID - Retrieves detailed information for a specific product/service item.',
+    inputSchema: schemas.GetItemSchema,
+  },
+  async ({ companyId, itemId }) => {
+    try {
+      const item = await freeeClient.getItem(getCompanyId(companyId), itemId);
+      const formatted = ResponseFormatter.formatItem(item);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(formatted, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_item', error);
+    }
+  },
+);
+
 // === Invoice tools ===
 
 registerTool(

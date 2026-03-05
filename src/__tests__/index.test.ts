@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 44 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(44);
+    it('should register exactly 46 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(46);
     });
 
     it('should register all expected tool names', () => {
@@ -110,6 +110,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_account_items',
         'freee_get_partners',
         'freee_create_partner',
+        'freee_get_items',
+        'freee_get_item',
         'freee_get_sections',
         'freee_get_tags',
         'freee_get_tax_codes',
@@ -167,7 +169,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(44);
+      expect(toolCalls.length).toBe(46);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -192,6 +194,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetAccountItemsSchema',
         'schemas.GetPartnersSchema',
         'schemas.CreatePartnerSchema',
+        'schemas.GetItemsSchema',
+        'schemas.GetItemSchema',
         'schemas.GetSectionsSchema',
         'schemas.GetTagsSchema',
         'schemas.GetTaxCodesSchema',
@@ -407,6 +411,8 @@ describe('Schema Structure Verification', () => {
       'GetAccountItemsSchema',
       'GetPartnersSchema',
       'CreatePartnerSchema',
+      'GetItemsSchema',
+      'GetItemSchema',
       'GetSectionsSchema',
       'GetTagsSchema',
       'GetTaxCodesSchema',
@@ -458,7 +464,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 45 schemas', async () => {
+  it('should export exactly 48 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -466,7 +472,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(46);
+    expect(schemaExports).toHaveLength(48);
   });
 
   it('should use Zod types in schema fields', async () => {
