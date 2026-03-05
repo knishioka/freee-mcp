@@ -9,6 +9,7 @@ import {
   CACHE_TTL_PARTNERS,
   CACHE_TTL_SECTIONS,
   CACHE_TTL_TAGS,
+  CACHE_TTL_ITEMS,
   CACHE_TTL_TAX_CODES,
   PAGINATION_LIMIT,
   MAX_AUTO_PAGINATION_RECORDS,
@@ -21,6 +22,7 @@ import {
   FreeeDealPayment,
   FreeeDealUpdatePayload,
   FreeeAccountItem,
+  FreeeItem,
   FreeePartner,
   FreeeSection,
   FreeeTag,
@@ -583,6 +585,35 @@ export class FreeeClient {
     );
     this.cache.invalidate(`${companyId}:partners`);
     return response.data.partner;
+  }
+
+  // Item methods
+  async getItems(
+    companyId: number,
+    params?: {
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<FreeeItem[]> {
+    const cacheKey = generateCacheKey(companyId, 'items', params);
+    const cached = this.cache.get<FreeeItem[]>(cacheKey);
+    if (cached) return cached;
+
+    const response = await this.api.get<{ items: FreeeItem[] }>('/items', {
+      params: { company_id: companyId, ...params },
+    });
+    this.cache.set(cacheKey, response.data.items, CACHE_TTL_ITEMS);
+    return response.data.items;
+  }
+
+  async getItem(companyId: number, itemId: number): Promise<FreeeItem> {
+    const response = await this.api.get<{ item: FreeeItem }>(
+      `/items/${itemId}`,
+      {
+        params: { company_id: companyId },
+      },
+    );
+    return response.data.item;
   }
 
   // Section methods
