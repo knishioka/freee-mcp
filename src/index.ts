@@ -245,6 +245,58 @@ registerTool(
 );
 
 registerTool(
+  'freee_auth_status',
+  {
+    description:
+      'Check authentication status for freee API tokens - Shows token validity, expiry time, and remaining minutes for one or all authenticated companies. Use to verify auth before making API calls.',
+    inputSchema: schemas.AuthStatusSchema,
+  },
+  async ({ companyId }: { companyId?: number }) => {
+    try {
+      const companyIds = companyId
+        ? [companyId]
+        : tokenManager.getAllCompanyIds();
+
+      const statuses = companyIds.map((id) => {
+        const token = tokenManager.getToken(id);
+        if (!token) {
+          return {
+            companyId: id,
+            authenticated: false,
+            message:
+              'Not authenticated. Please authenticate using freee_get_auth_url and freee_get_access_token.',
+          };
+        }
+
+        const expiryStatus = tokenManager.getTokenExpiryStatus(token);
+        const expiresAt = new Date(token.expires_at * 1000).toISOString();
+
+        return {
+          companyId: id,
+          authenticated: true,
+          status: expiryStatus.status,
+          expiresAt,
+          remainingMinutes: expiryStatus.remainingMinutes,
+        };
+      });
+
+      const result = companyId ? statuses[0] : { companies: statuses };
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_auth_status', error);
+    }
+  },
+);
+
+registerTool(
   'freee_clear_auth',
   {
     description:
