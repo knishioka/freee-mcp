@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 43 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(43);
+    it('should register exactly 44 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(44);
     });
 
     it('should register all expected tool names', () => {
@@ -99,6 +99,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_auth_url',
         'freee_get_access_token',
         'freee_set_company_token',
+        'freee_clear_auth',
         'freee_get_companies',
         'freee_get_company',
         'freee_get_deals',
@@ -166,7 +167,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(43);
+      expect(toolCalls.length).toBe(44);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -183,6 +184,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.AuthorizeSchema',
         'schemas.GetTokenSchema',
         'schemas.SetCompanyTokenSchema',
+        'schemas.ClearAuthSchema',
         'schemas.GetCompanySchema',
         'schemas.GetDealsSchema',
         'schemas.GetDealSchema',
@@ -394,6 +396,7 @@ describe('Schema Structure Verification', () => {
       'AuthorizeSchema',
       'GetTokenSchema',
       'SetCompanyTokenSchema',
+      'ClearAuthSchema',
       'GetCompaniesSchema',
       'GetCompanySchema',
       'GetDealsSchema',
@@ -463,7 +466,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(45);
+    expect(schemaExports).toHaveLength(46);
   });
 
   it('should use Zod types in schema fields', async () => {

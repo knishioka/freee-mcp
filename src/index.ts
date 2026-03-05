@@ -244,6 +244,46 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_clear_auth',
+  {
+    description:
+      'Clear stored authentication tokens. If companyId is specified, clears only that company. If omitted, clears all companies. Use this when you need to re-authenticate or resolve token issues.',
+    inputSchema: schemas.ClearAuthSchema,
+  },
+  async ({ companyId }) => {
+    try {
+      const allIds = tokenManager.getAllCompanyIds();
+
+      if (companyId !== undefined) {
+        await tokenManager.removeToken(companyId);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Authentication cleared for company ${companyId}.\n\nTo re-authenticate:\n1. Call freee_get_auth_url to get the authorization URL\n2. Visit the URL and authorize the application\n3. Call freee_get_access_token with the authorization code`,
+            },
+          ],
+        };
+      }
+
+      for (const id of allIds) {
+        await tokenManager.removeToken(id);
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Authentication cleared for all companies${allIds.length > 0 ? ` (${allIds.join(', ')})` : ' (no tokens found)'}.\n\nTo re-authenticate:\n1. Call freee_get_auth_url to get the authorization URL\n2. Visit the URL and authorize the application\n3. Call freee_get_access_token with the authorization code`,
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_clear_auth', error);
+    }
+  },
+);
+
 // === Company tools ===
 
 registerTool(
