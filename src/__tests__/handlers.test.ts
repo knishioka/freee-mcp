@@ -45,6 +45,7 @@ describe('MCP Tool Handlers', () => {
       saveTokens: jest.fn(),
       setToken: jest.fn(),
       getToken: jest.fn(),
+      removeToken: jest.fn(),
       getAllCompanyIds: jest.fn(),
       isTokenExpired: jest.fn(),
       getTokenExpiryStatus: jest.fn(),
@@ -64,6 +65,7 @@ describe('MCP Tool Handlers', () => {
       const expectedSchemas = [
         'AuthorizeSchema',
         'GetTokenSchema',
+        'ClearAuthSchema',
         'GetCompaniesSchema',
         'GetCompanySchema',
         'GetDealsSchema',
