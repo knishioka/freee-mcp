@@ -13,7 +13,7 @@ import {
   PAGINATION_LIMIT,
   MAX_AUTO_PAGINATION_RECORDS,
 } from '../constants.js';
-import { TokenRefreshError } from '../errors.js';
+import { TokenRefreshError, formatFreeeApiError } from '../errors.js';
 import {
   FreeeTokenResponse,
   FreeeCompany,
@@ -38,7 +38,6 @@ import {
   FreeeJournalDownloadRequest,
   FreeeJournalDownloadStatus,
   FreeeJournalEntry,
-  FreeeApiError,
   DealAggregation,
   PartnerAggregation,
   MonthlyAggregation,
@@ -346,10 +345,14 @@ export class FreeeClient {
       );
     }
 
-    const apiError = error.response?.data as FreeeApiError | undefined;
-    const errorMessage =
-      apiError?.errors?.[0]?.messages?.join(', ') || error.message;
-    throw new Error(`freee API Error: ${errorMessage}`);
+    throw new Error(
+      formatFreeeApiError(
+        error.response?.status ?? 0,
+        error.response?.statusText ?? 'Unknown',
+        error.response?.data,
+        error.message,
+      ),
+    );
   }
 
   // Auth methods
