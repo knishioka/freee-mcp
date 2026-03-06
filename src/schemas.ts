@@ -501,6 +501,26 @@ export const GetTrialBalanceSchema = {
   endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
 };
 
+// General Ledger schema
+export const GetGeneralLedgerSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+  accountItemId: z
+    .number()
+    .optional()
+    .describe(
+      'Account item ID to filter by specific account (勘定科目ID). Recommended to reduce response size.',
+    ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      'When true, returns summary statistics (count and totals per account) without individual entries. Useful for quick overviews.',
+    ),
+};
+
 // Report schemas for financial statements
 export const GetProfitLossSchema = {
   companyId: companyIdField,

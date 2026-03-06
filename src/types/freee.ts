@@ -368,6 +368,38 @@ export interface FreeeJournalEntry {
   source_type?: string;
 }
 
+// General Ledger types
+export interface FreeeGeneralLedgerItem {
+  account_item_id: number;
+  account_item_name: string;
+  partners: FreeeGeneralLedgerPartner[];
+}
+
+export interface FreeeGeneralLedgerPartner {
+  partner_id: number | null;
+  partner_name: string;
+  entries: FreeeGeneralLedgerEntry[];
+}
+
+export interface FreeeGeneralLedgerEntry {
+  date: string;
+  entry_side: 'debit' | 'credit';
+  amount: number;
+  balance: number;
+  description?: string;
+  partner_id?: number;
+  partner_name?: string;
+  txn_number?: string;
+}
+
+export interface FreeeGeneralLedger {
+  company_id: number;
+  fiscal_year: number;
+  start_month: number;
+  end_month: number;
+  general_ledger_items: FreeeGeneralLedgerItem[];
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{

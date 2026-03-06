@@ -37,6 +37,7 @@ describe('MCP Tool Handlers', () => {
       getProfitLoss: jest.fn(),
       getBalanceSheet: jest.fn(),
       getTrialBalance: jest.fn(),
+      getGeneralLedger: jest.fn(),
     };
 
     // Setup mock token manager
@@ -84,6 +85,7 @@ describe('MCP Tool Handlers', () => {
         'GetProfitLossSchema',
         'GetBalanceSheetSchema',
         'GetTrialBalanceSchema',
+        'GetGeneralLedgerSchema',
         'AuthStatusSchema',
       ];
 
@@ -242,6 +244,91 @@ describe('MCP Tool Handlers', () => {
         companyId,
         params,
       );
+    });
+
+    it('should fetch general ledger', async () => {
+      const companyId = 123;
+      const params = {
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+      };
+      const mockLedger = {
+        company_id: companyId,
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+        general_ledger_items: [
+          {
+            account_item_id: 1,
+            account_item_name: '売上高',
+            partners: [
+              {
+                partner_id: null,
+                partner_name: '',
+                entries: [
+                  {
+                    date: '2024-01-15',
+                    entry_side: 'credit',
+                    amount: 100000,
+                    balance: 100000,
+                    description: 'テスト売上',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      mockClient.getGeneralLedger.mockResolvedValue(mockLedger);
+
+      const result = await mockClient.getGeneralLedger(companyId, params);
+
+      expect(result).toEqual(mockLedger);
+      expect(mockClient.getGeneralLedger).toHaveBeenCalledWith(
+        companyId,
+        params,
+      );
+    });
+
+    it('should fetch general ledger with account_item_id filter', async () => {
+      const companyId = 123;
+      const params = {
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+        account_item_id: 42,
+      };
+      const mockLedger = {
+        company_id: companyId,
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+        general_ledger_items: [],
+      };
+
+      mockClient.getGeneralLedger.mockResolvedValue(mockLedger);
+
+      const result = await mockClient.getGeneralLedger(companyId, params);
+
+      expect(result).toEqual(mockLedger);
+      expect(mockClient.getGeneralLedger).toHaveBeenCalledWith(
+        companyId,
+        params,
+      );
+    });
+
+    it('should handle general ledger API errors', async () => {
+      mockClient.getGeneralLedger.mockRejectedValue(new Error('API Error'));
+
+      await expect(
+        mockClient.getGeneralLedger(123, {
+          fiscal_year: 2024,
+          start_month: 1,
+          end_month: 12,
+        }),
+      ).rejects.toThrow('API Error');
     });
 
     it('should fetch trial balance report', async () => {

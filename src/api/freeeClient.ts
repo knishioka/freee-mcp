@@ -58,6 +58,7 @@ import {
   MonthlyClosingCheckItem,
   MonthlyClosingCheckResult,
   FreeeErrorResponse,
+  FreeeGeneralLedger,
   FreeeMultiyearTrialBalance,
   MultiyearComparisonResult,
   MultiyearComparisonItem,
@@ -762,6 +763,24 @@ export class FreeeClient {
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
+  }
+
+  // General Ledger methods
+  async getGeneralLedger(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month: number;
+      end_month: number;
+      account_item_id?: number;
+    },
+  ): Promise<FreeeGeneralLedger> {
+    const response = await this.api.get<{
+      general_ledgers: FreeeGeneralLedger;
+    }>('/reports/general_ledgers', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.general_ledgers;
   }
 
   // Profit & Loss Statement methods
