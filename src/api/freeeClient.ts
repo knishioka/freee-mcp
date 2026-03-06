@@ -74,6 +74,9 @@ import {
   SegmentGap,
   AccountTagDeviation,
   TaggingConsistencyResult,
+  AccountItemInconsistency,
+  TaxCategoryInconsistency,
+  JournalConsistencyResult,
   FreeeDealDetail,
   FreeeFixedAsset,
   ArAgingBucket,
@@ -3097,6 +3100,195 @@ export class FreeeClient {
       tag_inconsistencies: tagInconsistencies,
       segment_gaps: segmentGaps,
       account_deviations: accountDeviations,
+      consistent_partner_count: consistentPartnerCount,
+      summary: summaryParts.join(', '),
+    };
+  }
+
+  async checkJournalConsistency(
+    companyId: number,
+    params: {
+      start_date?: string;
+      end_date?: string;
+      max_records?: number;
+    },
+  ): Promise<JournalConsistencyResult> {
+    const fetchParams: Record<string, unknown> = { company_id: companyId };
+    if (params.start_date) fetchParams.start_issue_date = params.start_date;
+    if (params.end_date) fetchParams.end_issue_date = params.end_date;
+
+    const maxRecords = params.max_records ?? MAX_AUTO_PAGINATION_RECORDS;
+
+    const [deals, accountItems] = await Promise.all([
+      this.fetchAllPages<FreeeDeal>('/deals', fetchParams, 'deals', maxRecords),
+      this.getAccountItems(companyId),
+    ]);
+
+    // Build account item name lookup
+    const accountItemNameMap = new Map<number, string>();
+    for (const item of accountItems) {
+      accountItemNameMap.set(item.id, item.name);
+    }
+
+    // --- Single-pass: Partner × Account Item cross-tabulation + Tax category detection ---
+    // Partition by deal.type to avoid false positives when a partner is both customer and vendor
+    const partnerAccountMap = new Map<
+      string,
+      {
+        partner_id: number;
+        name: string;
+        deal_type: string;
+        accounts: Map<number, { count: number; total_amount: number }>;
+      }
+    >();
+
+    const partnerAccountTaxMap = new Map<
+      string,
+      {
+        partner_id: number;
+        partner_name: string;
+        account_item_id: number;
+        taxCounts: Map<number, number>;
+      }
+    >();
+
+    for (const deal of deals) {
+      if (!deal.partner_id) continue;
+
+      // Use partner_id + deal.type as key to separate income/expense
+      const partnerKey = `${deal.partner_id}:${deal.type}`;
+      let entry = partnerAccountMap.get(partnerKey);
+      if (!entry) {
+        entry = {
+          partner_id: deal.partner_id,
+          name: deal.partner_name ?? `ID:${deal.partner_id}`,
+          deal_type: deal.type,
+          accounts: new Map(),
+        };
+        partnerAccountMap.set(partnerKey, entry);
+      }
+
+      for (const d of deal.details) {
+        // Account item aggregation
+        let acctEntry = entry.accounts.get(d.account_item_id);
+        if (!acctEntry) {
+          acctEntry = { count: 0, total_amount: 0 };
+          entry.accounts.set(d.account_item_id, acctEntry);
+        }
+        acctEntry.count++;
+        acctEntry.total_amount += d.amount;
+
+        // Tax category aggregation
+        const taxKey = `${deal.partner_id}:${d.account_item_id}`;
+        let taxEntry = partnerAccountTaxMap.get(taxKey);
+        if (!taxEntry) {
+          taxEntry = {
+            partner_id: deal.partner_id,
+            partner_name: deal.partner_name ?? `ID:${deal.partner_id}`,
+            account_item_id: d.account_item_id,
+            taxCounts: new Map(),
+          };
+          partnerAccountTaxMap.set(taxKey, taxEntry);
+        }
+        taxEntry.taxCounts.set(
+          d.tax_code,
+          (taxEntry.taxCounts.get(d.tax_code) ?? 0) + 1,
+        );
+      }
+    }
+
+    const accountItemInconsistencies: AccountItemInconsistency[] = [];
+    let consistentPartnerCount = 0;
+
+    for (const [, { partner_id, name, accounts }] of partnerAccountMap) {
+      if (accounts.size <= 1) {
+        consistentPartnerCount++;
+        continue;
+      }
+
+      // Multiple account items for the same partner+type → inconsistency
+      const sortedAccounts = Array.from(accounts.entries())
+        .map(([accountItemId, { count, total_amount }]) => ({
+          account_item_id: accountItemId,
+          account_item_name:
+            accountItemNameMap.get(accountItemId) ?? `ID:${accountItemId}`,
+          count,
+          total_amount,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      const primaryName = sortedAccounts[0].account_item_name;
+      const recommendation = `「${primaryName}」への統一を推奨`;
+
+      accountItemInconsistencies.push({
+        partner_id,
+        partner_name: name,
+        account_items: sortedAccounts,
+        recommendation,
+      });
+    }
+
+    // Sort by number of different account items (most dispersed first)
+    accountItemInconsistencies.sort(
+      (a, b) => b.account_items.length - a.account_items.length,
+    );
+
+    const taxCategoryInconsistencies: TaxCategoryInconsistency[] = [];
+
+    for (const entry of partnerAccountTaxMap.values()) {
+      if (entry.taxCounts.size <= 1) continue;
+
+      const taxPatterns = Array.from(entry.taxCounts.entries())
+        .map(([tax_code, count]) => ({ tax_code, count }))
+        .sort((a, b) => b.count - a.count);
+
+      taxCategoryInconsistencies.push({
+        partner_id: entry.partner_id,
+        partner_name: entry.partner_name,
+        account_item_id: entry.account_item_id,
+        account_item_name:
+          accountItemNameMap.get(entry.account_item_id) ??
+          `ID:${entry.account_item_id}`,
+        tax_patterns: taxPatterns,
+      });
+    }
+
+    // Sort by number of different tax patterns
+    taxCategoryInconsistencies.sort(
+      (a, b) => b.tax_patterns.length - a.tax_patterns.length,
+    );
+
+    // --- Build period label ---
+    const periodParts: string[] = [];
+    if (params.start_date) periodParts.push(params.start_date);
+    if (params.end_date) periodParts.push(params.end_date);
+    const period = periodParts.length > 0 ? periodParts.join(' ~ ') : 'all';
+
+    // --- Summary ---
+    const summaryParts: string[] = [];
+    summaryParts.push(`${deals.length}件の取引を分析`);
+    if (accountItemInconsistencies.length > 0) {
+      summaryParts.push(
+        `勘定科目の揺れ: ${accountItemInconsistencies.length}社`,
+      );
+    }
+    if (taxCategoryInconsistencies.length > 0) {
+      summaryParts.push(
+        `消費税区分の揺れ: ${taxCategoryInconsistencies.length}件`,
+      );
+    }
+    if (
+      accountItemInconsistencies.length === 0 &&
+      taxCategoryInconsistencies.length === 0
+    ) {
+      summaryParts.push('問題なし');
+    }
+
+    return {
+      period,
+      total_deals: deals.length,
+      account_item_inconsistencies: accountItemInconsistencies,
+      tax_category_inconsistencies: taxCategoryInconsistencies,
       consistent_partner_count: consistentPartnerCount,
       summary: summaryParts.join(', '),
     };

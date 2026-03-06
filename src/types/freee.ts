@@ -470,6 +470,40 @@ export interface TaggingConsistencyResult {
   summary: string;
 }
 
+// Journal consistency check types
+
+export interface AccountItemInconsistency {
+  partner_id: number;
+  partner_name: string;
+  account_items: Array<{
+    account_item_id: number;
+    account_item_name: string;
+    count: number;
+    total_amount: number;
+  }>;
+  recommendation: string;
+}
+
+export interface TaxCategoryInconsistency {
+  partner_id: number;
+  partner_name: string;
+  account_item_id: number;
+  account_item_name: string;
+  tax_patterns: Array<{
+    tax_code: number;
+    count: number;
+  }>;
+}
+
+export interface JournalConsistencyResult {
+  period: string;
+  total_deals: number;
+  account_item_inconsistencies: AccountItemInconsistency[];
+  tax_category_inconsistencies: TaxCategoryInconsistency[];
+  consistent_partner_count: number;
+  summary: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{

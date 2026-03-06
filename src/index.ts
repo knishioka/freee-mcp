@@ -2197,6 +2197,37 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_journal_consistency_check',
+  {
+    description:
+      'Check journal entry consistency across deals (会計方針一貫性チェック) - Detects: (1) partners using multiple account items (e.g. same vendor booked to both "通信費" and "ソフトウェア使用料"), (2) tax category inconsistencies within the same partner+account combination (e.g. mix of "課税" and "不課税"). Returns severity-sorted findings with recommendations for unification.',
+    inputSchema: schemas.JournalConsistencyCheckSchema,
+  },
+  async ({ companyId, startDate, endDate, maxRecords }) => {
+    try {
+      const result = await freeeClient.checkJournalConsistency(
+        getCompanyId(companyId),
+        {
+          start_date: startDate,
+          end_date: endDate,
+          max_records: maxRecords,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_journal_consistency_check', error);
+    }
+  },
+);
+
 // === Advisory tools ===
 
 registerTool(
