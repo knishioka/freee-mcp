@@ -85,6 +85,9 @@ import {
   ArAgingBucket,
   ArAgingPartner,
   ArAgingResult,
+  PartnerAnalysisResult,
+  PartnerAnalysisItem,
+  ConcentrationRisk,
   CostAnalysisResult,
   CostAnalysisAnomaly,
   CostComposition,
@@ -3518,6 +3521,166 @@ export class FreeeClient {
       tax_category_inconsistencies: taxCategoryInconsistencies,
       consistent_partner_count: consistentPartnerCount,
       summary: summaryParts.join(', '),
+    };
+  }
+
+  // Partner Analysis
+  async analyzePartners(
+    companyId: number,
+    params: {
+      start_date?: string;
+      end_date?: string;
+      type?: 'income' | 'expense' | 'all';
+      top_n?: number;
+      max_records?: number;
+    },
+  ): Promise<PartnerAnalysisResult> {
+    const fetchParams: Record<string, unknown> = { company_id: companyId };
+    if (params.start_date) fetchParams.start_issue_date = params.start_date;
+    if (params.end_date) fetchParams.end_issue_date = params.end_date;
+
+    const maxRecords = params.max_records ?? MAX_AUTO_PAGINATION_RECORDS;
+    const topN = params.top_n ?? 10;
+    const analysisType = params.type ?? 'all';
+
+    const deals = await this.fetchAllPages<FreeeDeal>(
+      '/deals',
+      fetchParams,
+      'deals',
+      maxRecords,
+    );
+
+    const truncated = deals.length >= maxRecords;
+
+    // Aggregate by partner and type
+    const partnerMap = new Map<
+      number,
+      {
+        name: string;
+        income: number;
+        expense: number;
+        income_count: number;
+        expense_count: number;
+        monthly: Map<string, { income: number; expense: number }>;
+      }
+    >();
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    for (const deal of deals) {
+      if (!deal.partner_id) continue;
+
+      let entry = partnerMap.get(deal.partner_id);
+      if (!entry) {
+        entry = {
+          name: deal.partner_name ?? `ID:${deal.partner_id}`,
+          income: 0,
+          expense: 0,
+          income_count: 0,
+          expense_count: 0,
+          monthly: new Map(),
+        };
+        partnerMap.set(deal.partner_id, entry);
+      }
+
+      const month = deal.issue_date.substring(0, 7); // YYYY-MM
+      let monthEntry = entry.monthly.get(month);
+      if (!monthEntry) {
+        monthEntry = { income: 0, expense: 0 };
+        entry.monthly.set(month, monthEntry);
+      }
+
+      if (deal.type === 'income') {
+        entry.income += deal.amount;
+        entry.income_count++;
+        monthEntry.income += deal.amount;
+        totalIncome += deal.amount;
+      } else if (deal.type === 'expense') {
+        entry.expense += deal.amount;
+        entry.expense_count++;
+        monthEntry.expense += deal.amount;
+        totalExpense += deal.amount;
+      }
+    }
+
+    // Build sorted partner list (full list for concentration, sliced for output)
+    const CONCENTRATION_HIGH_THRESHOLD = 70;
+    const CONCENTRATION_MEDIUM_THRESHOLD = 50;
+
+    const buildSortedPartners = (
+      sortKey: 'income' | 'expense',
+      total: number,
+    ): PartnerAnalysisItem[] => {
+      return Array.from(partnerMap.entries())
+        .filter(([, v]) => v[sortKey] > 0)
+        .sort((a, b) => b[1][sortKey] - a[1][sortKey])
+        .map(([partnerId, v], idx) => ({
+          rank: idx + 1,
+          partner_id: partnerId,
+          partner_name: v.name,
+          amount: v[sortKey],
+          share: total > 0 ? Math.round((v[sortKey] / total) * 10000) / 100 : 0,
+          count: sortKey === 'income' ? v.income_count : v.expense_count,
+          monthly_breakdown: Array.from(v.monthly.entries())
+            .filter(([, m]) => m[sortKey] > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, m]) => ({ month, amount: m[sortKey] })),
+        }));
+    };
+
+    const computeConcentration = (
+      items: PartnerAnalysisItem[],
+      total: number,
+    ): ConcentrationRisk => {
+      const top3 =
+        total > 0
+          ? items.slice(0, 3).reduce((sum, i) => sum + i.amount, 0) / total
+          : 0;
+      const top5 =
+        total > 0
+          ? items.slice(0, 5).reduce((sum, i) => sum + i.amount, 0) / total
+          : 0;
+
+      const top3Pct = Math.round(top3 * 10000) / 100;
+      const top5Pct = Math.round(top5 * 10000) / 100;
+
+      let level: 'low' | 'medium' | 'high' = 'low';
+      if (top3Pct >= CONCENTRATION_HIGH_THRESHOLD) level = 'high';
+      else if (top3Pct >= CONCENTRATION_MEDIUM_THRESHOLD) level = 'medium';
+
+      return { top3_share: top3Pct, top5_share: top5Pct, level };
+    };
+
+    // Build full sorted lists for accurate concentration, then slice for output
+    const allIncomePartners = buildSortedPartners('income', totalIncome);
+    const allExpensePartners = buildSortedPartners('expense', totalExpense);
+
+    const incomePartners = allIncomePartners.slice(0, topN);
+    const expensePartners = allExpensePartners.slice(0, topN);
+
+    const dateRange =
+      params.start_date || params.end_date
+        ? `${params.start_date ?? '...'} ~ ${params.end_date ?? '...'}`
+        : undefined;
+
+    return {
+      analysis_type: analysisType,
+      date_range: dateRange,
+      total_income: totalIncome,
+      total_expense: totalExpense,
+      income_partners: analysisType === 'expense' ? [] : incomePartners,
+      expense_partners: analysisType === 'income' ? [] : expensePartners,
+      income_concentration:
+        analysisType === 'expense'
+          ? { top3_share: 0, top5_share: 0, level: 'low' }
+          : computeConcentration(allIncomePartners, totalIncome),
+      expense_concentration:
+        analysisType === 'income'
+          ? { top3_share: 0, top5_share: 0, level: 'low' }
+          : computeConcentration(allExpensePartners, totalExpense),
+      truncated,
+      ...(truncated ? { max_records_cap: maxRecords } : {}),
     };
   }
 

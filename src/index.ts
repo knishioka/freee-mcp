@@ -2450,6 +2450,41 @@ registerTool(
   },
 );
 
+// === Partner Analysis ===
+
+registerTool(
+  'freee_partner_analysis',
+  {
+    description:
+      'Analyze revenue/expense by partner with concentration risk (取引先別収益分析) - Aggregates deals by partner to show: (1) top N partners by income/expense, (2) each partner\'s share percentage, (3) concentration risk (top 3/5 share), (4) monthly breakdown per partner. Use for customer profitability analysis and revenue concentration risk assessment.',
+    inputSchema: schemas.PartnerAnalysisSchema,
+  },
+  async ({ companyId, startDate, endDate, type, topN, maxRecords }) => {
+    try {
+      const result = await freeeClient.analyzePartners(
+        getCompanyId(companyId),
+        {
+          start_date: startDate,
+          end_date: endDate,
+          type,
+          top_n: topN,
+          max_records: maxRecords,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_partner_analysis', error);
+    }
+  },
+);
+
 registerTool(
   'freee_ar_aging',
   {

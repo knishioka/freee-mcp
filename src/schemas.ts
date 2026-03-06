@@ -853,6 +853,33 @@ export const JournalConsistencyCheckSchema = {
     ),
 };
 
+// Partner Analysis schema
+export const PartnerAnalysisSchema = {
+  companyId: companyIdField,
+  startDate: optionalDateField('Start date for analysis period (YYYY-MM-DD)'),
+  endDate: optionalDateField('End date for analysis period (YYYY-MM-DD)'),
+  type: z
+    .enum(['income', 'expense', 'all'])
+    .optional()
+    .describe(
+      'Analysis type: \'income\' for revenue, \'expense\' for costs, \'all\' for both (default: \'all\')',
+    ),
+  topN: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Number of top partners to return (1-100, default 10)'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(3000)
+    .optional()
+    .describe(
+      'Maximum deals to fetch (1-3000, default 1000). Increase for comprehensive analysis.',
+    ),
+};
+
 // AR Aging schema
 export const ArAgingSchema = {
   companyId: companyIdField,
