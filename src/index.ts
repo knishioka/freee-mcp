@@ -2182,6 +2182,7 @@ registerTool(
           amount,
         },
       );
+
       return {
         content: [
           {
@@ -2192,6 +2193,195 @@ registerTool(
       };
     } catch (error) {
       handleToolError('freee_account_item_context', error);
+    }
+  },
+);
+
+// === Advisory tools ===
+
+registerTool(
+  'freee_accounting_policy_context',
+  {
+    description:
+      'Get accounting policy context for decision support (会計方針ガイダンスコンテキスト) - Returns similar past journal patterns, fixed asset capitalization patterns, and relevant account items with tax codes to help determine proper accounting treatment. Use when the user asks about asset vs expense classification, depreciation methods, deferred expense treatment, etc.',
+    inputSchema: schemas.AccountingPolicyContextSchema,
+  },
+  async ({ companyId, situation, amount, partnerName }) => {
+    try {
+      const resolvedCompanyId = getCompanyId(companyId);
+
+      // Determine current fiscal year
+      const now = new Date();
+      const fiscalYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      // Fetch account items, fixed assets, and tax codes in parallel
+      const [accountItems, fixedAssets, taxCodes] = await Promise.all([
+        freeeClient.getAccountItems(resolvedCompanyId),
+        freeeClient.getFixedAssets(resolvedCompanyId).catch((err) => {
+          logServer('Failed to fetch fixed assets: %O', err);
+          return [];
+        }),
+        freeeClient.getTaxCodes(resolvedCompanyId),
+      ]);
+
+      // Build tax code lookup
+      const taxCodeMap = new Map(taxCodes.map((t) => [t.code, t]));
+
+      // Find relevant accounts by matching situation keywords against account names
+      const situationLower = situation.toLowerCase();
+      const relevantAccounts = accountItems
+        .filter((item) => {
+          if (!item.available) return false;
+          const nameLower = item.name.toLowerCase();
+          // Check if any word in the situation matches the account name
+          const words = situationLower
+            .split(/[\s、。,./]+/)
+            .filter((w: string) => w.length >= 2);
+          return words.some((word: string) => nameLower.includes(word));
+        })
+        .slice(0, 20)
+        .map((item) => {
+          const tax =
+            item.tax_code != null ? taxCodeMap.get(item.tax_code) : undefined;
+          return {
+            id: item.id,
+            name: item.name,
+            category: item.account_category,
+            tax_code: item.tax_code,
+            tax_name: tax?.name_ja,
+          };
+        });
+
+      // If no keyword matches found, include common asset/expense categories as fallback
+      if (relevantAccounts.length === 0) {
+        const fallbackCategories = ['固定資産', '流動資産', '経費', '費用'];
+        const fallbackAccounts = accountItems
+          .filter(
+            (item) =>
+              item.available &&
+              fallbackCategories.some((cat) =>
+                item.account_category.includes(cat),
+              ),
+          )
+          .slice(0, 15)
+          .map((item) => {
+            const tax =
+              item.tax_code != null ? taxCodeMap.get(item.tax_code) : undefined;
+            return {
+              id: item.id,
+              name: item.name,
+              category: item.account_category,
+              tax_code: item.tax_code,
+              tax_name: tax?.name_ja,
+            };
+          });
+        relevantAccounts.push(...fallbackAccounts);
+      }
+
+      // Fetch general ledger entries for relevant accounts (limited to reduce API calls)
+      const accountIdsToSearch = relevantAccounts.slice(0, 5).map((a) => a.id);
+      const ledgerPromises = accountIdsToSearch.map((accountItemId) =>
+        freeeClient
+          .getGeneralLedger(resolvedCompanyId, {
+            fiscal_year: fiscalYear,
+            start_month: 1,
+            end_month: currentMonth,
+            account_item_id: accountItemId,
+          })
+          .catch((err) => {
+            logServer(
+              'Failed to fetch general ledger for account item %d: %O',
+              accountItemId,
+              err,
+            );
+            return null;
+          }),
+      );
+      const ledgerResults = await Promise.all(ledgerPromises);
+
+      // Extract similar journal entries
+      const similarJournals: Array<{
+        date: string;
+        description?: string;
+        account: string;
+        amount: number;
+        entry_side: 'debit' | 'credit';
+      }> = [];
+
+      for (const ledger of ledgerResults) {
+        if (!ledger) continue;
+        for (const item of ledger.general_ledger_items) {
+          for (const partner of item.partners) {
+            // Filter by partner name if specified
+            if (
+              partnerName &&
+              partner.partner_name &&
+              !partner.partner_name.includes(partnerName)
+            ) {
+              continue;
+            }
+            for (const entry of partner.entries) {
+              // Filter by amount range if specified
+              if (amount != null) {
+                const ratio = entry.amount / amount;
+                if (ratio < 0.1 || ratio > 10) continue;
+              }
+              similarJournals.push({
+                date: entry.date,
+                description: entry.description,
+                account: item.account_item_name,
+                amount: entry.amount,
+                entry_side: entry.entry_side,
+              });
+            }
+          }
+        }
+      }
+
+      // Sort by date descending and limit
+      similarJournals.sort((a, b) => b.date.localeCompare(a.date));
+      const limitedJournals = similarJournals.slice(0, 20);
+
+      // Build fixed asset patterns
+      const sortedAssets = [...fixedAssets].sort(
+        (a, b) => a.acquisition_cost - b.acquisition_cost,
+      );
+      const minCapitalizationAmount =
+        sortedAssets.length > 0 ? sortedAssets[0].acquisition_cost : null;
+      const recentAssets = [...fixedAssets]
+        .sort((a, b) =>
+          (b.acquisition_date ?? '').localeCompare(a.acquisition_date ?? ''),
+        )
+        .slice(0, 10)
+        .map((asset) => ({
+          name: asset.name,
+          amount: asset.acquisition_cost,
+          depreciation_method: asset.depreciation_method,
+        }));
+
+      const result = {
+        situation,
+        ...(amount != null ? { amount } : {}),
+        ...(partnerName ? { partner_name: partnerName } : {}),
+        similar_journals: limitedJournals,
+        fixed_asset_patterns: {
+          min_capitalization_amount: minCapitalizationAmount,
+          recent_assets: recentAssets,
+        },
+        relevant_accounts: relevantAccounts,
+      };
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_accounting_policy_context', error);
     }
   },
 );

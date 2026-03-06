@@ -941,3 +941,48 @@ export interface ItemSuggestionResult {
   all_items: ItemSuggestionAllItem[];
   partner_history_summary: string;
 }
+
+// Fixed asset types
+export interface FreeeFixedAsset {
+  id: number;
+  company_id: number;
+  name: string;
+  acquisition_cost: number;
+  acquisition_date?: string;
+  depreciation_method?: string;
+  life_years?: number;
+  account_item_id?: number;
+}
+
+// Accounting policy context result types
+export interface AccountingPolicyContextResult {
+  similar_journals: SimilarJournalEntry[];
+  fixed_asset_patterns: FixedAssetPatterns;
+  relevant_accounts: RelevantAccount[];
+}
+
+export interface SimilarJournalEntry {
+  date: string;
+  description?: string;
+  account: string;
+  amount: number;
+  entry_side: 'debit' | 'credit';
+}
+
+export interface FixedAssetPatterns {
+  min_capitalization_amount: number | null;
+  recent_assets: RecentAsset[];
+}
+
+export interface RecentAsset {
+  name: string;
+  amount: number;
+  depreciation_method?: string;
+}
+
+export interface RelevantAccount {
+  id: number;
+  name: string;
+  category: string;
+  tax_code?: number;
+}
