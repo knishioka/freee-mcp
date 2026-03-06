@@ -2443,7 +2443,7 @@ export class FreeeClient {
     // Aggregate item usage from deal details
     const itemUsage = new Map<
       number,
-      { count: number; totalAmount: number; lastTaxCode: number }
+      { count: number; totalAmount: number; taxCodeFreq: Map<number, number> }
     >();
 
     for (const deal of deals) {
@@ -2452,11 +2452,14 @@ export class FreeeClient {
           const existing = itemUsage.get(detail.item_id) || {
             count: 0,
             totalAmount: 0,
-            lastTaxCode: detail.tax_code,
+            taxCodeFreq: new Map<number, number>(),
           };
           existing.count++;
           existing.totalAmount += detail.amount;
-          existing.lastTaxCode = detail.tax_code;
+          existing.taxCodeFreq.set(
+            detail.tax_code,
+            (existing.taxCodeFreq.get(detail.tax_code) || 0) + 1,
+          );
           itemUsage.set(detail.item_id, existing);
         }
       }
@@ -2466,24 +2469,25 @@ export class FreeeClient {
     let pastItems: ItemSuggestionPastItem[] = Array.from(itemUsage.entries())
       .map(([itemId, usage]) => {
         const item = itemMap.get(itemId);
+        // Use the most frequently used tax code
+        let mostFreqTaxCode = 0;
+        let maxFreq = 0;
+        for (const [code, freq] of usage.taxCodeFreq) {
+          if (freq > maxFreq) {
+            maxFreq = freq;
+            mostFreqTaxCode = code;
+          }
+        }
         return {
           id: itemId,
           name: item?.name ?? `Item ${itemId}`,
           unit_price:
             usage.count > 0 ? Math.round(usage.totalAmount / usage.count) : 0,
-          tax_code: usage.lastTaxCode,
+          tax_code: mostFreqTaxCode,
           used_count: usage.count,
         };
       })
       .sort((a, b) => b.used_count - a.used_count);
-
-    // Filter by category if provided
-    if (params.category) {
-      const cat = params.category.toLowerCase();
-      pastItems = pastItems.filter((item) =>
-        item.name.toLowerCase().includes(cat),
-      );
-    }
 
     // Build all_items list
     let allItemsList: ItemSuggestionAllItem[] = allItems
@@ -2494,11 +2498,13 @@ export class FreeeClient {
         ...(item.code ? { code: item.code } : {}),
       }));
 
+    // Filter by category if provided
     if (params.category) {
       const cat = params.category.toLowerCase();
-      allItemsList = allItemsList.filter((item) =>
-        item.name.toLowerCase().includes(cat),
-      );
+      const categoryFilter = (item: { name: string }) =>
+        item.name.toLowerCase().includes(cat);
+      pastItems = pastItems.filter(categoryFilter);
+      allItemsList = allItemsList.filter(categoryFilter);
     }
 
     // Build summary
