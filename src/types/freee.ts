@@ -21,7 +21,7 @@ export interface FreeeDeal {
   issue_date: string;
   due_date?: string;
   amount: number;
-  type: "income" | "expense";
+  type: 'income' | 'expense';
   partner_id?: number;
   partner_name?: string;
   ref_number?: string;
@@ -43,15 +43,15 @@ export interface FreeeDealDetail {
 export interface FreeeDealPayment {
   id: number;
   date: string;
-  from_walletable_type: "bank_account" | "credit_card" | "wallet";
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   from_walletable_id: number;
   amount: number;
 }
 
 export interface FreeeDealUpdatePayload {
   issue_date?: string;
-  type?: "income" | "expense";
-  details?: Array<Omit<FreeeDealDetail, "id">>;
+  type?: 'income' | 'expense';
+  details?: Array<Omit<FreeeDealDetail, 'id'>>;
 }
 
 export interface FreeeAccountItem {
@@ -153,8 +153,8 @@ export interface FreeeInvoice {
   invoice_number: string;
   title?: string;
   total_amount: number;
-  invoice_status: "draft" | "issue" | "sent" | "settled";
-  payment_status?: "empty" | "unsettled" | "settled";
+  invoice_status: 'draft' | 'issue' | 'sent' | 'settled';
+  payment_status?: 'empty' | 'unsettled' | 'settled';
   invoice_lines: FreeeInvoiceLine[];
 }
 
@@ -193,7 +193,7 @@ export interface FreeeTrialBalance {
 export interface FreeeWalletable {
   id: number;
   name: string;
-  type: "bank_account" | "credit_card" | "wallet";
+  type: 'bank_account' | 'credit_card' | 'wallet';
   bank_id?: number;
   last_balance?: number;
   walletable_balance?: number;
@@ -201,7 +201,7 @@ export interface FreeeWalletable {
 
 export interface FreeeManualJournalDetail {
   id: number;
-  entry_side: "debit" | "credit";
+  entry_side: 'debit' | 'credit';
   account_item_id: number;
   amount: number;
   description?: string;
@@ -227,8 +227,8 @@ export interface FreeeWalletTransaction {
   amount: number;
   due_amount: number;
   balance?: number;
-  entry_side: "income" | "expense";
-  walletable_type: "bank_account" | "credit_card" | "wallet";
+  entry_side: 'income' | 'expense';
+  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
   description?: string;
   /** ステータス(1: 未対応, 2: 確認済み, 3: 登録済み, 4: 登録済み（古）, 5: 無視) */
@@ -247,9 +247,9 @@ export interface FreeeTransfer {
   date: string;
   amount: number;
   from_walletable_id: number;
-  from_walletable_type: "bank_account" | "credit_card" | "wallet";
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   to_walletable_id: number;
-  to_walletable_type: "bank_account" | "credit_card" | "wallet";
+  to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   description?: string;
 }
 
@@ -294,7 +294,7 @@ export interface FreeeExpenseApplication {
   issue_date: string;
   description?: string;
   total_amount: number;
-  status: "draft" | "in_progress" | "approved" | "rejected" | "feedback";
+  status: 'draft' | 'in_progress' | 'approved' | 'rejected' | 'feedback';
   section_id?: number;
   tag_ids?: number[];
   purchase_lines: FreeeExpenseApplicationPurchaseLine[];
@@ -313,23 +313,23 @@ export interface FreeeExpenseApplication {
 // Monthly closing check types
 
 export type MonthlyClosingCheckType =
-  | "unprocessed_transactions"
-  | "balance_verification"
-  | "temporary_accounts"
-  | "receivable_aging"
-  | "payable_aging"
-  | "unattached_receipts";
+  | 'unprocessed_transactions'
+  | 'balance_verification'
+  | 'temporary_accounts'
+  | 'receivable_aging'
+  | 'payable_aging'
+  | 'unattached_receipts';
 
 export interface MonthlyClosingCheckItem {
   name: string;
-  status: "ok" | "warning" | "error";
+  status: 'ok' | 'warning' | 'error';
   details: string;
   items?: unknown[];
 }
 
 export interface MonthlyClosingCheckResult {
   period: string;
-  overall_status: "ok" | "warning" | "error";
+  overall_status: 'ok' | 'warning' | 'error';
   checks: MonthlyClosingCheckItem[];
   summary: string;
 }
@@ -342,7 +342,7 @@ export interface FreeeReceiptUser {
 
 export interface FreeeReceipt {
   id: number;
-  status: "unconfirmed" | "confirmed" | "deleted";
+  status: 'unconfirmed' | 'confirmed' | 'deleted';
   description?: string;
   mime_type?: string;
   issue_date?: string;
@@ -360,8 +360,8 @@ export interface FreeeReceipt {
 export interface FreeeJournalDownloadRequest {
   id: number;
   company_id: number;
-  download_type: "generic" | "generic_v2" | "csv" | "pdf";
-  encoding?: "sjis" | "utf-8" | null;
+  download_type: 'generic' | 'generic_v2' | 'csv' | 'pdf';
+  encoding?: 'sjis' | 'utf-8' | null;
   start_date?: string;
   end_date?: string;
   visible_tags?: string[];
@@ -379,7 +379,7 @@ export interface FreeeJournalDownloadStatus {
   id: number;
   company_id: number;
   download_type: string;
-  status: "enqueued" | "working" | "uploaded" | "failed";
+  status: 'enqueued' | 'working' | 'uploaded' | 'failed';
   start_date: string;
   end_date: string;
   download_url?: string;
@@ -413,7 +413,7 @@ export interface FreeeGeneralLedgerPartner {
 
 export interface FreeeGeneralLedgerEntry {
   date: string;
-  entry_side: "debit" | "credit";
+  entry_side: 'debit' | 'credit';
   amount: number;
   balance: number;
   description?: string;
@@ -501,7 +501,7 @@ export interface FormattedDealDetail {
 export interface FormattedDeal {
   id: number;
   issue_date: string;
-  type: "income" | "expense";
+  type: 'income' | 'expense';
   amount: number;
   partner_name?: string;
   status: string;
@@ -580,13 +580,13 @@ export interface FormattedSegmentTag {
 export interface FormattedWalletable {
   id: number;
   name: string;
-  type: "bank_account" | "credit_card" | "wallet";
+  type: 'bank_account' | 'credit_card' | 'wallet';
   last_balance?: number;
   walletable_balance?: number;
 }
 
 export interface FormattedManualJournalDetail {
-  entry_side: "debit" | "credit";
+  entry_side: 'debit' | 'credit';
   account_item_id: number;
   amount: number;
   description?: string;
@@ -609,8 +609,8 @@ export interface FormattedWalletTransaction {
   amount: number;
   due_amount: number;
   balance?: number;
-  entry_side: "income" | "expense";
-  walletable_type: "bank_account" | "credit_card" | "wallet";
+  entry_side: 'income' | 'expense';
+  walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   walletable_id: number;
   description?: string;
 }
@@ -689,9 +689,9 @@ export interface FormattedTransfer {
   date: string;
   amount: number;
   from_walletable_id: number;
-  from_walletable_type: "bank_account" | "credit_card" | "wallet";
+  from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   to_walletable_id: number;
-  to_walletable_type: "bank_account" | "credit_card" | "wallet";
+  to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
   description?: string;
 }
 
@@ -791,7 +791,7 @@ export interface FreeeMultiyearTrialBalance {
 }
 
 export interface MultiyearComparisonResult {
-  report_type: "pl" | "bs";
+  report_type: 'pl' | 'bs';
   years: number;
   fiscal_year: number;
   start_month?: number;
@@ -820,11 +820,11 @@ export interface PeriodChange {
 export interface PeriodHighlight {
   item: string;
   change: string;
-  significance: "high" | "medium" | "low";
+  significance: 'high' | 'medium' | 'low';
 }
 
 export interface PeriodComparisonResult {
-  report_type: "profit_loss" | "balance_sheet";
+  report_type: 'profit_loss' | 'balance_sheet';
   period1: {
     fiscal_year: number;
     start_month: number;
@@ -853,12 +853,12 @@ export interface MonthlyTrendsSummary {
   avg: number;
   max: { month: number; value: number };
   min: { month: number; value: number };
-  trend: "increasing" | "decreasing" | "stable" | "fluctuating";
+  trend: 'increasing' | 'decreasing' | 'stable' | 'fluctuating';
 }
 
 export interface MonthlyTrendsResult {
   fiscal_year: number;
-  report_type: "profit_loss" | "balance_sheet";
+  report_type: 'profit_loss' | 'balance_sheet';
   months: MonthlyMetrics[];
   summary: MonthlyTrendsSummary;
 }
@@ -900,7 +900,7 @@ export interface AccountItemContextResult {
 
 export interface CashAccount {
   name: string;
-  type: "bank_account" | "credit_card" | "wallet";
+  type: 'bank_account' | 'credit_card' | 'wallet';
   balance: number;
 }
 
@@ -966,7 +966,7 @@ export interface SimilarJournalEntry {
   description?: string;
   account: string;
   amount: number;
-  entry_side: "debit" | "credit";
+  entry_side: 'debit' | 'credit';
 }
 
 export interface FixedAssetPatterns {

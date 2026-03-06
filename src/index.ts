@@ -2104,7 +2104,6 @@ registerTool(
   },
 );
 
-<<<<<<< HEAD
 registerTool(
   'freee_master_context',
   {
@@ -2219,7 +2218,10 @@ registerTool(
       // Fetch account items, fixed assets, and tax codes in parallel
       const [accountItems, fixedAssets, taxCodes] = await Promise.all([
         freeeClient.getAccountItems(resolvedCompanyId),
-        freeeClient.getFixedAssets(resolvedCompanyId).catch(() => []),
+        freeeClient.getFixedAssets(resolvedCompanyId).catch((err) => {
+          logServer('Failed to fetch fixed assets: %O', err);
+          return [];
+        }),
         freeeClient.getTaxCodes(resolvedCompanyId),
       ]);
 
@@ -2236,9 +2238,7 @@ registerTool(
           const words = situationLower
             .split(/[\s、。,./]+/)
             .filter((w: string) => w.length >= 2);
-          return words.some(
-            (word: string) => nameLower.includes(word) || word.includes(nameLower),
-          );
+          return words.some((word: string) => nameLower.includes(word));
         })
         .slice(0, 20)
         .map((item) => {
@@ -2289,7 +2289,14 @@ registerTool(
             end_month: currentMonth,
             account_item_id: accountItemId,
           })
-          .catch(() => null),
+          .catch((err) => {
+            logServer(
+              'Failed to fetch general ledger for account item %d: %O',
+              accountItemId,
+              err,
+            );
+            return null;
+          }),
       );
       const ledgerResults = await Promise.all(ledgerPromises);
 
@@ -2342,11 +2349,16 @@ registerTool(
       );
       const minCapitalizationAmount =
         sortedAssets.length > 0 ? sortedAssets[0].acquisition_cost : null;
-      const recentAssets = fixedAssets.slice(0, 10).map((asset) => ({
-        name: asset.name,
-        amount: asset.acquisition_cost,
-        depreciation_method: asset.depreciation_method,
-      }));
+      const recentAssets = [...fixedAssets]
+        .sort((a, b) =>
+          (b.acquisition_date ?? '').localeCompare(a.acquisition_date ?? ''),
+        )
+        .slice(0, 10)
+        .map((asset) => ({
+          name: asset.name,
+          amount: asset.acquisition_cost,
+          depreciation_method: asset.depreciation_method,
+        }));
 
       const result = {
         situation,
