@@ -189,9 +189,14 @@ describe('FreeeClient Segment P&L Methods', () => {
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/reports/trial_pl_segment_2_tags',
-        expect.objectContaining({
-          params: expect.objectContaining({ company_id: 123 }),
-        }),
+        {
+          params: {
+            company_id: 123,
+            fiscal_year: 2024,
+            start_month: 4,
+            end_month: 3,
+          },
+        },
       );
     });
 
@@ -209,9 +214,14 @@ describe('FreeeClient Segment P&L Methods', () => {
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/reports/trial_pl_segment_3_tags',
-        expect.objectContaining({
-          params: expect.objectContaining({ company_id: 123 }),
-        }),
+        {
+          params: {
+            company_id: 123,
+            fiscal_year: 2024,
+            start_month: 4,
+            end_month: 3,
+          },
+        },
       );
     });
 

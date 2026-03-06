@@ -1765,14 +1765,23 @@ registerTool(
         end_month: endMonth,
       };
 
-      const result =
-        dimension === 'section'
-          ? await freeeClient.getProfitLossBySections(resolvedCompanyId, params)
-          : await freeeClient.getProfitLossBySegment(
-            resolvedCompanyId,
-              parseInt(dimension.replace('segment_', ''), 10) as 1 | 2 | 3,
-              params,
-          );
+      let result;
+      if (dimension === 'section') {
+        result = await freeeClient.getProfitLossBySections(
+          resolvedCompanyId,
+          params,
+        );
+      } else {
+        const segmentId = parseInt(dimension.replace('segment_', ''), 10) as
+          | 1
+          | 2
+          | 3;
+        result = await freeeClient.getProfitLossBySegment(
+          resolvedCompanyId,
+          segmentId,
+          params,
+        );
+      }
 
       return {
         content: [
