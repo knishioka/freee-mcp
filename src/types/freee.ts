@@ -812,16 +812,18 @@ export interface SimilarDeal {
   amount: number;
 }
 
+export interface AccountItemInfo {
+  id: number;
+  name: string;
+  account_category: string;
+  tax_code?: number;
+  tax_name?: string;
+}
+
 export interface AccountItemContextResult {
   candidates: AccountItemCandidate[];
   similar_deals: SimilarDeal[];
-  all_account_items: Array<{
-    id: number;
-    name: string;
-    account_category: string;
-    tax_code?: number;
-    tax_name?: string;
-  }>;
+  all_account_items: AccountItemInfo[];
 }
 
 // Cash position types

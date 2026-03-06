@@ -689,8 +689,13 @@ export class FreeeClient {
       dealParams.partner_id = params.partner_id;
     }
 
-    const needsDealFetch = !!(params.partner_id || params.partner_name || params.amount);
+    const needsDealFetch = !!(
+      params.partner_id ||
+      params.partner_name ||
+      params.amount
+    );
 
+    // Limit to 500 records as a performance trade-off; sufficient for most partner history analysis
     const [deals, accountItems, taxCodes] = await Promise.all([
       needsDealFetch
         ? this.fetchAllPages<FreeeDeal>('/deals', dealParams, 'deals', 500)
@@ -716,15 +721,13 @@ export class FreeeClient {
     if (!params.partner_id && params.partner_name) {
       const nameLower = params.partner_name.toLowerCase();
       filteredDeals = deals.filter(
-        (d) => d.partner_name && d.partner_name.toLowerCase().includes(nameLower),
+        (d) =>
+          d.partner_name && d.partner_name.toLowerCase().includes(nameLower),
       );
     }
 
     // Aggregate account item usage from deals
-    const usageMap = new Map<
-      number,
-      { count: number; lastDate: string }
-    >();
+    const usageMap = new Map<number, { count: number; lastDate: string }>();
     for (const deal of filteredDeals) {
       for (const detail of deal.details || []) {
         const existing = usageMap.get(detail.account_item_id);
@@ -758,27 +761,34 @@ export class FreeeClient {
       });
     }
 
-    // Sort by usage_count descending, limit to top 10
-    candidates.sort((a, b) => b.usage_count - a.usage_count);
-    const topCandidates = candidates.slice(0, 10);
+    // Sort by usage_count descending
+    const TOP_RESULTS_LIMIT = 10;
+    const SIMILAR_AMOUNT_LOWER = 0.5;
+    const SIMILAR_AMOUNT_UPPER = 1.5;
+    const UNKNOWN_ACCOUNT_NAME = '不明';
 
-    // Find similar deals by amount range (±50%)
+    candidates.sort((a, b) => b.usage_count - a.usage_count);
+    const topCandidates = candidates.slice(0, TOP_RESULTS_LIMIT);
+
+    // Find similar deals by amount range (±50%), using filtered deals for consistency
     const similarDeals: SimilarDeal[] = [];
-    if (params.amount && deals.length > 0) {
-      const lower = params.amount * 0.5;
-      const upper = params.amount * 1.5;
-      const matched = deals
+    if (params.amount && filteredDeals.length > 0) {
+      const lower = params.amount * SIMILAR_AMOUNT_LOWER;
+      const upper = params.amount * SIMILAR_AMOUNT_UPPER;
+      const matched = filteredDeals
         .filter((d) => d.amount >= lower && d.amount <= upper)
         .sort((a, b) => b.issue_date.localeCompare(a.issue_date))
-        .slice(0, 10);
+        .slice(0, TOP_RESULTS_LIMIT);
 
       for (const deal of matched) {
         const primaryDetail = deal.details?.[0];
-        const ai = primaryDetail ? accountItemMap.get(primaryDetail.account_item_id) : undefined;
+        const ai = primaryDetail
+          ? accountItemMap.get(primaryDetail.account_item_id)
+          : undefined;
         similarDeals.push({
           date: deal.issue_date,
           partner_name: deal.partner_name,
-          account_item_name: ai?.name ?? '不明',
+          account_item_name: ai?.name ?? UNKNOWN_ACCOUNT_NAME,
           amount: deal.amount,
         });
       }

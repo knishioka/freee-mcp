@@ -176,7 +176,7 @@ describe('FreeeClient.getAccountItemContext', () => {
 
     // 130000 * 0.5 = 65000, 130000 * 1.5 = 195000
     // Deals with amounts 150000 and 120000 should match
-    expect(result.similar_deals.length).toBeGreaterThanOrEqual(2);
+    expect(result.similar_deals).toHaveLength(2);
     expect(result.similar_deals[0].date).toBe('2025-11-15');
     expect(result.similar_deals[0].amount).toBe(150000);
   });
