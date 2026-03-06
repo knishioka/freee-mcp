@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 51 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(51);
+    it('should register exactly 52 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(52);
     });
 
     it('should register all expected tool names', () => {
@@ -147,6 +147,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_journals',
         'freee_get_general_ledger',
         'freee_master_context',
+        'freee_item_suggestion_context',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -174,7 +175,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(51);
+      expect(toolCalls.length).toBe(52);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -238,6 +239,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.CashPositionSchema',
         'schemas.GetGeneralLedgerSchema',
         'schemas.MasterContextSchema',
+        'schemas.ItemSuggestionContextSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -460,6 +462,7 @@ describe('Schema Structure Verification', () => {
       'GetJournalsSchema',
       'GetGeneralLedgerSchema',
       'MasterContextSchema',
+      'ItemSuggestionContextSchema',
       'SegmentPnlSchema',
       'AuthStatusSchema',
     ];
@@ -491,7 +494,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(53);
+    expect(schemaExports).toHaveLength(54);
   });
 
   it('should use Zod types in schema fields', async () => {

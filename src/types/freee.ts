@@ -35,6 +35,7 @@ export interface FreeeDealDetail {
   tax_code: number;
   amount: number;
   description?: string;
+  item_id?: number;
   section_id?: number;
   tag_ids?: number[];
 }
@@ -844,4 +845,26 @@ export interface CashPositionResult {
     count: number;
   };
   net_position: number;
+}
+
+// Item suggestion context types
+
+export interface ItemSuggestionPastItem {
+  id: number;
+  name: string;
+  unit_price: number;
+  tax_code: number;
+  used_count: number;
+}
+
+export interface ItemSuggestionAllItem {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+export interface ItemSuggestionResult {
+  past_items: ItemSuggestionPastItem[];
+  all_items: ItemSuggestionAllItem[];
+  partner_history_summary: string;
 }
