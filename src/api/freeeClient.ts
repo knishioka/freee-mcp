@@ -182,7 +182,10 @@ export class FreeeClient {
                 config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
               }
             } catch (error) {
-              logAuth('Pre-request token refresh failed: %O', error);
+              logAuth(
+                'Pre-request token refresh failed: %s',
+                error instanceof Error ? error.message : String(error),
+              );
               throw new Error(
                 'Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.',
               );
@@ -205,7 +208,10 @@ export class FreeeClient {
               effectiveCompanyId,
               token.refresh_token,
             ).catch((err) =>
-              logAuth('Background token refresh failed: %O', err),
+              logAuth(
+                'Background token refresh failed: %s',
+                err instanceof Error ? err.message : String(err),
+              ),
             );
           }
         } else {
@@ -2992,6 +2998,29 @@ export class FreeeClient {
 
   // KPI Dashboard methods
 
+  private static readonly KPI_THRESHOLDS = {
+    operatingMargin: { healthy: 10, caution: 5, higherIsBetter: true },
+    ordinaryMargin: { healthy: 10, caution: 5, higherIsBetter: true },
+    currentRatio: { healthy: 200, caution: 120, higherIsBetter: true },
+    equityRatio: { healthy: 40, caution: 20, higherIsBetter: true },
+    receivableDays: { healthy: 30, caution: 60, higherIsBetter: false },
+    payableDays: { healthy: 30, caution: 60, higherIsBetter: false },
+  };
+
+  private static readonly ACCOUNT_NAMES = {
+    revenue: '売上高',
+    operatingProfit: '営業利益',
+    ordinaryProfit: '経常利益',
+    costOfSales: '売上原価',
+    currentAssets: '流動資産',
+    fixedAssets: '固定資産',
+    currentLiabilities: '流動負債',
+    netAssets: '純資産',
+    totalAssets: '資産',
+    receivableKeywords: ['売掛金', '受取手形'],
+    payableKeywords: ['買掛金', '支払手形'],
+  };
+
   private static evaluateStatus(
     value: number,
     healthyThreshold: number,
@@ -3043,40 +3072,54 @@ export class FreeeClient {
     ]);
 
     // === Profitability KPIs ===
-    const revenue = this.findBalance(pl.balances, '売上高');
-    const operatingProfit = this.findBalance(pl.balances, '営業利益');
-    const ordinaryProfit = this.findBalance(pl.balances, '経常利益');
+    const { ACCOUNT_NAMES: AN, KPI_THRESHOLDS: KT } = FreeeClient;
+    const revenue = this.findBalance(pl.balances, AN.revenue);
+    const operatingProfit = this.findBalance(pl.balances, AN.operatingProfit);
+    const ordinaryProfit = this.findBalance(pl.balances, AN.ordinaryProfit);
 
     const operatingMargin =
       revenue !== 0 ? (operatingProfit / revenue) * 100 : 0;
     const ordinaryMargin = revenue !== 0 ? (ordinaryProfit / revenue) * 100 : 0;
 
     const profitability: KpiMetric[] = [
-      { label: '売上高', value: revenue, unit: '円' },
+      { label: AN.revenue, value: revenue, unit: '円' },
       {
         label: '営業利益率',
         value: Math.round(operatingMargin * 10) / 10,
         unit: '%',
-        status: FreeeClient.evaluateStatus(operatingMargin, 10, 5, true),
+        status: FreeeClient.evaluateStatus(
+          operatingMargin,
+          KT.operatingMargin.healthy,
+          KT.operatingMargin.caution,
+          KT.operatingMargin.higherIsBetter,
+        ),
       },
       {
         label: '経常利益率',
         value: Math.round(ordinaryMargin * 10) / 10,
         unit: '%',
-        status: FreeeClient.evaluateStatus(ordinaryMargin, 10, 5, true),
+        status: FreeeClient.evaluateStatus(
+          ordinaryMargin,
+          KT.ordinaryMargin.healthy,
+          KT.ordinaryMargin.caution,
+          KT.ordinaryMargin.higherIsBetter,
+        ),
       },
     ];
 
     // === Safety KPIs ===
-    const currentAssets = this.findBalance(bs.balances, '流動資産');
-    const currentLiabilities = this.findBalance(bs.balances, '流動負債');
-    const netAssets = this.findBalance(bs.balances, '純資産');
-    const totalAssets = this.findBalance(bs.balances, '資産');
+    const currentAssets = this.findBalance(bs.balances, AN.currentAssets);
+    const currentLiabilities = this.findBalance(
+      bs.balances,
+      AN.currentLiabilities,
+    );
+    const netAssets = this.findBalance(bs.balances, AN.netAssets);
+    const totalAssets = this.findBalance(bs.balances, AN.totalAssets);
     // Fallback: if top-level '資産' not found, sum 流動資産 + 固定資産
     const effectiveTotalAssets =
       totalAssets !== 0
         ? totalAssets
-        : currentAssets + this.findBalance(bs.balances, '固定資産');
+        : currentAssets + this.findBalance(bs.balances, AN.fixedAssets);
 
     const currentRatio =
       currentLiabilities !== 0 ? (currentAssets / currentLiabilities) * 100 : 0;
@@ -3088,26 +3131,36 @@ export class FreeeClient {
         label: '流動比率',
         value: Math.round(currentRatio * 10) / 10,
         unit: '%',
-        status: FreeeClient.evaluateStatus(currentRatio, 200, 120, true),
+        status: FreeeClient.evaluateStatus(
+          currentRatio,
+          KT.currentRatio.healthy,
+          KT.currentRatio.caution,
+          KT.currentRatio.higherIsBetter,
+        ),
       },
       {
         label: '自己資本比率',
         value: Math.round(equityRatio * 10) / 10,
         unit: '%',
-        status: FreeeClient.evaluateStatus(equityRatio, 40, 20, true),
+        status: FreeeClient.evaluateStatus(
+          equityRatio,
+          KT.equityRatio.healthy,
+          KT.equityRatio.caution,
+          KT.equityRatio.higherIsBetter,
+        ),
       },
     ];
 
     // === Efficiency KPIs ===
-    const receivables = this.findBalanceByKeywords(bs.balances, [
-      '売掛金',
-      '受取手形',
-    ]);
-    const payables = this.findBalanceByKeywords(bs.balances, [
-      '買掛金',
-      '支払手形',
-    ]);
-    const costOfSales = this.findBalance(pl.balances, '売上原価');
+    const receivables = this.findBalanceByKeywords(
+      bs.balances,
+      AN.receivableKeywords,
+    );
+    const payables = this.findBalanceByKeywords(
+      bs.balances,
+      AN.payableKeywords,
+    );
+    const costOfSales = this.findBalance(pl.balances, AN.costOfSales);
 
     // Approximate days in period for turnover calculation
     const monthCount =
@@ -3128,13 +3181,18 @@ export class FreeeClient {
         label: '売上債権回転日数',
         value: receivableDays,
         unit: '日',
-        status: FreeeClient.evaluateStatus(receivableDays, 30, 60, false),
+        status: FreeeClient.evaluateStatus(
+          receivableDays,
+          KT.receivableDays.healthy,
+          KT.receivableDays.caution,
+          KT.receivableDays.higherIsBetter,
+        ),
       },
       {
         label: '仕入債務回転日数',
         value: payableDays,
         unit: '日',
-        status: FreeeClient.evaluateStatus(payableDays, 30, 60, false),
+        status: FreeeClient.evaluateStatus(payableDays, KT.payableDays.healthy, KT.payableDays.caution, KT.payableDays.higherIsBetter),
       },
     ];
 

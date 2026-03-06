@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FreeeClient } from '../../api/freeeClient.js';
 import { TokenManager } from '../../auth/tokenManager.js';
 import type {
+  FreeeTrialBalance,
   FreeeTrialBalanceItem,
   FreeeWalletable,
 } from '../../types/freee.js';
@@ -88,11 +89,10 @@ function makeWalletables(): FreeeWalletable[] {
   ];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeTrialBalanceResponse(
   balances: FreeeTrialBalanceItem[],
   key: string,
-): any {
+): { data: { [key: string]: FreeeTrialBalance } } {
   return {
     data: {
       [key]: {
