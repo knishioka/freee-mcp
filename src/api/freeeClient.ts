@@ -3443,8 +3443,13 @@ export class FreeeClient {
         ? totalAssets
         : currentAssets + this.findBalance(bs.balances, AN.fixedAssets);
 
+    // When current liabilities are 0, the ratio is effectively infinite (very healthy)
     const currentRatio =
-      currentLiabilities !== 0 ? (currentAssets / currentLiabilities) * 100 : 0;
+      currentLiabilities !== 0
+        ? (currentAssets / currentLiabilities) * 100
+        : currentAssets > 0
+          ? 9999
+          : 0;
     const equityRatio =
       effectiveTotalAssets !== 0 ? (netAssets / effectiveTotalAssets) * 100 : 0;
 
