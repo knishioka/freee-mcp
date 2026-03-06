@@ -2075,6 +2075,9 @@ export class FreeeClient {
         (baseDateMs - issueDateMs) / (1000 * 60 * 60 * 24),
       );
 
+      // Skip future-dated deals (issue_date after as_of_date)
+      if (daysDiff < 0) continue;
+
       totalAmount += deal.amount;
 
       // Assign to bucket
