@@ -67,6 +67,9 @@ import {
   ItemSuggestionResult,
   ItemSuggestionPastItem,
   ItemSuggestionAllItem,
+  AccountItemCandidate,
+  AccountItemContextResult,
+  SimilarDeal,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -674,6 +677,144 @@ export class FreeeClient {
     );
     this.cache.set(cacheKey, response.data.taxes, CACHE_TTL_TAX_CODES);
     return response.data.taxes;
+  }
+
+  // Account Item Context methods
+  async getAccountItemContext(
+    companyId: number,
+    params: {
+      description: string;
+      partner_name?: string;
+      partner_id?: number;
+      amount?: number;
+    },
+  ): Promise<AccountItemContextResult> {
+    const dealParams: Record<string, unknown> = { company_id: companyId };
+    if (params.partner_id) {
+      dealParams.partner_id = params.partner_id;
+    }
+
+    const needsDealFetch = !!(
+      params.partner_id ||
+      params.partner_name ||
+      params.amount
+    );
+
+    // Limit to 500 records as a performance trade-off; sufficient for most partner history analysis
+    const [deals, accountItems, taxCodes] = await Promise.all([
+      needsDealFetch
+        ? this.fetchAllPages<FreeeDeal>('/deals', dealParams, 'deals', 500)
+        : Promise.resolve([] as FreeeDeal[]),
+      this.getAccountItems(companyId),
+      this.getTaxCodes(companyId),
+    ]);
+
+    // Build tax code lookup
+    const taxCodeMap = new Map<number, string>();
+    for (const tc of taxCodes) {
+      taxCodeMap.set(tc.code, tc.name_ja);
+    }
+
+    // Build account item lookup
+    const accountItemMap = new Map<number, FreeeAccountItem>();
+    for (const ai of accountItems) {
+      accountItemMap.set(ai.id, ai);
+    }
+
+    // Filter deals by partner_name if partner_id was not provided
+    let filteredDeals = deals;
+    if (!params.partner_id && params.partner_name) {
+      const nameLower = params.partner_name.toLowerCase();
+      filteredDeals = deals.filter(
+        (d) =>
+          d.partner_name && d.partner_name.toLowerCase().includes(nameLower),
+      );
+    }
+
+    // Aggregate account item usage from deals
+    const usageMap = new Map<number, { count: number; lastDate: string }>();
+    for (const deal of filteredDeals) {
+      for (const detail of deal.details || []) {
+        const existing = usageMap.get(detail.account_item_id);
+        if (existing) {
+          existing.count++;
+          if (deal.issue_date > existing.lastDate) {
+            existing.lastDate = deal.issue_date;
+          }
+        } else {
+          usageMap.set(detail.account_item_id, {
+            count: 1,
+            lastDate: deal.issue_date,
+          });
+        }
+      }
+    }
+
+    // Build candidates from usage data
+    const candidates: AccountItemCandidate[] = [];
+    for (const [accountItemId, usage] of usageMap) {
+      const ai = accountItemMap.get(accountItemId);
+      if (!ai) continue;
+      candidates.push({
+        account_item_id: accountItemId,
+        account_item_name: ai.name,
+        account_category: ai.account_category,
+        usage_count: usage.count,
+        last_used: usage.lastDate.substring(0, 7),
+        tax_code: ai.tax_code,
+        tax_name: ai.tax_code != null ? taxCodeMap.get(ai.tax_code) : undefined,
+      });
+    }
+
+    // Sort by usage_count descending
+    const TOP_RESULTS_LIMIT = 10;
+    const SIMILAR_AMOUNT_LOWER = 0.5;
+    const SIMILAR_AMOUNT_UPPER = 1.5;
+    const UNKNOWN_ACCOUNT_NAME = '不明';
+
+    candidates.sort((a, b) => b.usage_count - a.usage_count);
+    const topCandidates = candidates.slice(0, TOP_RESULTS_LIMIT);
+
+    // Find similar deals by amount range (±50%), using filtered deals for consistency
+    const similarDeals: SimilarDeal[] = [];
+    if (params.amount && filteredDeals.length > 0) {
+      const lower = params.amount * SIMILAR_AMOUNT_LOWER;
+      const upper = params.amount * SIMILAR_AMOUNT_UPPER;
+      const matched = filteredDeals
+        .filter((d) => d.amount >= lower && d.amount <= upper)
+        .sort((a, b) => b.issue_date.localeCompare(a.issue_date))
+        .slice(0, TOP_RESULTS_LIMIT);
+
+      for (const deal of matched) {
+        const primaryDetail = deal.details?.[0];
+        const ai = primaryDetail
+          ? accountItemMap.get(primaryDetail.account_item_id)
+          : undefined;
+        similarDeals.push({
+          date: deal.issue_date,
+          partner_name: deal.partner_name,
+          account_item_name: ai?.name ?? UNKNOWN_ACCOUNT_NAME,
+          amount: deal.amount,
+        });
+      }
+    }
+
+    // Build full account items list with tax info
+    const allAccountItems = accountItems
+      .filter((ai) => ai.available)
+      .map((ai) => ({
+        id: ai.id,
+        name: ai.name,
+        account_category: ai.account_category,
+        tax_code: ai.tax_code,
+        tax_name: ai.tax_code != null ? taxCodeMap.get(ai.tax_code) : undefined,
+      }));
+
+    return {
+      candidates: topCandidates,
+      similar_deals: similarDeals,
+      all_account_items: allAccountItems,
+    };
   }
 
   // Segment Tag methods

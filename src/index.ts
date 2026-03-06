@@ -2104,8 +2104,6 @@ registerTool(
   },
 );
 
-// === Advisory tools ===
-
 registerTool(
   'freee_master_context',
   {
@@ -2129,6 +2127,38 @@ registerTool(
       };
     } catch (error) {
       handleToolError('freee_master_context', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_account_item_context',
+  {
+    description:
+      'Get account item (勘定科目) recommendation context for a transaction - Analyzes past deals by partner/amount to suggest the most likely account items with usage frequency, tax classification, and similar transaction patterns. Ideal for consistent bookkeeping when unsure which account item to use.',
+    inputSchema: schemas.AccountItemContextSchema,
+  },
+  async ({ companyId, description, partnerName, partnerId, amount }) => {
+    try {
+      const result = await freeeClient.getAccountItemContext(
+        getCompanyId(companyId),
+        {
+          description,
+          partner_name: partnerName,
+          partner_id: partnerId,
+          amount,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_account_item_context', error);
     }
   },
 );

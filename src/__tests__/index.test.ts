@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 52 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(52);
+    it('should register exactly 53 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(53);
     });
 
     it('should register all expected tool names', () => {
@@ -148,6 +148,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_general_ledger',
         'freee_master_context',
         'freee_item_suggestion_context',
+        'freee_account_item_context',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -175,7 +176,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(52);
+      expect(toolCalls.length).toBe(53);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -240,6 +241,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetGeneralLedgerSchema',
         'schemas.MasterContextSchema',
         'schemas.ItemSuggestionContextSchema',
+        'schemas.AccountItemContextSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -494,7 +496,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(54);
+    expect(schemaExports).toHaveLength(55);
   });
 
   it('should use Zod types in schema fields', async () => {
