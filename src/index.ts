@@ -1831,6 +1831,54 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_segment_pnl',
+  {
+    description:
+      'Get profit and loss statement by department (section) or segment (1/2/3) - Retrieves per-division revenue, operating profit, and cost breakdown. Use dimension parameter to select section (部門) or segment_1/2/3. Essential for divisional profitability analysis and management reporting. Requires paid freee plan.',
+    inputSchema: schemas.SegmentPnlSchema,
+  },
+  async ({ companyId, fiscalYear, startMonth, endMonth, dimension }) => {
+    try {
+      const resolvedCompanyId = getCompanyId(companyId);
+      const params = {
+        fiscal_year: fiscalYear,
+        start_month: startMonth,
+        end_month: endMonth,
+      };
+
+      let result;
+      if (dimension === 'section') {
+        result = await freeeClient.getProfitLossBySections(
+          resolvedCompanyId,
+          params,
+        );
+      } else {
+        const segmentId = parseInt(dimension.replace('segment_', ''), 10) as
+          | 1
+          | 2
+          | 3;
+        result = await freeeClient.getProfitLossBySegment(
+          resolvedCompanyId,
+          segmentId,
+          params,
+        );
+      }
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_segment_pnl', error);
+    }
+  },
+);
+
 // === Analysis tools ===
 
 registerTool(

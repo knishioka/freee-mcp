@@ -91,7 +91,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
     }
 
     it('should register exactly 48 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(48);
+      expect(toolNames).toHaveLength(49);
     });
 
     it('should register all expected tool names', () => {
@@ -135,6 +135,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_get_trial_balance',
         'freee_get_profit_loss',
         'freee_get_balance_sheet',
+        'freee_segment_pnl',
         'freee_compare_periods',
         'freee_monthly_trends',
         'freee_cash_position',
@@ -171,7 +172,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(48);
+      expect(toolCalls.length).toBe(49);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -229,6 +230,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetReceiptSchema',
         'schemas.GetJournalsSchema',
         'schemas.GetGeneralLedgerSchema',
+        'schemas.SegmentPnlSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -448,6 +450,7 @@ describe('Schema Structure Verification', () => {
       'GetReceiptSchema',
       'GetJournalsSchema',
       'GetGeneralLedgerSchema',
+      'SegmentPnlSchema',
       'AuthStatusSchema',
     ];
 
@@ -478,7 +481,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(50);
+    expect(schemaExports).toHaveLength(51);
   });
 
   it('should use Zod types in schema fields', async () => {
