@@ -766,6 +766,23 @@ export const MultiyearComparisonSchema = {
     .describe('Number of years to compare (2 or 3)'),
 };
 
+// Item Suggestion Context schema
+export const ItemSuggestionContextSchema = {
+  companyId: companyIdField,
+  partner_id: z
+    .number()
+    .optional()
+    .describe('Partner ID to get item usage history for'),
+  partner_name: z
+    .string()
+    .optional()
+    .describe('Partner name to search for (used when partner_id is not known)'),
+  category: z
+    .string()
+    .optional()
+    .describe('Broad category to filter suggestions (e.g. "開発", "顧問")'),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,

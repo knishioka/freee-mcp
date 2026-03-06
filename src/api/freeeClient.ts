@@ -62,6 +62,9 @@ import {
   FreeeMultiyearTrialBalance,
   MultiyearComparisonResult,
   MultiyearComparisonItem,
+  ItemSuggestionResult,
+  ItemSuggestionPastItem,
+  ItemSuggestionAllItem,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -2397,6 +2400,129 @@ export class FreeeClient {
     }
     fields.push(current);
     return fields;
+  }
+
+  // Item suggestion context: aggregate item usage from partner's deal history
+  async getItemSuggestionContext(
+    companyId: number,
+    params: {
+      partner_id?: number;
+      partner_name?: string;
+      category?: string;
+    },
+  ): Promise<ItemSuggestionResult> {
+    // Resolve partner_id from partner_name if needed
+    let partnerId = params.partner_id;
+    let partnerName: string | undefined;
+
+    if (!partnerId && params.partner_name) {
+      const partners = await this.getPartners(companyId, {
+        name: params.partner_name,
+      });
+      if (partners.length > 0) {
+        partnerId = partners[0].id;
+        partnerName = partners[0].name;
+      }
+    }
+
+    // Fetch items and deals in parallel
+    const [allItems, deals] = await Promise.all([
+      this.getItems(companyId),
+      partnerId
+        ? this.fetchAllPages<FreeeDeal>(
+          '/deals',
+          { company_id: companyId, partner_id: partnerId },
+          'deals',
+        )
+        : Promise.resolve([] as FreeeDeal[]),
+    ]);
+
+    // Build item lookup map
+    const itemMap = new Map(allItems.map((item) => [item.id, item]));
+
+    // Aggregate item usage from deal details
+    const itemUsage = new Map<
+      number,
+      { count: number; totalAmount: number; lastTaxCode: number }
+    >();
+
+    for (const deal of deals) {
+      for (const detail of deal.details || []) {
+        if (detail.item_id != null) {
+          const existing = itemUsage.get(detail.item_id) || {
+            count: 0,
+            totalAmount: 0,
+            lastTaxCode: detail.tax_code,
+          };
+          existing.count++;
+          existing.totalAmount += detail.amount;
+          existing.lastTaxCode = detail.tax_code;
+          itemUsage.set(detail.item_id, existing);
+        }
+      }
+    }
+
+    // Build past_items sorted by frequency
+    let pastItems: ItemSuggestionPastItem[] = Array.from(itemUsage.entries())
+      .map(([itemId, usage]) => {
+        const item = itemMap.get(itemId);
+        return {
+          id: itemId,
+          name: item?.name ?? `Item ${itemId}`,
+          unit_price:
+            usage.count > 0 ? Math.round(usage.totalAmount / usage.count) : 0,
+          tax_code: usage.lastTaxCode,
+          used_count: usage.count,
+        };
+      })
+      .sort((a, b) => b.used_count - a.used_count);
+
+    // Filter by category if provided
+    if (params.category) {
+      const cat = params.category.toLowerCase();
+      pastItems = pastItems.filter((item) =>
+        item.name.toLowerCase().includes(cat),
+      );
+    }
+
+    // Build all_items list
+    let allItemsList: ItemSuggestionAllItem[] = allItems
+      .filter((item) => item.available)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        ...(item.code ? { code: item.code } : {}),
+      }));
+
+    if (params.category) {
+      const cat = params.category.toLowerCase();
+      allItemsList = allItemsList.filter((item) =>
+        item.name.toLowerCase().includes(cat),
+      );
+    }
+
+    // Build summary
+    const resolvedPartnerName =
+      partnerName ??
+      (partnerId
+        ? (deals[0]?.partner_name ?? `Partner ${partnerId}`)
+        : undefined);
+
+    let summary: string;
+    if (!partnerId) {
+      summary = '取引先が指定されていないため、品目マスタのみ返します';
+    } else if (deals.length === 0) {
+      summary = `${resolvedPartnerName}の過去取引は見つかりませんでした`;
+    } else {
+      const itemCount = itemUsage.size;
+      summary = `${resolvedPartnerName}との過去${deals.length}件の取引で${itemCount}種類の品目が使用されています`;
+    }
+
+    return {
+      past_items: pastItems,
+      all_items: allItemsList,
+      partner_history_summary: summary,
+    };
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
