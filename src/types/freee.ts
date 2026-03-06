@@ -793,6 +793,37 @@ export interface MonthlyTrendsResult {
   summary: MonthlyTrendsSummary;
 }
 
+// Account item context types
+
+export interface AccountItemCandidate {
+  account_item_id: number;
+  account_item_name: string;
+  account_category: string;
+  usage_count: number;
+  last_used?: string;
+  tax_code?: number;
+  tax_name?: string;
+}
+
+export interface SimilarDeal {
+  date: string;
+  partner_name?: string;
+  account_item_name: string;
+  amount: number;
+}
+
+export interface AccountItemContextResult {
+  candidates: AccountItemCandidate[];
+  similar_deals: SimilarDeal[];
+  all_account_items: Array<{
+    id: number;
+    name: string;
+    account_category: string;
+    tax_code?: number;
+    tax_name?: string;
+  }>;
+}
+
 // Cash position types
 
 export interface CashAccount {

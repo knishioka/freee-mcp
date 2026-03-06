@@ -766,6 +766,23 @@ export const MultiyearComparisonSchema = {
     .describe('Number of years to compare (2 or 3)'),
 };
 
+// Account Item Context schemas
+export const AccountItemContextSchema = {
+  companyId: companyIdField,
+  description: z
+    .string()
+    .describe('取引内容の説明 (e.g. "AWS利用料", "オフィス家賃")'),
+  partnerName: z
+    .string()
+    .optional()
+    .describe('取引先名 (e.g. "Amazon Web Services")'),
+  partnerId: z.number().optional().describe('取引先ID'),
+  amount: z
+    .number()
+    .optional()
+    .describe('取引金額（類似金額の取引パターンを検索）'),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,
