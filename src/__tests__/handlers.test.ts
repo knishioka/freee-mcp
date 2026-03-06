@@ -87,6 +87,8 @@ describe('MCP Tool Handlers', () => {
         'GetTrialBalanceSchema',
         'GetGeneralLedgerSchema',
         'AccountingPolicyContextSchema',
+        'ArAgingSchema',
+        'CostAnalysisSchema',
         'AuthStatusSchema',
       ];
 

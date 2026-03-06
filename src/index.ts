@@ -2043,6 +2043,39 @@ registerTool(
   },
 );
 
+// === Cost Analysis ===
+
+registerTool(
+  'freee_cost_analysis',
+  {
+    description:
+      'Analyze expense structure with YoY anomaly detection and fixed/variable cost classification (費用構造分析) - Compares current and previous year P/L to flag expense items with year-over-year changes exceeding a configurable threshold. Classifies expense items as fixed or variable costs based on account category patterns. Use for cost health monitoring, identifying unexpected expense spikes, and understanding cost structure.',
+    inputSchema: schemas.CostAnalysisSchema,
+  },
+  async ({ companyId, fiscalYear, month, threshold }) => {
+    try {
+      const result = await freeeClient.getCostAnalysis(
+        getCompanyId(companyId),
+        {
+          fiscal_year: fiscalYear,
+          month,
+          threshold,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_cost_analysis', error);
+    }
+  },
+);
+
 // === Advisory tools ===
 
 registerTool(
