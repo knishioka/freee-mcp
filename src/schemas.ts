@@ -863,6 +863,27 @@ export const ArAgingSchema = {
     ),
 };
 
+// Cost Analysis schema
+export const CostAnalysisSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year to analyze'),
+  month: z
+    .number()
+    .min(1)
+    .max(12)
+    .optional()
+    .describe(
+      'Specific month to analyze (1-12). If omitted, analyzes cumulative year-to-date.',
+    ),
+  threshold: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      'Anomaly detection threshold percentage for year-over-year change (default: 50). Flags items with YoY change exceeding this percentage.',
+    ),
+};
+
 // KPI Dashboard schema
 export const KpiDashboardSchema = {
   companyId: companyIdField,
