@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 48 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(49);
+    it('should register exactly 50 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(50);
     });
 
     it('should register all expected tool names', () => {
@@ -138,6 +138,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_segment_pnl',
         'freee_compare_periods',
         'freee_monthly_trends',
+        'freee_multiyear_comparison',
         'freee_cash_position',
         'freee_create_manual_journal',
         'freee_monthly_closing_check',
@@ -172,7 +173,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(49);
+      expect(toolCalls.length).toBe(50);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -229,8 +230,12 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.GetReceiptsSchema',
         'schemas.GetReceiptSchema',
         'schemas.GetJournalsSchema',
-        'schemas.GetGeneralLedgerSchema',
+        'schemas.MultiyearComparisonSchema',
         'schemas.SegmentPnlSchema',
+        'schemas.ComparePeriodsSchema',
+        'schemas.MonthlyTrendsSchema',
+        'schemas.CashPositionSchema',
+        'schemas.GetGeneralLedgerSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -441,8 +446,10 @@ describe('Schema Structure Verification', () => {
       'GetTrialBalanceSchema',
       'GetProfitLossSchema',
       'GetBalanceSheetSchema',
+      'SegmentPnlSchema',
       'ComparePeriodsSchema',
       'MonthlyTrendsSchema',
+      'MultiyearComparisonSchema',
       'CashPositionSchema',
       'CreateManualJournalSchema',
       'MonthlyClosingCheckSchema',
@@ -481,7 +488,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(51);
+    expect(schemaExports).toHaveLength(52);
   });
 
   it('should use Zod types in schema fields', async () => {

@@ -698,6 +698,48 @@ export interface InvoiceSummaryAggregation {
   by_partner: InvoicePartnerAggregation[];
 }
 
+// Multiyear trial balance types
+
+export interface FreeeMultiyearTrialBalanceItem {
+  account_item_id?: number;
+  account_item_name: string;
+  account_category_name?: string;
+  hierarchy_level: number;
+  closing_balance?: number;
+  last_year_closing_balance?: number;
+  two_years_before_closing_balance?: number;
+  year_on_year?: number;
+}
+
+export interface FreeeMultiyearTrialBalance {
+  company_id: number;
+  fiscal_year: number;
+  start_month?: number;
+  end_month?: number;
+  created_at: string;
+  balances: FreeeMultiyearTrialBalanceItem[];
+}
+
+export interface MultiyearComparisonResult {
+  report_type: 'pl' | 'bs';
+  years: number;
+  fiscal_year: number;
+  start_month?: number;
+  end_month?: number;
+  items: MultiyearComparisonItem[];
+}
+
+export interface MultiyearComparisonItem {
+  account_item_name: string;
+  account_category_name?: string;
+  hierarchy_level: number;
+  current_year: number;
+  last_year: number;
+  two_years_before?: number;
+  year_on_year_change: number | null;
+  year_on_year_percentage: number | null;
+}
+
 // Period comparison types
 
 export interface PeriodChange {

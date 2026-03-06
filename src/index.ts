@@ -1949,6 +1949,46 @@ registerTool(
 );
 
 registerTool(
+  'freee_multiyear_comparison',
+  {
+    description:
+      'Get multi-year comparison report (2 or 3 years) for P/L or BS using freee native multi-year trial balance APIs. Returns account-level data with current year, last year (and optionally two years before), plus pre-computed year-on-year changes and percentages. More accurate than manual period comparisons for annual growth analysis.',
+    inputSchema: schemas.MultiyearComparisonSchema,
+  },
+  async ({
+    companyId,
+    fiscalYear,
+    startMonth,
+    endMonth,
+    reportType,
+    years,
+  }) => {
+    try {
+      const comparison = await freeeClient.getMultiyearComparison(
+        getCompanyId(companyId),
+        reportType,
+        years,
+        {
+          fiscal_year: fiscalYear,
+          start_month: startMonth,
+          end_month: endMonth,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(comparison, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_multiyear_comparison', error);
+    }
+  },
+);
+
+registerTool(
   'freee_cash_position',
   {
     description:

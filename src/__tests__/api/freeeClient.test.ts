@@ -337,6 +337,148 @@ describe('FreeeClient', () => {
       });
     });
 
+    describe('multiyear comparison methods', () => {
+      const mockMultiyearReport = {
+        company_id: 123,
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+        created_at: '2024-01-01',
+        balances: [
+          {
+            account_item_name: 'Sales',
+            account_category_name: 'Revenue',
+            hierarchy_level: 1,
+            closing_balance: 1000000,
+            last_year_closing_balance: 800000,
+            two_years_before_closing_balance: 600000,
+          },
+          {
+            account_item_name: 'Cost of Sales',
+            account_category_name: 'Cost',
+            hierarchy_level: 1,
+            closing_balance: 500000,
+            last_year_closing_balance: 0,
+          },
+        ],
+      };
+
+      it('should fetch PL two-year report', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl_two_years: mockMultiyearReport },
+        });
+
+        const result = await client.getProfitLossTwoYears(123, {
+          fiscal_year: 2024,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_pl_two_years',
+          { params: { company_id: 123, fiscal_year: 2024 } },
+        );
+        expect(result).toEqual(mockMultiyearReport);
+      });
+
+      it('should fetch PL three-year report', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl_three_years: mockMultiyearReport },
+        });
+
+        const result = await client.getProfitLossThreeYears(123, {
+          fiscal_year: 2024,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_pl_three_years',
+          { params: { company_id: 123, fiscal_year: 2024 } },
+        );
+        expect(result).toEqual(mockMultiyearReport);
+      });
+
+      it('should fetch BS two-year report', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_bs_two_years: mockMultiyearReport },
+        });
+
+        const result = await client.getBalanceSheetTwoYears(123, {
+          fiscal_year: 2024,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_bs_two_years',
+          { params: { company_id: 123, fiscal_year: 2024 } },
+        );
+        expect(result).toEqual(mockMultiyearReport);
+      });
+
+      it('should fetch BS three-year report', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_bs_three_years: mockMultiyearReport },
+        });
+
+        const result = await client.getBalanceSheetThreeYears(123, {
+          fiscal_year: 2024,
+        });
+
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+          '/reports/trial_bs_three_years',
+          { params: { company_id: 123, fiscal_year: 2024 } },
+        );
+        expect(result).toEqual(mockMultiyearReport);
+      });
+
+      it('should return multiyear comparison with YoY calculations for 2-year PL', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl_two_years: mockMultiyearReport },
+        });
+
+        const result = await client.getMultiyearComparison(123, 'pl', 2, {
+          fiscal_year: 2024,
+        });
+
+        expect(result.report_type).toBe('pl');
+        expect(result.years).toBe(2);
+        expect(result.fiscal_year).toBe(2024);
+        expect(result.items).toHaveLength(2);
+
+        // Sales: 1000000 vs 800000 = +200000 (+25%)
+        expect(result.items[0].current_year).toBe(1000000);
+        expect(result.items[0].last_year).toBe(800000);
+        expect(result.items[0].year_on_year_change).toBe(200000);
+        expect(result.items[0].year_on_year_percentage).toBe(25);
+        expect(result.items[0].two_years_before).toBeUndefined();
+      });
+
+      it('should include two_years_before for 3-year comparison', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl_three_years: mockMultiyearReport },
+        });
+
+        const result = await client.getMultiyearComparison(123, 'pl', 3, {
+          fiscal_year: 2024,
+        });
+
+        expect(result.years).toBe(3);
+        expect(result.items[0].two_years_before).toBe(600000);
+      });
+
+      it('should handle division by zero in YoY percentage', async () => {
+        mockAxiosInstance.get.mockResolvedValue({
+          data: { trial_pl_two_years: mockMultiyearReport },
+        });
+
+        const result = await client.getMultiyearComparison(123, 'pl', 2, {
+          fiscal_year: 2024,
+        });
+
+        // Cost of Sales: 500000 vs 0 → percentage should be null
+        expect(result.items[1].current_year).toBe(500000);
+        expect(result.items[1].last_year).toBe(0);
+        expect(result.items[1].year_on_year_change).toBe(500000);
+        expect(result.items[1].year_on_year_percentage).toBeNull();
+      });
+    });
+
     describe('master data methods', () => {
       it('should fetch account items', async () => {
         const mockItems = [
