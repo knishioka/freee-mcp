@@ -65,6 +65,10 @@ describe('FreeeClient Tagging Consistency Check', () => {
   function mockResponses(
     deals: Record<string, unknown>[],
     tags: Record<string, unknown>[],
+    accountItems: Record<string, unknown>[] = [
+      { id: 10, company_id: 1, name: '通信費' },
+      { id: 50, company_id: 1, name: 'サーバー費用' },
+    ],
   ) {
     mockAxiosInstance.get.mockImplementation((url: string) => {
       if (url === '/deals') {
@@ -74,6 +78,9 @@ describe('FreeeClient Tagging Consistency Check', () => {
       }
       if (url === '/tags') {
         return Promise.resolve({ data: { tags } });
+      }
+      if (url === '/account_items') {
+        return Promise.resolve({ data: { account_items: accountItems } });
       }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
@@ -249,6 +256,8 @@ describe('FreeeClient Tagging Consistency Check', () => {
     const result = await client.checkTaggingConsistency(1, {});
 
     expect(result.segment_gaps).toHaveLength(1);
+    expect(result.segment_gaps[0].type).toBe('section');
+    expect(result.segment_gaps[0].label).toBe('部門');
     expect(result.segment_gaps[0].unset_count).toBe(1);
     expect(result.segment_gaps[0].sample_partners).toContain('GCP');
   });
@@ -308,6 +317,7 @@ describe('FreeeClient Tagging Consistency Check', () => {
 
     expect(result.account_deviations).toHaveLength(1);
     expect(result.account_deviations[0].account_item_id).toBe(50);
+    expect(result.account_deviations[0].account_item_name).toBe('サーバー費用');
     expect(result.account_deviations[0].majority_pattern).toEqual(['infra']);
     expect(result.account_deviations[0].deviating_details).toBe(1);
     expect(result.account_deviations[0].total_details).toBe(3);

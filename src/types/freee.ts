@@ -445,7 +445,8 @@ export interface TagInconsistency {
 }
 
 export interface SegmentGap {
-  segment_id: 1 | 2 | 3;
+  type: 'section';
+  label: string;
   total_details: number;
   unset_count: number;
   sample_partners: string[];
