@@ -430,6 +430,45 @@ export interface FreeeGeneralLedger {
   general_ledger_items: FreeeGeneralLedgerItem[];
 }
 
+// Tagging consistency check types
+
+export interface TagInconsistency {
+  partner_id: number;
+  partner_name: string;
+  total_deals: number;
+  tagged_deals: number;
+  untagged_deals: number;
+  tag_patterns: Array<{
+    tag_names: string[];
+    count: number;
+  }>;
+}
+
+export interface SegmentGap {
+  segment_id: 1 | 2 | 3;
+  total_details: number;
+  unset_count: number;
+  sample_partners: string[];
+}
+
+export interface AccountTagDeviation {
+  account_item_id: number;
+  account_item_name: string;
+  majority_pattern: string[];
+  total_details: number;
+  deviating_details: number;
+}
+
+export interface TaggingConsistencyResult {
+  period: string;
+  total_deals: number;
+  tag_inconsistencies: TagInconsistency[];
+  segment_gaps: SegmentGap[];
+  account_deviations: AccountTagDeviation[];
+  consistent_partner_count: number;
+  summary: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{

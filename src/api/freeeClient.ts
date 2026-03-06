@@ -70,6 +70,11 @@ import {
   AccountItemCandidate,
   AccountItemContextResult,
   SimilarDeal,
+  TagInconsistency,
+  SegmentGap,
+  AccountTagDeviation,
+  TaggingConsistencyResult,
+  FreeeDealDetail,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -2742,6 +2747,202 @@ export class FreeeClient {
       past_items: pastItems,
       all_items: allItemsList,
       partner_history_summary: summary,
+    };
+  }
+
+  async checkTaggingConsistency(
+    companyId: number,
+    params: {
+      start_date?: string;
+      end_date?: string;
+      max_records?: number;
+    },
+  ): Promise<TaggingConsistencyResult> {
+    const fetchParams: Record<string, unknown> = { company_id: companyId };
+    if (params.start_date) fetchParams.start_issue_date = params.start_date;
+    if (params.end_date) fetchParams.end_issue_date = params.end_date;
+
+    const maxRecords = params.max_records ?? MAX_AUTO_PAGINATION_RECORDS;
+
+    const [deals, tags] = await Promise.all([
+      this.fetchAllPages<FreeeDeal>('/deals', fetchParams, 'deals', maxRecords),
+      this.getTags(companyId),
+    ]);
+
+    // Build tag name lookup
+    const tagNameMap = new Map<number, string>();
+    for (const tag of tags) {
+      tagNameMap.set(tag.id, tag.name);
+    }
+
+    // Resolve tag IDs to names
+    const resolveTagNames = (tagIds: number[]): string[] =>
+      tagIds.map((id) => tagNameMap.get(id) ?? `ID:${id}`).sort();
+
+    // --- Partner-level tag consistency ---
+    const partnerDeals = new Map<
+      number,
+      { name: string; details: FreeeDealDetail[] }
+    >();
+    for (const deal of deals) {
+      if (!deal.partner_id) continue;
+      let entry = partnerDeals.get(deal.partner_id);
+      if (!entry) {
+        entry = {
+          name: deal.partner_name ?? `ID:${deal.partner_id}`,
+          details: [],
+        };
+        partnerDeals.set(deal.partner_id, entry);
+      }
+      entry.details.push(...deal.details);
+    }
+
+    const tagInconsistencies: TagInconsistency[] = [];
+    let consistentPartnerCount = 0;
+
+    for (const [partnerId, { name, details }] of partnerDeals) {
+      const tagged = details.filter((d) => d.tag_ids && d.tag_ids.length > 0);
+      const untagged = details.length - tagged.length;
+
+      // Count tag pattern frequencies
+      const patternCounts = new Map<string, number>();
+      for (const d of tagged) {
+        const key = resolveTagNames(d.tag_ids!).join(',');
+        patternCounts.set(key, (patternCounts.get(key) ?? 0) + 1);
+      }
+
+      const hasInconsistency = untagged > 0 || patternCounts.size > 1;
+
+      if (hasInconsistency) {
+        const tagPatterns = Array.from(patternCounts.entries())
+          .map(([key, count]) => ({ tag_names: key.split(','), count }))
+          .sort((a, b) => b.count - a.count);
+
+        tagInconsistencies.push({
+          partner_id: partnerId,
+          partner_name: name,
+          total_deals: details.length,
+          tagged_deals: tagged.length,
+          untagged_deals: untagged,
+          tag_patterns: tagPatterns,
+        });
+      } else {
+        consistentPartnerCount++;
+      }
+    }
+
+    // Sort by severity (most untagged first)
+    tagInconsistencies.sort((a, b) => b.untagged_deals - a.untagged_deals);
+
+    // --- Segment gaps (section_id check) ---
+    const allDetails = deals.flatMap((d) => d.details);
+    const segmentGaps: SegmentGap[] = [];
+
+    const sectionUnset = allDetails.filter((d) => !d.section_id);
+    if (sectionUnset.length > 0) {
+      // Find sample partners from deals with unset sections
+      const samplePartners = new Set<string>();
+      for (const deal of deals) {
+        if (deal.details.some((d) => !d.section_id) && deal.partner_name) {
+          samplePartners.add(deal.partner_name);
+          if (samplePartners.size >= 5) break;
+        }
+      }
+
+      segmentGaps.push({
+        segment_id: 1,
+        total_details: allDetails.length,
+        unset_count: sectionUnset.length,
+        sample_partners: Array.from(samplePartners),
+      });
+    }
+
+    // --- Account-item tag deviations ---
+    const accountDetails = new Map<number, { details: FreeeDealDetail[] }>();
+    for (const d of allDetails) {
+      let entry = accountDetails.get(d.account_item_id);
+      if (!entry) {
+        entry = { details: [] };
+        accountDetails.set(d.account_item_id, entry);
+      }
+      entry.details.push(d);
+    }
+
+    const accountDeviations: AccountTagDeviation[] = [];
+    for (const [accountItemId, { details }] of accountDetails) {
+      if (details.length < 3) continue; // Skip accounts with too few entries
+
+      const patternCounts = new Map<string, number>();
+      for (const d of details) {
+        const key =
+          d.tag_ids && d.tag_ids.length > 0
+            ? resolveTagNames(d.tag_ids).join(',')
+            : '(none)';
+        patternCounts.set(key, (patternCounts.get(key) ?? 0) + 1);
+      }
+
+      if (patternCounts.size <= 1) continue; // All same pattern
+
+      // Find majority pattern
+      let majorityPattern = '';
+      let majorityCount = 0;
+      for (const [pattern, count] of patternCounts) {
+        if (count > majorityCount) {
+          majorityPattern = pattern;
+          majorityCount = count;
+        }
+      }
+
+      const deviatingCount = details.length - majorityCount;
+
+      accountDeviations.push({
+        account_item_id: accountItemId,
+        account_item_name: `account_${accountItemId}`,
+        majority_pattern:
+          majorityPattern === '(none)' ? [] : majorityPattern.split(','),
+        total_details: details.length,
+        deviating_details: deviatingCount,
+      });
+    }
+
+    // Sort by deviation count
+    accountDeviations.sort((a, b) => b.deviating_details - a.deviating_details);
+
+    // --- Build period label ---
+    const periodParts: string[] = [];
+    if (params.start_date) periodParts.push(params.start_date);
+    if (params.end_date) periodParts.push(params.end_date);
+    const period = periodParts.length > 0 ? periodParts.join(' ~ ') : 'all';
+
+    // --- Summary ---
+    const summaryParts: string[] = [];
+    summaryParts.push(`${deals.length}件の取引を分析`);
+    if (tagInconsistencies.length > 0) {
+      summaryParts.push(`タグ不統一: ${tagInconsistencies.length}社`);
+    }
+    if (segmentGaps.length > 0) {
+      const totalUnset = segmentGaps.reduce((s, g) => s + g.unset_count, 0);
+      summaryParts.push(`部門未設定: ${totalUnset}件`);
+    }
+    if (accountDeviations.length > 0) {
+      summaryParts.push(`科目別タグ逸脱: ${accountDeviations.length}科目`);
+    }
+    if (
+      tagInconsistencies.length === 0 &&
+      segmentGaps.length === 0 &&
+      accountDeviations.length === 0
+    ) {
+      summaryParts.push('問題なし');
+    }
+
+    return {
+      period,
+      total_deals: deals.length,
+      tag_inconsistencies: tagInconsistencies,
+      segment_gaps: segmentGaps,
+      account_deviations: accountDeviations,
+      consistent_partner_count: consistentPartnerCount,
+      summary: summaryParts.join(', '),
     };
   }
 
