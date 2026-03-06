@@ -986,3 +986,34 @@ export interface RelevantAccount {
   category: string;
   tax_code?: number;
 }
+
+// Partner analysis types
+
+export interface PartnerAnalysisItem {
+  rank: number;
+  partner_id: number;
+  partner_name: string;
+  amount: number;
+  share: number;
+  count: number;
+  monthly_breakdown: { month: string; amount: number }[];
+}
+
+export interface ConcentrationRisk {
+  top3_share: number;
+  top5_share: number;
+  level: 'low' | 'medium' | 'high';
+}
+
+export interface PartnerAnalysisResult {
+  analysis_type: 'income' | 'expense' | 'all';
+  date_range?: string;
+  total_income: number;
+  total_expense: number;
+  income_partners: PartnerAnalysisItem[];
+  expense_partners: PartnerAnalysisItem[];
+  income_concentration: ConcentrationRisk;
+  expense_concentration: ConcentrationRisk;
+  truncated: boolean;
+  max_records_cap?: number;
+}
