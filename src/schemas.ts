@@ -524,6 +524,18 @@ export const GetBalanceSheetSchema = {
     .describe('Breakdown display type'),
 };
 
+export const SegmentPnlSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+  dimension: z
+    .enum(['section', 'segment_1', 'segment_2', 'segment_3'])
+    .describe(
+      'Breakdown dimension: section (部門), segment_1/2/3 (セグメント1-3)',
+    ),
+};
+
 // Analysis schemas
 export const ComparePeriodsSchema = {
   companyId: companyIdField,
