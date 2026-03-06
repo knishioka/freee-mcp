@@ -2104,6 +2104,35 @@ registerTool(
   },
 );
 
+// === Advisory tools ===
+
+registerTool(
+  'freee_master_context',
+  {
+    description:
+      'Get all master data in one call (勘定科目・メモタグ・部門・セグメント・品目・取引先) - Bulk retrieval of reference data for advisory context. Uses parallel API calls with caching. Use include parameter to fetch only specific categories. Essential for providing accounting advice without multiple tool calls.',
+    inputSchema: schemas.MasterContextSchema,
+  },
+  async ({ companyId, include }) => {
+    try {
+      const result = await freeeClient.getMasterContext(
+        getCompanyId(companyId),
+        include,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_master_context', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(

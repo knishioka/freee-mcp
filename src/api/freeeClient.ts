@@ -62,6 +62,8 @@ import {
   FreeeMultiyearTrialBalance,
   MultiyearComparisonResult,
   MultiyearComparisonItem,
+  MasterContextResult,
+  MASTER_CONTEXT_CATEGORIES,
   ItemSuggestionResult,
   ItemSuggestionPastItem,
   ItemSuggestionAllItem,
@@ -717,6 +719,77 @@ export class FreeeClient {
     );
     this.cache.invalidate(`${companyId}:segment_${segmentId}_tags`);
     return response.data.segment_tag;
+  }
+
+  // Master Context method
+  async getMasterContext(
+    companyId: number,
+    include?: string[],
+  ): Promise<MasterContextResult> {
+    const categories =
+      include && include.length > 0 ? include : [...MASTER_CONTEXT_CATEGORIES];
+
+    const result: MasterContextResult = {};
+
+    const fetcherMap: Record<string, () => Promise<void>> = {
+      account_items: () =>
+        this.getAccountItems(companyId).then((items) => {
+          result.account_items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            account_category: i.account_category,
+            tax_code: i.tax_code,
+          }));
+        }),
+      tags: () =>
+        this.getTags(companyId).then((tags) => {
+          result.tags = tags.map((t) => ({ id: t.id, name: t.name }));
+        }),
+      sections: () =>
+        this.getSections(companyId).then((sections) => {
+          result.sections = sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+          }));
+        }),
+      segments: () =>
+        Promise.all([
+          this.getSegmentTags(companyId, 1),
+          this.getSegmentTags(companyId, 2),
+          this.getSegmentTags(companyId, 3),
+        ]).then(([s1, s2, s3]) => {
+          result.segments = {
+            '1': s1.map((t) => ({ id: t.id, name: t.name })),
+            '2': s2.map((t) => ({ id: t.id, name: t.name })),
+            '3': s3.map((t) => ({ id: t.id, name: t.name })),
+          };
+        }),
+      items: () =>
+        this.getItems(companyId).then((items) => {
+          result.items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            code: i.code,
+          }));
+        }),
+      partners: () =>
+        this.getPartners(companyId, { limit: PAGINATION_LIMIT }).then(
+          (partners) => {
+            result.partners = partners.map((p) => ({
+              id: p.id,
+              name: p.name,
+            }));
+          },
+        ),
+    };
+
+    const tasks = categories
+      .map((cat) => fetcherMap[cat])
+      .filter((fetcher): fetcher is () => Promise<void> => !!fetcher)
+      .map((fetcher) => fetcher());
+
+    await Promise.all(tasks);
+    return result;
   }
 
   // Invoice methods

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MASTER_CONTEXT_CATEGORIES } from './types/freee.js';
 
 // Common field descriptions
 const companyIdField = z
@@ -764,6 +765,17 @@ export const MultiyearComparisonSchema = {
   years: z
     .union([z.literal(2), z.literal(3)])
     .describe('Number of years to compare (2 or 3)'),
+};
+
+// Master Context schema
+export const MasterContextSchema = {
+  companyId: companyIdField,
+  include: z
+    .array(z.enum(MASTER_CONTEXT_CATEGORIES))
+    .optional()
+    .describe(
+      'Categories to include (default: all). Options: account_items, tags, sections, segments, items, partners',
+    ),
 };
 
 // Item Suggestion Context schema
