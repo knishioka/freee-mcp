@@ -795,6 +795,40 @@ export class FreeeClient {
     return response.data.trial_bs;
   }
 
+  // Segment P&L methods
+  async getProfitLossBySections(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month: number;
+      end_month: number;
+    },
+  ): Promise<FreeeTrialBalance> {
+    const response = await this.api.get<{
+      trial_pl_sections: FreeeTrialBalance;
+    }>('/reports/trial_pl_sections', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.trial_pl_sections;
+  }
+
+  async getProfitLossBySegment(
+    companyId: number,
+    segmentId: 1 | 2 | 3,
+    params: {
+      fiscal_year: number;
+      start_month: number;
+      end_month: number;
+    },
+  ): Promise<FreeeTrialBalance> {
+    const key = `trial_pl_segment_${segmentId}_tags` as const;
+    const response = await this.api.get<Record<string, FreeeTrialBalance>>(
+      `/reports/trial_pl_segment_${segmentId}_tags`,
+      { params: { company_id: companyId, ...params } },
+    );
+    return response.data[key];
+  }
+
   // Walletable methods
   async getWalletables(
     companyId: number,
