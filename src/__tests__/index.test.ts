@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 55 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(56);
+    it('should register exactly 58 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(58);
     });
 
     it('should register all expected tool names', () => {
@@ -150,7 +150,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_item_suggestion_context',
         'freee_account_item_context',
         'freee_tagging_consistency_check',
+        'freee_journal_consistency_check',
         'freee_accounting_policy_context',
+        'freee_ar_aging',
         'freee_kpi_dashboard',
       ];
 
@@ -179,7 +181,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(56);
+      expect(toolCalls.length).toBe(58);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -246,7 +248,9 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.ItemSuggestionContextSchema',
         'schemas.AccountItemContextSchema',
         'schemas.TaggingConsistencyCheckSchema',
+        'schemas.JournalConsistencyCheckSchema',
         'schemas.AccountingPolicyContextSchema',
+        'schemas.ArAgingSchema',
         'schemas.KpiDashboardSchema',
       ];
 
@@ -416,7 +420,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 56 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 60 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -476,6 +480,8 @@ describe('Schema Structure Verification', () => {
       'AccountItemContextSchema',
       'TaggingConsistencyCheckSchema',
       'AccountingPolicyContextSchema',
+      'JournalConsistencyCheckSchema',
+      'ArAgingSchema',
       'KpiDashboardSchema',
     ];
 
@@ -498,7 +504,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 58 schemas', async () => {
+  it('should export exactly 60 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -506,7 +512,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(58);
+    expect(schemaExports).toHaveLength(60);
   });
 
   it('should use Zod types in schema fields', async () => {

@@ -2197,6 +2197,37 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_journal_consistency_check',
+  {
+    description:
+      'Check journal entry consistency across deals (会計方針一貫性チェック) - Detects: (1) partners using multiple account items (e.g. same vendor booked to both "通信費" and "ソフトウェア使用料"), (2) tax category inconsistencies within the same partner+account combination (e.g. mix of "課税" and "不課税"). Returns severity-sorted findings with recommendations for unification.',
+    inputSchema: schemas.JournalConsistencyCheckSchema,
+  },
+  async ({ companyId, startDate, endDate, maxRecords }) => {
+    try {
+      const result = await freeeClient.checkJournalConsistency(
+        getCompanyId(companyId),
+        {
+          start_date: startDate,
+          end_date: endDate,
+          max_records: maxRecords,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_journal_consistency_check', error);
+    }
+  },
+);
+
 // === Advisory tools ===
 
 registerTool(
@@ -2382,6 +2413,33 @@ registerTool(
       };
     } catch (error) {
       handleToolError('freee_accounting_policy_context', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_ar_aging',
+  {
+    description:
+      'Accounts receivable aging analysis (売掛金エイジング分析) - Classifies unsettled income deals into aging buckets (0-30, 31-60, 61-90, 90+ days) by days since issue_date, aggregates by partner, and highlights long-overdue receivables. Use for cash flow risk assessment and collection prioritization.',
+    inputSchema: schemas.ArAgingSchema,
+  },
+  async ({ companyId, as_of_date }) => {
+    try {
+      const result = await freeeClient.getArAging(
+        getCompanyId(companyId),
+        as_of_date,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_ar_aging', error);
     }
   },
 );

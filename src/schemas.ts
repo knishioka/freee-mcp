@@ -838,6 +838,31 @@ export const TaggingConsistencyCheckSchema = {
     ),
 };
 
+// Journal Consistency Check schema
+export const JournalConsistencyCheckSchema = {
+  companyId: companyIdField,
+  startDate: optionalDateField('Start date for analysis period (YYYY-MM-DD).'),
+  endDate: optionalDateField('End date for analysis period (YYYY-MM-DD).'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(3000)
+    .optional()
+    .describe(
+      'Maximum deals to fetch (1-3000, default 1000). Increase for comprehensive analysis.',
+    ),
+};
+
+// AR Aging schema
+export const ArAgingSchema = {
+  companyId: companyIdField,
+  as_of_date: yyyyMmDdDate
+    .optional()
+    .describe(
+      'Base date for aging calculation (YYYY-MM-DD). Defaults to today.',
+    ),
+};
+
 // KPI Dashboard schema
 export const KpiDashboardSchema = {
   companyId: companyIdField,
