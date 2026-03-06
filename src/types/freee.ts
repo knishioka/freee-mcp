@@ -942,6 +942,33 @@ export interface ItemSuggestionResult {
   partner_history_summary: string;
 }
 
+// AR Aging types
+
+export interface ArAgingBucket {
+  label: string;
+  min_days: number;
+  max_days: number | null;
+  total_amount: number;
+  count: number;
+}
+
+export interface ArAgingPartner {
+  partner_id: number | null;
+  partner_name: string;
+  total_amount: number;
+  oldest_days: number;
+  deal_count: number;
+}
+
+export interface ArAgingResult {
+  as_of_date: string;
+  buckets: ArAgingBucket[];
+  total_amount: number;
+  total_count: number;
+  partners_by_oldest: ArAgingPartner[];
+  summary: string;
+}
+
 // Fixed asset types
 export interface FreeeFixedAsset {
   id: number;
