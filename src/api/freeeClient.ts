@@ -79,6 +79,9 @@ import {
   JournalConsistencyResult,
   FreeeDealDetail,
   FreeeFixedAsset,
+  ArAgingBucket,
+  ArAgingPartner,
+  ArAgingResult,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -2008,6 +2011,133 @@ export class FreeeClient {
       receivables,
       payables,
       net_position: totalCash + receivables.total - payables.total,
+    };
+  }
+
+  async getArAging(
+    companyId: number,
+    asOfDate?: string,
+  ): Promise<ArAgingResult> {
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(new Date())
+      .replace(/\//g, '-');
+
+    const baseDate = asOfDate || today;
+
+    // Fetch unsettled income deals (売掛金)
+    const deals = await this.fetchAllPages<FreeeDeal>(
+      '/deals',
+      {
+        company_id: companyId,
+        type: 'income',
+        status: 'unsettled',
+      },
+      'deals',
+    );
+
+    const baseDateMs = new Date(baseDate).getTime();
+
+    // Define aging buckets
+    const bucketDefs: { label: string; min: number; max: number | null }[] = [
+      { label: '〜30日', min: 0, max: 30 },
+      { label: '31〜60日', min: 31, max: 60 },
+      { label: '61〜90日', min: 61, max: 90 },
+      { label: '90日超', min: 91, max: null },
+    ];
+
+    const buckets: ArAgingBucket[] = bucketDefs.map((def) => ({
+      label: def.label,
+      min_days: def.min,
+      max_days: def.max,
+      total_amount: 0,
+      count: 0,
+    }));
+
+    // Partner aggregation
+    const partnerMap = new Map<
+      string,
+      {
+        partner_id: number | null;
+        partner_name: string;
+        total_amount: number;
+        oldest_days: number;
+        deal_count: number;
+      }
+    >();
+
+    let totalAmount = 0;
+
+    for (const deal of deals) {
+      const issueDateMs = new Date(deal.issue_date).getTime();
+      const daysDiff = Math.floor(
+        (baseDateMs - issueDateMs) / (1000 * 60 * 60 * 24),
+      );
+
+      // Skip future-dated deals (issue_date after as_of_date)
+      if (daysDiff < 0) continue;
+
+      totalAmount += deal.amount;
+
+      // Assign to bucket
+      for (let i = 0; i < bucketDefs.length; i++) {
+        const def = bucketDefs[i];
+        if (daysDiff >= def.min && (def.max === null || daysDiff <= def.max)) {
+          buckets[i].total_amount += deal.amount;
+          buckets[i].count++;
+          break;
+        }
+      }
+
+      // Partner aggregation
+      const partnerKey =
+        deal.partner_id != null
+          ? String(deal.partner_id)
+          : deal.partner_name || '不明';
+      const existing = partnerMap.get(partnerKey) || {
+        partner_id: deal.partner_id ?? null,
+        partner_name:
+          deal.partner_name ||
+          (deal.partner_id != null ? `Partner ${deal.partner_id}` : '不明'),
+        total_amount: 0,
+        oldest_days: 0,
+        deal_count: 0,
+      };
+      existing.total_amount += deal.amount;
+      existing.oldest_days = Math.max(existing.oldest_days, daysDiff);
+      existing.deal_count++;
+      partnerMap.set(partnerKey, existing);
+    }
+
+    // Sort partners by oldest days descending
+    const partnersByOldest: ArAgingPartner[] = Array.from(
+      partnerMap.values(),
+    ).sort((a, b) => b.oldest_days - a.oldest_days);
+
+    // Build summary
+    const longTermCount = buckets[2].count + buckets[3].count;
+    const longTermAmount = buckets[2].total_amount + buckets[3].total_amount;
+    const summaryParts = [
+      `売掛金エイジング分析（${baseDate} 時点）:`,
+      `合計: ${totalAmount.toLocaleString()}円 (${deals.length}件)`,
+    ];
+    if (longTermCount > 0) {
+      summaryParts.push(
+        `⚠️ 61日超の未回収: ${longTermAmount.toLocaleString()}円 (${longTermCount}件)`,
+      );
+    }
+
+    return {
+      as_of_date: baseDate,
+      buckets,
+      total_amount: totalAmount,
+      total_count: deals.length,
+      partners_by_oldest: partnersByOldest,
+      summary: summaryParts.join('\n'),
     };
   }
 

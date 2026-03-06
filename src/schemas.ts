@@ -853,6 +853,16 @@ export const JournalConsistencyCheckSchema = {
     ),
 };
 
+// AR Aging schema
+export const ArAgingSchema = {
+  companyId: companyIdField,
+  as_of_date: yyyyMmDdDate
+    .optional()
+    .describe(
+      'Base date for aging calculation (YYYY-MM-DD). Defaults to today.',
+    ),
+};
+
 // Accounting Policy Context schema
 export const AccountingPolicyContextSchema = {
   companyId: companyIdField,
