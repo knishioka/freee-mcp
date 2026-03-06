@@ -89,46 +89,42 @@ describe('freee_cost_analysis', () => {
     it('should detect anomalies exceeding threshold', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 800000,
         },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 5000000,
         },
         {
           account_item_name: '地代家賃',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 8000000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 300000,
         },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 3000000,
         },
         {
           account_item_name: '地代家賃',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 7500000,
         },
       ]);
@@ -156,56 +152,54 @@ describe('freee_cost_analysis', () => {
     it('should classify expenses as fixed or variable', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '地代家賃',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 8000000,
         },
         {
           account_item_name: '給料手当',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 15000000,
         },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 5000000,
         },
         {
           account_item_name: '広告宣伝費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 3000000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '地代家賃',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 8000000,
         },
         {
           account_item_name: '給料手当',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 15000000,
         },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 5000000,
         },
         {
           account_item_name: '広告宣伝費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 3000000,
         },
       ]);
@@ -249,26 +243,18 @@ describe('freee_cost_analysis', () => {
     it('should support custom threshold', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 400000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 300000,
         },
       ]);
@@ -291,26 +277,18 @@ describe('freee_cost_analysis', () => {
     it('should handle specific month analysis', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '売上原価',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '仕入高',
           hierarchy_level: 1,
+          account_category_name: '当期商品仕入',
           closing_balance: 1000000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '売上原価',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '仕入高',
           hierarchy_level: 1,
+          account_category_name: '当期商品仕入',
           closing_balance: 500000,
         },
       ]);
@@ -342,24 +320,14 @@ describe('freee_cost_analysis', () => {
     it('should flag new expense items with no previous year baseline', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '新規コンサル費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 2000000,
         },
       ]);
 
-      const previousPl = makePl([
-        {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-      ]);
+      const previousPl = makePl([]);
 
       const mock = jest
         .fn<any>()
@@ -381,26 +349,18 @@ describe('freee_cost_analysis', () => {
     it('should return correct summary', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 800000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 300000,
         },
       ]);
@@ -424,32 +384,30 @@ describe('freee_cost_analysis', () => {
     it('should skip zero-balance items', async () => {
       const currentPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
+          account_item_name: '交際費',
+          hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 0,
         },
-        { account_item_name: '交際費', hierarchy_level: 1, closing_balance: 0 },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 1000000,
         },
       ]);
 
       const previousPl = makePl([
         {
-          account_item_name: '販売費及び一般管理費',
-          hierarchy_level: 0,
-          closing_balance: 0,
-        },
-        {
           account_item_name: '交際費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 500000,
         },
         {
           account_item_name: '外注費',
           hierarchy_level: 1,
+          account_category_name: '販売管理費',
           closing_balance: 1000000,
         },
       ]);

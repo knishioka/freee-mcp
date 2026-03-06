@@ -3236,27 +3236,24 @@ export class FreeeClient {
       }
     }
 
-    // Filter to expense-related categories only (hierarchy_level > 0 for detail items)
+    // Expense-related account_category_name values from the freee API
+    // Note: freee uses '販売管理費' (not '販売費及び一般管理費') and '当期商品仕入' for COGS items
     const expenseCategories = new Set([
       '売上原価',
-      '販売費及び一般管理費',
+      '当期商品仕入',
+      '販売管理費',
       '営業外費用',
       '特別損失',
     ]);
 
-    // Determine which items are expense items by checking parent categories
-    const expenseItems: FreeeTrialBalanceItem[] = [];
-    let currentCategory = '';
-    for (const item of currentPl.balances) {
-      if (item.hierarchy_level === 0) {
-        currentCategory = item.account_item_name ?? '';
-      } else if (
-        expenseCategories.has(currentCategory) &&
-        item.closing_balance !== 0
-      ) {
-        expenseItems.push(item);
-      }
-    }
+    // Filter to individual expense items (not total_line) with non-zero balance
+    const expenseItems = currentPl.balances.filter(
+      (item) =>
+        !item.total_line &&
+        item.account_item_name &&
+        item.closing_balance !== 0 &&
+        expenseCategories.has(item.account_category_name ?? ''),
+    );
 
     // Detect anomalies (YoY changes exceeding threshold)
     const anomalies: CostAnalysisAnomaly[] = [];
@@ -3763,8 +3760,9 @@ export class FreeeClient {
 
   private static readonly ACCOUNT_NAMES = {
     revenue: '売上高',
-    operatingProfit: '営業利益',
-    ordinaryProfit: '経常利益',
+    // Total-line entries use account_category_name, not account_item_name
+    operatingProfit: '営業損益金額',
+    ordinaryProfit: '経常損益金額',
     costOfSales: '売上原価',
     currentAssets: '流動資産',
     fixedAssets: '固定資産',
@@ -3792,7 +3790,10 @@ export class FreeeClient {
   }
 
   private findBalance(balances: FreeeTrialBalanceItem[], name: string): number {
-    const item = balances.find((b) => b.account_item_name === name);
+    // Search account_item_name first, then account_category_name for total-line entries
+    const item =
+      balances.find((b) => b.account_item_name === name) ??
+      balances.find((b) => b.total_line && b.account_category_name === name);
     return item?.closing_balance ?? 0;
   }
 

@@ -31,15 +31,18 @@ function makePLBalances(): FreeeTrialBalanceItem[] {
   return [
     makeBalanceItem({ account_item_name: '売上高', closing_balance: 10000000 }),
     makeBalanceItem({
-      account_item_name: '営業利益',
+      account_category_name: '営業損益金額',
+      total_line: true,
       closing_balance: 2000000,
     }),
     makeBalanceItem({
-      account_item_name: '経常利益',
+      account_category_name: '経常損益金額',
+      total_line: true,
       closing_balance: 1500000,
     }),
     makeBalanceItem({
-      account_item_name: '売上原価',
+      account_category_name: '売上原価',
+      total_line: true,
       closing_balance: 6000000,
     }),
   ];
@@ -47,20 +50,11 @@ function makePLBalances(): FreeeTrialBalanceItem[] {
 
 function makeBSBalances(): FreeeTrialBalanceItem[] {
   return [
-    makeBalanceItem({
-      account_item_name: '流動資産',
-      closing_balance: 5000000,
-    }),
-    makeBalanceItem({
-      account_item_name: '固定資産',
-      closing_balance: 3000000,
-    }),
-    makeBalanceItem({
-      account_item_name: '流動負債',
-      closing_balance: 2500000,
-    }),
-    makeBalanceItem({ account_item_name: '純資産', closing_balance: 4000000 }),
-    makeBalanceItem({ account_item_name: '資産', closing_balance: 8000000 }),
+    makeBalanceItem({ account_category_name: '流動資産', total_line: true, closing_balance: 5000000 }),
+    makeBalanceItem({ account_category_name: '固定資産', total_line: true, closing_balance: 3000000 }),
+    makeBalanceItem({ account_category_name: '流動負債', total_line: true, closing_balance: 2500000 }),
+    makeBalanceItem({ account_category_name: '純資産', total_line: true, closing_balance: 4000000 }),
+    makeBalanceItem({ account_category_name: '資産', total_line: true, closing_balance: 8000000 }),
     makeBalanceItem({ account_item_name: '売掛金', closing_balance: 1200000 }),
     makeBalanceItem({ account_item_name: '買掛金', closing_balance: 800000 }),
   ];
@@ -324,39 +318,18 @@ describe('FreeeClient.getKpiDashboard', () => {
 
   it('should assign health statuses correctly', async () => {
     const poorPL = [
-      makeBalanceItem({
-        account_item_name: '売上高',
-        closing_balance: 10000000,
-      }),
-      makeBalanceItem({
-        account_item_name: '営業利益',
-        closing_balance: 300000,
-      }),
-      makeBalanceItem({
-        account_item_name: '経常利益',
-        closing_balance: 200000,
-      }),
-      makeBalanceItem({
-        account_item_name: '売上原価',
-        closing_balance: 8000000,
-      }),
+      makeBalanceItem({ account_item_name: '売上高', closing_balance: 10000000 }),
+      makeBalanceItem({ account_category_name: '営業損益金額', total_line: true, closing_balance: 300000 }),
+      makeBalanceItem({ account_category_name: '経常損益金額', total_line: true, closing_balance: 200000 }),
+      makeBalanceItem({ account_category_name: '売上原価', total_line: true, closing_balance: 8000000 }),
     ];
 
     const poorBS = [
-      makeBalanceItem({
-        account_item_name: '流動資産',
-        closing_balance: 1000000,
-      }),
-      makeBalanceItem({
-        account_item_name: '固定資産',
-        closing_balance: 5000000,
-      }),
-      makeBalanceItem({
-        account_item_name: '流動負債',
-        closing_balance: 4000000,
-      }),
-      makeBalanceItem({ account_item_name: '純資産', closing_balance: 500000 }),
-      makeBalanceItem({ account_item_name: '資産', closing_balance: 6000000 }),
+      makeBalanceItem({ account_category_name: '流動資産', total_line: true, closing_balance: 1000000 }),
+      makeBalanceItem({ account_category_name: '固定資産', total_line: true, closing_balance: 5000000 }),
+      makeBalanceItem({ account_category_name: '流動負債', total_line: true, closing_balance: 4000000 }),
+      makeBalanceItem({ account_category_name: '純資産', total_line: true, closing_balance: 500000 }),
+      makeBalanceItem({ account_category_name: '資産', total_line: true, closing_balance: 6000000 }),
       makeBalanceItem({ account_item_name: '売掛金', closing_balance: 500000 }),
       makeBalanceItem({ account_item_name: '買掛金', closing_balance: 300000 }),
     ];
@@ -388,9 +361,9 @@ describe('FreeeClient.getKpiDashboard', () => {
   it('should handle zero revenue gracefully', async () => {
     const zeroPL = [
       makeBalanceItem({ account_item_name: '売上高', closing_balance: 0 }),
-      makeBalanceItem({ account_item_name: '営業利益', closing_balance: 0 }),
-      makeBalanceItem({ account_item_name: '経常利益', closing_balance: 0 }),
-      makeBalanceItem({ account_item_name: '売上原価', closing_balance: 0 }),
+      makeBalanceItem({ account_category_name: '営業損益金額', total_line: true, closing_balance: 0 }),
+      makeBalanceItem({ account_category_name: '経常損益金額', total_line: true, closing_balance: 0 }),
+      makeBalanceItem({ account_category_name: '売上原価', total_line: true, closing_balance: 0 }),
     ];
 
     mockAxiosInstance.get
@@ -447,22 +420,10 @@ describe('FreeeClient.getKpiDashboard', () => {
 
   it('should use fallback totalAssets when top-level not found', async () => {
     const bsWithoutTotal = [
-      makeBalanceItem({
-        account_item_name: '流動資産',
-        closing_balance: 5000000,
-      }),
-      makeBalanceItem({
-        account_item_name: '固定資産',
-        closing_balance: 3000000,
-      }),
-      makeBalanceItem({
-        account_item_name: '流動負債',
-        closing_balance: 2500000,
-      }),
-      makeBalanceItem({
-        account_item_name: '純資産',
-        closing_balance: 4000000,
-      }),
+      makeBalanceItem({ account_category_name: '流動資産', total_line: true, closing_balance: 5000000 }),
+      makeBalanceItem({ account_category_name: '固定資産', total_line: true, closing_balance: 3000000 }),
+      makeBalanceItem({ account_category_name: '流動負債', total_line: true, closing_balance: 2500000 }),
+      makeBalanceItem({ account_category_name: '純資産', total_line: true, closing_balance: 4000000 }),
       // No '資産' entry
     ];
 
