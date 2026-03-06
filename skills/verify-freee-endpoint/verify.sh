@@ -9,8 +9,17 @@ QUERY="${2:-}"
 REPO="freee/freee-mcp"
 SCHEMA_PATH="openapi/minimal/accounting.json"
 
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/verify-freee-endpoint"
+CACHE_FILE="${CACHE_DIR}/accounting.json"
+CACHE_TTL_MIN=60
+
 fetch_schema() {
-  gh api "repos/${REPO}/contents/${SCHEMA_PATH}" --jq '.content' | base64 -d
+  if [ -f "$CACHE_FILE" ] && find "$CACHE_FILE" -mmin -"$CACHE_TTL_MIN" -print -quit 2>/dev/null | grep -q .; then
+    cat "$CACHE_FILE"
+    return
+  fi
+  mkdir -p "$CACHE_DIR"
+  gh api "repos/${REPO}/contents/${SCHEMA_PATH}" --jq '.content' | base64 -d | tee "$CACHE_FILE"
 }
 
 cmd_check_deps() {
@@ -39,37 +48,39 @@ cmd_exact_match() {
     path="/$path"
   fi
   # Ensure /api/1/ prefix if not present
-  if [[ ! "$path" =~ ^/api/ ]]; then
+  if [[ "$path" =~ ^/api/[^1] || "$path" =~ ^/api/$ ]]; then
+    # Has /api/ but not /api/1/ — insert /1/ after /api
+    path="/api/1${path#/api}"
+  elif [[ ! "$path" =~ ^/api/1/ ]]; then
     path="/api/1/${path#/}"
   fi
 
-  local schema
-  schema=$(fetch_schema)
-
   local result
-  result=$(echo "$schema" | jq --arg p "$path" '
-    .paths[$p] // empty
+  result=$(fetch_schema | jq --arg p "$path" '
+    if .paths[$p] then
+      .paths[$p] | to_entries | map({
+        method: .key | ascii_upcase,
+        summary: .value.summary,
+        description: .value.description,
+        parameters: (.value.parameters // []) | map({
+          name: .name,
+          in: .in,
+          type: .type,
+          required: (.required // false),
+          description: .description
+        })
+      })
+    else
+      "NOT_FOUND"
+    end
   ')
 
-  if [ -z "$result" ]; then
+  if [ "$result" = '"NOT_FOUND"' ]; then
     echo "NOT_FOUND"
     return 1
   fi
 
-  echo "$schema" | jq --arg p "$path" '
-    .paths[$p] | to_entries | map({
-      method: .key | ascii_upcase,
-      summary: .value.summary,
-      description: .value.description,
-      parameters: (.value.parameters // []) | map({
-        name: .name,
-        in: .in,
-        type: .type,
-        required: (.required // false),
-        description: .description
-      })
-    })
-  '
+  echo "$result"
 }
 
 cmd_search() {
@@ -78,8 +89,9 @@ cmd_search() {
   schema=$(fetch_schema)
 
   echo "$schema" | jq --arg q "$keyword" '
-    .paths | to_entries
-    | map(select(.key | test($q; "i")))
+    ($q | gsub("(?<c>[\\\\\\[\\](){}|.^$*+?])"; "\\\(.c)")) as $escaped
+    | .paths | to_entries
+    | map(select(.key | test($escaped; "i")))
     | map({
       path: .key,
       methods: (.value | keys | map(ascii_upcase) | join(", "))
