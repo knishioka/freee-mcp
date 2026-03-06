@@ -1750,6 +1750,88 @@ registerTool(
 );
 
 registerTool(
+  'freee_get_general_ledger',
+  {
+    description:
+      'Get general ledger (総勘定元帳) - Retrieves detailed journal entries per account item. Use account_item_id to filter by specific account (recommended to reduce response size). Ideal for "what is recorded under account X" analysis, account item context investigation, and journal consistency checks. Use compact mode for quick overviews with totals only.',
+    inputSchema: schemas.GetGeneralLedgerSchema,
+  },
+  async ({
+    companyId,
+    fiscalYear,
+    startMonth,
+    endMonth,
+    accountItemId,
+    compact,
+  }) => {
+    try {
+      const generalLedger = await freeeClient.getGeneralLedger(
+        getCompanyId(companyId),
+        {
+          fiscal_year: fiscalYear,
+          start_month: startMonth,
+          end_month: endMonth,
+          ...(accountItemId ? { account_item_id: accountItemId } : {}),
+        },
+      );
+
+      if (compact) {
+        const summary = generalLedger.general_ledger_items.map((item) => {
+          const entries = item.partners.flatMap((p) => p.entries);
+          const totals = entries.reduce(
+            (acc, entry) => ({
+              count: acc.count + 1,
+              debit:
+                acc.debit + (entry.entry_side === 'debit' ? entry.amount : 0),
+              credit:
+                acc.credit + (entry.entry_side === 'credit' ? entry.amount : 0),
+            }),
+            { count: 0, debit: 0, credit: 0 },
+          );
+          return {
+            account_item_id: item.account_item_id,
+            account_item_name: item.account_item_name,
+            entry_count: totals.count,
+            total_debit: totals.debit,
+            total_credit: totals.credit,
+          };
+        });
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  company_id: generalLedger.company_id,
+                  fiscal_year: generalLedger.fiscal_year,
+                  start_month: generalLedger.start_month,
+                  end_month: generalLedger.end_month,
+                  account_count: summary.length,
+                  accounts: summary,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(generalLedger, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_get_general_ledger', error);
+    }
+  },
+);
+
+registerTool(
   'freee_segment_pnl',
   {
     description:
