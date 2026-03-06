@@ -504,6 +504,38 @@ export interface JournalConsistencyResult {
   summary: string;
 }
 
+// Cost analysis types
+
+export interface CostAnalysisAnomaly {
+  account_item_name: string;
+  current_amount: number;
+  previous_amount: number;
+  change_amount: number;
+  change_percentage: number | null;
+}
+
+export interface CostCategoryBreakdown {
+  account_item_name: string;
+  amount: number;
+}
+
+export interface CostComposition {
+  category: 'fixed' | 'variable';
+  total: number;
+  ratio: number;
+  items: CostCategoryBreakdown[];
+}
+
+export interface CostAnalysisResult {
+  fiscal_year: number;
+  month: number | null;
+  threshold: number;
+  anomalies: CostAnalysisAnomaly[];
+  cost_composition: CostComposition[];
+  total_expense: number;
+  summary: string;
+}
+
 export interface FreeeApiError {
   status_code: number;
   errors: Array<{

@@ -85,6 +85,10 @@ import {
   ArAgingBucket,
   ArAgingPartner,
   ArAgingResult,
+  CostAnalysisResult,
+  CostAnalysisAnomaly,
+  CostComposition,
+  CostCategoryBreakdown,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -3110,6 +3114,220 @@ export class FreeeClient {
       segment_gaps: segmentGaps,
       account_deviations: accountDeviations,
       consistent_partner_count: consistentPartnerCount,
+      summary: summaryParts.join(', '),
+    };
+  }
+
+  // Cost Analysis methods
+
+  // Account names typically classified as fixed costs in Japanese accounting
+  private static readonly FIXED_COST_PATTERNS: readonly string[] = [
+    '役員報酬',
+    '給料手当',
+    '給与手当',
+    '賃金',
+    '雑給',
+    '法定福利費',
+    '福利厚生費',
+    '地代家賃',
+    '賃借料',
+    'リース料',
+    '保険料',
+    '租税公課',
+    '減価償却費',
+    '支払利息',
+    '通信費',
+    '水道光熱費',
+  ];
+
+  private classifyExpenseItem(accountItemName: string): 'fixed' | 'variable' {
+    for (const pattern of FreeeClient.FIXED_COST_PATTERNS) {
+      if (accountItemName.includes(pattern)) {
+        return 'fixed';
+      }
+    }
+    return 'variable';
+  }
+
+  async getCostAnalysis(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      month?: number;
+      threshold?: number;
+    },
+  ): Promise<CostAnalysisResult> {
+    const { fiscal_year, month, threshold = 50 } = params;
+    const startMonth = month ?? 1;
+    const endMonth = month ?? 12;
+
+    // Fetch current year and previous year PL in parallel
+    const [currentPl, previousPl] = await Promise.all([
+      this.getProfitLoss(companyId, {
+        fiscal_year,
+        start_month: startMonth,
+        end_month: endMonth,
+      }),
+      this.getProfitLoss(companyId, {
+        fiscal_year: fiscal_year - 1,
+        start_month: startMonth,
+        end_month: endMonth,
+      }),
+    ]);
+
+    // Build a map of previous year expense items for comparison
+    const previousExpenseMap = new Map<string, number>();
+    for (const item of previousPl.balances) {
+      if (item.hierarchy_level > 0 && item.account_item_name) {
+        previousExpenseMap.set(item.account_item_name, item.closing_balance);
+      }
+    }
+
+    // Filter to expense-related categories only (hierarchy_level > 0 for detail items)
+    const expenseCategories = new Set([
+      '売上原価',
+      '販売費及び一般管理費',
+      '営業外費用',
+      '特別損失',
+    ]);
+
+    // Determine which items are expense items by checking parent categories
+    const expenseItems: FreeeTrialBalanceItem[] = [];
+    let currentCategory = '';
+    for (const item of currentPl.balances) {
+      if (item.hierarchy_level === 0) {
+        currentCategory = item.account_item_name;
+      } else if (
+        expenseCategories.has(currentCategory) &&
+        item.closing_balance !== 0
+      ) {
+        expenseItems.push(item);
+      }
+    }
+
+    // Detect anomalies (YoY changes exceeding threshold)
+    const anomalies: CostAnalysisAnomaly[] = [];
+    for (const item of expenseItems) {
+      const currentAmount = item.closing_balance;
+      const previousAmount =
+        previousExpenseMap.get(item.account_item_name) ?? 0;
+      const changeAmount = currentAmount - previousAmount;
+
+      let changePercentage: number | null = null;
+      if (previousAmount !== 0) {
+        changePercentage =
+          Math.round((changeAmount / Math.abs(previousAmount)) * 10000) / 100;
+      } else if (changeAmount !== 0) {
+        changePercentage = null;
+      } else {
+        continue;
+      }
+
+      if (
+        changePercentage !== null &&
+        Math.abs(changePercentage) >= threshold
+      ) {
+        anomalies.push({
+          account_item_name: item.account_item_name,
+          current_amount: currentAmount,
+          previous_amount: previousAmount,
+          change_amount: changeAmount,
+          change_percentage: changePercentage,
+        });
+      } else if (changePercentage === null && currentAmount > 0) {
+        anomalies.push({
+          account_item_name: item.account_item_name,
+          current_amount: currentAmount,
+          previous_amount: 0,
+          change_amount: currentAmount,
+          change_percentage: null,
+        });
+      }
+    }
+
+    // Sort anomalies by absolute change percentage descending (null at end)
+    anomalies.sort((a, b) => {
+      const aAbs =
+        a.change_percentage !== null ? Math.abs(a.change_percentage) : -1;
+      const bAbs =
+        b.change_percentage !== null ? Math.abs(b.change_percentage) : -1;
+      return bAbs - aAbs;
+    });
+
+    // Classify expenses as fixed or variable
+    const fixedItems: CostCategoryBreakdown[] = [];
+    const variableItems: CostCategoryBreakdown[] = [];
+    let totalExpense = 0;
+
+    for (const item of expenseItems) {
+      const amount = item.closing_balance;
+      totalExpense += amount;
+      const classification = this.classifyExpenseItem(item.account_item_name);
+      const breakdown: CostCategoryBreakdown = {
+        account_item_name: item.account_item_name,
+        amount,
+      };
+      if (classification === 'fixed') {
+        fixedItems.push(breakdown);
+      } else {
+        variableItems.push(breakdown);
+      }
+    }
+
+    // Sort each category by amount descending
+    fixedItems.sort((a, b) => b.amount - a.amount);
+    variableItems.sort((a, b) => b.amount - a.amount);
+
+    const fixedTotal = fixedItems.reduce((sum, i) => sum + i.amount, 0);
+    const variableTotal = variableItems.reduce((sum, i) => sum + i.amount, 0);
+
+    const costComposition: CostComposition[] = [
+      {
+        category: 'fixed',
+        total: fixedTotal,
+        ratio:
+          totalExpense > 0
+            ? Math.round((fixedTotal / totalExpense) * 10000) / 100
+            : 0,
+        items: fixedItems,
+      },
+      {
+        category: 'variable',
+        total: variableTotal,
+        ratio:
+          totalExpense > 0
+            ? Math.round((variableTotal / totalExpense) * 10000) / 100
+            : 0,
+        items: variableItems,
+      },
+    ];
+
+    // Build summary
+    const summaryParts: string[] = [];
+    const periodLabel = month
+      ? `${fiscal_year}年${month}月`
+      : `${fiscal_year}年度累計`;
+    summaryParts.push(`${periodLabel}の費用構造分析`);
+
+    if (anomalies.length > 0) {
+      summaryParts.push(
+        `異常検知${anomalies.length}件(前年同期比${threshold}%超)`,
+      );
+    } else {
+      summaryParts.push(`前年同期比${threshold}%超の異常なし`);
+    }
+
+    summaryParts.push(
+      `固定費${Math.round((fixedTotal / (totalExpense || 1)) * 100)}%/変動費${Math.round((variableTotal / (totalExpense || 1)) * 100)}%`,
+    );
+
+    return {
+      fiscal_year,
+      month: month ?? null,
+      threshold,
+      anomalies,
+      cost_composition: costComposition,
+      total_expense: totalExpense,
       summary: summaryParts.join(', '),
     };
   }
