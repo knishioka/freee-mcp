@@ -35,6 +35,7 @@ export interface FreeeDealDetail {
   tax_code: number;
   amount: number;
   description?: string;
+  item_id?: number;
   section_id?: number;
   tag_ids?: number[];
 }
@@ -111,6 +112,35 @@ export interface FreeeSegmentTag {
   shortcut1?: string;
   shortcut2?: string;
   available: boolean;
+}
+
+export const MASTER_CONTEXT_CATEGORIES = [
+  'account_items',
+  'tags',
+  'sections',
+  'segments',
+  'items',
+  'partners',
+] as const;
+
+export type MasterContextCategory = (typeof MASTER_CONTEXT_CATEGORIES)[number];
+
+export interface MasterContextResult {
+  account_items?: {
+    id: number;
+    name: string;
+    account_category: string;
+    tax_code?: number;
+  }[];
+  tags?: { id: number; name: string }[];
+  sections?: { id: number; name: string }[];
+  segments?: {
+    '1': { id: number; name: string }[];
+    '2': { id: number; name: string }[];
+    '3': { id: number; name: string }[];
+  };
+  items?: { id: number; name: string; code?: string }[];
+  partners?: { id: number; name: string }[];
 }
 
 export interface FreeeInvoice {
@@ -848,4 +878,26 @@ export interface CashPositionResult {
     count: number;
   };
   net_position: number;
+}
+
+// Item suggestion context types
+
+export interface ItemSuggestionPastItem {
+  id: number;
+  name: string;
+  unit_price: number;
+  tax_code: number;
+  used_count: number;
+}
+
+export interface ItemSuggestionAllItem {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+export interface ItemSuggestionResult {
+  past_items: ItemSuggestionPastItem[];
+  all_items: ItemSuggestionAllItem[];
+  partner_history_summary: string;
 }

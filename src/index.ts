@@ -2043,6 +2043,35 @@ registerTool(
   },
 );
 
+// === Advisory tools ===
+
+registerTool(
+  'freee_item_suggestion_context',
+  {
+    description:
+      'Get item (品目) suggestion context for a partner - Retrieves item master list and aggregates item usage history from past deals with the specified partner. Items are ranked by usage frequency with recommended unit prices and tax codes. Use partner_id or partner_name to specify the partner. Useful for consistent bookkeeping when creating new deals or invoices.',
+    inputSchema: schemas.ItemSuggestionContextSchema,
+  },
+  async ({ companyId, partner_id, partner_name, category }) => {
+    try {
+      const result = await freeeClient.getItemSuggestionContext(
+        getCompanyId(companyId),
+        { partner_id, partner_name, category },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_item_suggestion_context', error);
+    }
+  },
+);
+
 // === Journal tools (async download API) ===
 
 registerTool(
@@ -2071,6 +2100,33 @@ registerTool(
       };
     } catch (error) {
       handleToolError('freee_get_journals', error);
+    }
+  },
+);
+
+registerTool(
+  'freee_master_context',
+  {
+    description:
+      'Get all master data in one call (勘定科目・メモタグ・部門・セグメント・品目・取引先) - Bulk retrieval of reference data for advisory context. Uses parallel API calls with caching. Use include parameter to fetch only specific categories. Essential for providing accounting advice without multiple tool calls.',
+    inputSchema: schemas.MasterContextSchema,
+  },
+  async ({ companyId, include }) => {
+    try {
+      const result = await freeeClient.getMasterContext(
+        getCompanyId(companyId),
+        include,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_master_context', error);
     }
   },
 );

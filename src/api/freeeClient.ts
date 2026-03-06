@@ -62,6 +62,11 @@ import {
   FreeeMultiyearTrialBalance,
   MultiyearComparisonResult,
   MultiyearComparisonItem,
+  MasterContextResult,
+  MASTER_CONTEXT_CATEGORIES,
+  ItemSuggestionResult,
+  ItemSuggestionPastItem,
+  ItemSuggestionAllItem,
   AccountItemCandidate,
   AccountItemContextResult,
   SimilarDeal,
@@ -855,6 +860,77 @@ export class FreeeClient {
     );
     this.cache.invalidate(`${companyId}:segment_${segmentId}_tags`);
     return response.data.segment_tag;
+  }
+
+  // Master Context method
+  async getMasterContext(
+    companyId: number,
+    include?: string[],
+  ): Promise<MasterContextResult> {
+    const categories =
+      include && include.length > 0 ? include : [...MASTER_CONTEXT_CATEGORIES];
+
+    const result: MasterContextResult = {};
+
+    const fetcherMap: Record<string, () => Promise<void>> = {
+      account_items: () =>
+        this.getAccountItems(companyId).then((items) => {
+          result.account_items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            account_category: i.account_category,
+            tax_code: i.tax_code,
+          }));
+        }),
+      tags: () =>
+        this.getTags(companyId).then((tags) => {
+          result.tags = tags.map((t) => ({ id: t.id, name: t.name }));
+        }),
+      sections: () =>
+        this.getSections(companyId).then((sections) => {
+          result.sections = sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+          }));
+        }),
+      segments: () =>
+        Promise.all([
+          this.getSegmentTags(companyId, 1),
+          this.getSegmentTags(companyId, 2),
+          this.getSegmentTags(companyId, 3),
+        ]).then(([s1, s2, s3]) => {
+          result.segments = {
+            '1': s1.map((t) => ({ id: t.id, name: t.name })),
+            '2': s2.map((t) => ({ id: t.id, name: t.name })),
+            '3': s3.map((t) => ({ id: t.id, name: t.name })),
+          };
+        }),
+      items: () =>
+        this.getItems(companyId).then((items) => {
+          result.items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            code: i.code,
+          }));
+        }),
+      partners: () =>
+        this.getPartners(companyId, { limit: PAGINATION_LIMIT }).then(
+          (partners) => {
+            result.partners = partners.map((p) => ({
+              id: p.id,
+              name: p.name,
+            }));
+          },
+        ),
+    };
+
+    const tasks = categories
+      .map((cat) => fetcherMap[cat])
+      .filter((fetcher): fetcher is () => Promise<void> => !!fetcher)
+      .map((fetcher) => fetcher());
+
+    await Promise.all(tasks);
+    return result;
   }
 
   // Invoice methods
@@ -2538,6 +2614,135 @@ export class FreeeClient {
     }
     fields.push(current);
     return fields;
+  }
+
+  // Item suggestion context: aggregate item usage from partner's deal history
+  async getItemSuggestionContext(
+    companyId: number,
+    params: {
+      partner_id?: number;
+      partner_name?: string;
+      category?: string;
+    },
+  ): Promise<ItemSuggestionResult> {
+    // Resolve partner_id from partner_name if needed
+    let partnerId = params.partner_id;
+    let partnerName: string | undefined;
+
+    if (!partnerId && params.partner_name) {
+      const partners = await this.getPartners(companyId, {
+        name: params.partner_name,
+      });
+      if (partners.length > 0) {
+        partnerId = partners[0].id;
+        partnerName = partners[0].name;
+      }
+    }
+
+    // Fetch items and deals in parallel
+    const [allItems, deals] = await Promise.all([
+      this.getItems(companyId),
+      partnerId
+        ? this.fetchAllPages<FreeeDeal>(
+          '/deals',
+          { company_id: companyId, partner_id: partnerId },
+          'deals',
+        )
+        : Promise.resolve([] as FreeeDeal[]),
+    ]);
+
+    // Build item lookup map
+    const itemMap = new Map(allItems.map((item) => [item.id, item]));
+
+    // Aggregate item usage from deal details
+    const itemUsage = new Map<
+      number,
+      { count: number; totalAmount: number; taxCodeFreq: Map<number, number> }
+    >();
+
+    for (const deal of deals) {
+      for (const detail of deal.details || []) {
+        if (detail.item_id != null) {
+          const existing = itemUsage.get(detail.item_id) || {
+            count: 0,
+            totalAmount: 0,
+            taxCodeFreq: new Map<number, number>(),
+          };
+          existing.count++;
+          existing.totalAmount += detail.amount;
+          existing.taxCodeFreq.set(
+            detail.tax_code,
+            (existing.taxCodeFreq.get(detail.tax_code) || 0) + 1,
+          );
+          itemUsage.set(detail.item_id, existing);
+        }
+      }
+    }
+
+    // Build past_items sorted by frequency
+    let pastItems: ItemSuggestionPastItem[] = Array.from(itemUsage.entries())
+      .map(([itemId, usage]) => {
+        const item = itemMap.get(itemId);
+        // Use the most frequently used tax code
+        let mostFreqTaxCode = 0;
+        let maxFreq = 0;
+        for (const [code, freq] of usage.taxCodeFreq) {
+          if (freq > maxFreq) {
+            maxFreq = freq;
+            mostFreqTaxCode = code;
+          }
+        }
+        return {
+          id: itemId,
+          name: item?.name ?? `Item ${itemId}`,
+          unit_price:
+            usage.count > 0 ? Math.round(usage.totalAmount / usage.count) : 0,
+          tax_code: mostFreqTaxCode,
+          used_count: usage.count,
+        };
+      })
+      .sort((a, b) => b.used_count - a.used_count);
+
+    // Build all_items list
+    let allItemsList: ItemSuggestionAllItem[] = allItems
+      .filter((item) => item.available)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        ...(item.code ? { code: item.code } : {}),
+      }));
+
+    // Filter by category if provided
+    if (params.category) {
+      const cat = params.category.toLowerCase();
+      const categoryFilter = (item: { name: string }) =>
+        item.name.toLowerCase().includes(cat);
+      pastItems = pastItems.filter(categoryFilter);
+      allItemsList = allItemsList.filter(categoryFilter);
+    }
+
+    // Build summary
+    const resolvedPartnerName =
+      partnerName ??
+      (partnerId
+        ? (deals[0]?.partner_name ?? `Partner ${partnerId}`)
+        : undefined);
+
+    let summary: string;
+    if (!partnerId) {
+      summary = '取引先が指定されていないため、品目マスタのみ返します';
+    } else if (deals.length === 0) {
+      summary = `${resolvedPartnerName}の過去取引は見つかりませんでした`;
+    } else {
+      const itemCount = itemUsage.size;
+      summary = `${resolvedPartnerName}との過去${deals.length}件の取引で${itemCount}種類の品目が使用されています`;
+    }
+
+    return {
+      past_items: pastItems,
+      all_items: allItemsList,
+      partner_history_summary: summary,
+    };
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
