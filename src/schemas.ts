@@ -713,6 +713,27 @@ export const GetJournalsSchema = {
     ),
 };
 
+// Multiyear Comparison schemas
+export const MultiyearComparisonSchema = {
+  companyId: companyIdField,
+  fiscalYear: z
+    .number()
+    .describe('Fiscal year (the most recent year to compare)'),
+  startMonth: z
+    .number()
+    .min(1)
+    .max(12)
+    .optional()
+    .describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).optional().describe('End month (1-12)'),
+  reportType: z
+    .enum(['pl', 'bs'])
+    .describe('Report type: pl (profit & loss) or bs (balance sheet)'),
+  years: z
+    .union([z.literal(2), z.literal(3)])
+    .describe('Number of years to compare (2 or 3)'),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,

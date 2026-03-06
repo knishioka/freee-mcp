@@ -58,6 +58,9 @@ import {
   MonthlyClosingCheckItem,
   MonthlyClosingCheckResult,
   FreeeErrorResponse,
+  FreeeMultiyearTrialBalance,
+  MultiyearComparisonResult,
+  MultiyearComparisonItem,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -793,6 +796,127 @@ export class FreeeClient {
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
+  }
+
+  // Multiyear Trial Balance methods
+  async getProfitLossTwoYears(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<FreeeMultiyearTrialBalance> {
+    const response = await this.api.get<{
+      trial_pl_two_years: FreeeMultiyearTrialBalance;
+    }>('/reports/trial_pl_two_years', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.trial_pl_two_years;
+  }
+
+  async getProfitLossThreeYears(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<FreeeMultiyearTrialBalance> {
+    const response = await this.api.get<{
+      trial_pl_three_years: FreeeMultiyearTrialBalance;
+    }>('/reports/trial_pl_three_years', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.trial_pl_three_years;
+  }
+
+  async getBalanceSheetTwoYears(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<FreeeMultiyearTrialBalance> {
+    const response = await this.api.get<{
+      trial_bs_two_years: FreeeMultiyearTrialBalance;
+    }>('/reports/trial_bs_two_years', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.trial_bs_two_years;
+  }
+
+  async getBalanceSheetThreeYears(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<FreeeMultiyearTrialBalance> {
+    const response = await this.api.get<{
+      trial_bs_three_years: FreeeMultiyearTrialBalance;
+    }>('/reports/trial_bs_three_years', {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data.trial_bs_three_years;
+  }
+
+  async getMultiyearComparison(
+    companyId: number,
+    reportType: 'pl' | 'bs',
+    years: 2 | 3,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<MultiyearComparisonResult> {
+    const fetchMethods = {
+      pl_2: () => this.getProfitLossTwoYears(companyId, params),
+      pl_3: () => this.getProfitLossThreeYears(companyId, params),
+      bs_2: () => this.getBalanceSheetTwoYears(companyId, params),
+      bs_3: () => this.getBalanceSheetThreeYears(companyId, params),
+    };
+
+    const report = await fetchMethods[`${reportType}_${years}`]();
+
+    const items: MultiyearComparisonItem[] = report.balances.map((b) => {
+      const currentYear = b.closing_balance ?? 0;
+      const lastYear = b.last_year_closing_balance ?? 0;
+      const yoyChange = currentYear - lastYear;
+      const yoyPercentage =
+        lastYear !== 0
+          ? Math.round(
+            ((currentYear - lastYear) / Math.abs(lastYear)) * 10000,
+          ) / 100
+          : currentYear === lastYear
+            ? 0
+            : null;
+
+      return {
+        account_item_name: b.account_item_name,
+        account_category_name: b.account_category_name,
+        hierarchy_level: b.hierarchy_level,
+        current_year: currentYear,
+        last_year: lastYear,
+        ...(years === 3
+          ? { two_years_before: b.two_years_before_closing_balance ?? 0 }
+          : {}),
+        year_on_year_change: yoyChange,
+        year_on_year_percentage: yoyPercentage,
+      };
+    });
+
+    return {
+      report_type: reportType,
+      years,
+      fiscal_year: report.fiscal_year,
+      start_month: report.start_month,
+      end_month: report.end_month,
+      items,
+    };
   }
 
   // Walletable methods
