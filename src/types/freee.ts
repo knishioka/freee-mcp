@@ -976,6 +976,28 @@ export interface ItemSuggestionResult {
   partner_history_summary: string;
 }
 
+// KPI Dashboard types
+
+export type KpiStatus = 'healthy' | 'caution' | 'warning';
+
+export interface KpiMetric {
+  label: string;
+  value: number;
+  unit: string;
+  status?: KpiStatus;
+}
+
+export interface KpiDashboardResult {
+  fiscal_year: number;
+  start_month: number;
+  end_month: number;
+  profitability: KpiMetric[];
+  safety: KpiMetric[];
+  efficiency: KpiMetric[];
+  liquidity: KpiMetric[];
+  summary: string;
+}
+
 // AR Aging types
 
 export interface ArAgingBucket {

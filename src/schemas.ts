@@ -863,6 +863,14 @@ export const ArAgingSchema = {
     ),
 };
 
+// KPI Dashboard schema
+export const KpiDashboardSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
+};
+
 // Accounting Policy Context schema
 export const AccountingPolicyContextSchema = {
   companyId: companyIdField,

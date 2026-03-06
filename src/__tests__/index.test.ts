@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 57 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(57);
+    it('should register exactly 58 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(58);
     });
 
     it('should register all expected tool names', () => {
@@ -153,6 +153,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_journal_consistency_check',
         'freee_accounting_policy_context',
         'freee_ar_aging',
+        'freee_kpi_dashboard',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -180,7 +181,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(57);
+      expect(toolCalls.length).toBe(58);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -249,6 +250,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.TaggingConsistencyCheckSchema',
         'schemas.JournalConsistencyCheckSchema',
         'schemas.AccountingPolicyContextSchema',
+        'schemas.ArAgingSchema',
+        'schemas.KpiDashboardSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -417,7 +420,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
 });
 
 describe('Schema Structure Verification', () => {
-  it('should export all 46 schemas as raw shapes (plain objects)', async () => {
+  it('should export all 60 schemas as raw shapes (plain objects)', async () => {
     const schemas = await import('../schemas.js');
 
     const schemaNames = [
@@ -477,6 +480,9 @@ describe('Schema Structure Verification', () => {
       'AccountItemContextSchema',
       'TaggingConsistencyCheckSchema',
       'AccountingPolicyContextSchema',
+      'JournalConsistencyCheckSchema',
+      'ArAgingSchema',
+      'KpiDashboardSchema',
     ];
 
     schemaNames.forEach((name) => {
@@ -498,7 +504,7 @@ describe('Schema Structure Verification', () => {
     ).toBeUndefined();
   });
 
-  it('should export exactly 49 schemas', async () => {
+  it('should export exactly 60 schemas', async () => {
     const schemas = await import('../schemas.js');
 
     // Count exports that end with 'Schema'
@@ -506,7 +512,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(59);
+    expect(schemaExports).toHaveLength(60);
   });
 
   it('should use Zod types in schema fields', async () => {

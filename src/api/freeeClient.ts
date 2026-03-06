@@ -79,6 +79,9 @@ import {
   JournalConsistencyResult,
   FreeeDealDetail,
   FreeeFixedAsset,
+  KpiDashboardResult,
+  KpiMetric,
+  KpiStatus,
   ArAgingBucket,
   ArAgingPartner,
   ArAgingResult,
@@ -185,7 +188,10 @@ export class FreeeClient {
                 config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
               }
             } catch (error) {
-              logAuth('Pre-request token refresh failed: %O', error);
+              logAuth(
+                'Pre-request token refresh failed: %s',
+                error instanceof Error ? error.message : String(error),
+              );
               throw new Error(
                 'Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.',
               );
@@ -208,7 +214,10 @@ export class FreeeClient {
               effectiveCompanyId,
               token.refresh_token,
             ).catch((err) =>
-              logAuth('Background token refresh failed: %O', err),
+              logAuth(
+                'Background token refresh failed: %s',
+                err instanceof Error ? err.message : String(err),
+              ),
             );
           }
         } else {
@@ -3307,6 +3316,265 @@ export class FreeeClient {
     const assets = response.data.fixed_assets ?? [];
     this.cache.set(cacheKey, assets, CACHE_TTL_ITEMS);
     return assets;
+  }
+
+  // KPI Dashboard methods
+
+  private static readonly KPI_THRESHOLDS = {
+    operatingMargin: { healthy: 10, caution: 5, higherIsBetter: true },
+    ordinaryMargin: { healthy: 10, caution: 5, higherIsBetter: true },
+    currentRatio: { healthy: 200, caution: 120, higherIsBetter: true },
+    equityRatio: { healthy: 40, caution: 20, higherIsBetter: true },
+    receivableDays: { healthy: 30, caution: 60, higherIsBetter: false },
+    payableDays: { healthy: 30, caution: 60, higherIsBetter: false },
+  };
+
+  private static readonly ACCOUNT_NAMES = {
+    revenue: '売上高',
+    operatingProfit: '営業利益',
+    ordinaryProfit: '経常利益',
+    costOfSales: '売上原価',
+    currentAssets: '流動資産',
+    fixedAssets: '固定資産',
+    currentLiabilities: '流動負債',
+    netAssets: '純資産',
+    totalAssets: '資産',
+    receivableKeywords: ['売掛金', '受取手形'],
+    payableKeywords: ['買掛金', '支払手形'],
+  };
+
+  private static evaluateStatus(
+    value: number,
+    healthyThreshold: number,
+    cautionThreshold: number,
+    higherIsBetter: boolean,
+  ): KpiStatus {
+    if (higherIsBetter) {
+      if (value >= healthyThreshold) return 'healthy';
+      if (value >= cautionThreshold) return 'caution';
+      return 'warning';
+    }
+    if (value <= healthyThreshold) return 'healthy';
+    if (value <= cautionThreshold) return 'caution';
+    return 'warning';
+  }
+
+  private findBalance(balances: FreeeTrialBalanceItem[], name: string): number {
+    const item = balances.find((b) => b.account_item_name === name);
+    return item?.closing_balance ?? 0;
+  }
+
+  private findBalanceByKeywords(
+    balances: FreeeTrialBalanceItem[],
+    keywords: string[],
+  ): number {
+    return balances
+      .filter((b) => keywords.some((kw) => b.account_item_name.includes(kw)))
+      .reduce((sum, b) => sum + b.closing_balance, 0);
+  }
+
+  async getKpiDashboard(
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month: number;
+      end_month: number;
+    },
+  ): Promise<KpiDashboardResult> {
+    const reportParams = {
+      fiscal_year: params.fiscal_year,
+      start_month: params.start_month,
+      end_month: params.end_month,
+    };
+
+    const [pl, bs, walletables] = await Promise.all([
+      this.getProfitLoss(companyId, reportParams),
+      this.getBalanceSheet(companyId, reportParams),
+      this.getWalletables(companyId, { with_balance: true }),
+    ]);
+
+    // === Profitability KPIs ===
+    const { ACCOUNT_NAMES: AN, KPI_THRESHOLDS: KT } = FreeeClient;
+    const revenue = this.findBalance(pl.balances, AN.revenue);
+    const operatingProfit = this.findBalance(pl.balances, AN.operatingProfit);
+    const ordinaryProfit = this.findBalance(pl.balances, AN.ordinaryProfit);
+
+    const operatingMargin =
+      revenue !== 0 ? (operatingProfit / revenue) * 100 : 0;
+    const ordinaryMargin = revenue !== 0 ? (ordinaryProfit / revenue) * 100 : 0;
+
+    const profitability: KpiMetric[] = [
+      { label: AN.revenue, value: revenue, unit: '円' },
+      {
+        label: '営業利益率',
+        value: Math.round(operatingMargin * 10) / 10,
+        unit: '%',
+        status: FreeeClient.evaluateStatus(
+          operatingMargin,
+          KT.operatingMargin.healthy,
+          KT.operatingMargin.caution,
+          KT.operatingMargin.higherIsBetter,
+        ),
+      },
+      {
+        label: '経常利益率',
+        value: Math.round(ordinaryMargin * 10) / 10,
+        unit: '%',
+        status: FreeeClient.evaluateStatus(
+          ordinaryMargin,
+          KT.ordinaryMargin.healthy,
+          KT.ordinaryMargin.caution,
+          KT.ordinaryMargin.higherIsBetter,
+        ),
+      },
+    ];
+
+    // === Safety KPIs ===
+    const currentAssets = this.findBalance(bs.balances, AN.currentAssets);
+    const currentLiabilities = this.findBalance(
+      bs.balances,
+      AN.currentLiabilities,
+    );
+    const netAssets = this.findBalance(bs.balances, AN.netAssets);
+    const totalAssets = this.findBalance(bs.balances, AN.totalAssets);
+    // Fallback: if top-level '資産' not found, sum 流動資産 + 固定資産
+    const effectiveTotalAssets =
+      totalAssets !== 0
+        ? totalAssets
+        : currentAssets + this.findBalance(bs.balances, AN.fixedAssets);
+
+    // When current liabilities are 0, the ratio is effectively infinite (very healthy)
+    const currentRatio =
+      currentLiabilities !== 0
+        ? (currentAssets / currentLiabilities) * 100
+        : currentAssets > 0
+          ? 9999
+          : 0;
+    const equityRatio =
+      effectiveTotalAssets !== 0 ? (netAssets / effectiveTotalAssets) * 100 : 0;
+
+    const safety: KpiMetric[] = [
+      {
+        label: '流動比率',
+        value: Math.round(currentRatio * 10) / 10,
+        unit: '%',
+        status: FreeeClient.evaluateStatus(
+          currentRatio,
+          KT.currentRatio.healthy,
+          KT.currentRatio.caution,
+          KT.currentRatio.higherIsBetter,
+        ),
+      },
+      {
+        label: '自己資本比率',
+        value: Math.round(equityRatio * 10) / 10,
+        unit: '%',
+        status: FreeeClient.evaluateStatus(
+          equityRatio,
+          KT.equityRatio.healthy,
+          KT.equityRatio.caution,
+          KT.equityRatio.higherIsBetter,
+        ),
+      },
+    ];
+
+    // === Efficiency KPIs ===
+    const receivables = this.findBalanceByKeywords(
+      bs.balances,
+      AN.receivableKeywords,
+    );
+    const payables = this.findBalanceByKeywords(
+      bs.balances,
+      AN.payableKeywords,
+    );
+    const costOfSales = this.findBalance(pl.balances, AN.costOfSales);
+
+    // Approximate days in period for turnover calculation
+    const monthCount =
+      params.end_month >= params.start_month
+        ? params.end_month - params.start_month + 1
+        : 12 - params.start_month + 1 + params.end_month;
+    const dailyRevenue =
+      monthCount > 0 && revenue !== 0 ? revenue / (monthCount * 30) : 0;
+    const dailyCost =
+      monthCount > 0 && costOfSales !== 0 ? costOfSales / (monthCount * 30) : 0;
+
+    const receivableDays =
+      dailyRevenue !== 0 ? Math.round(receivables / dailyRevenue) : 0;
+    const payableDays = dailyCost !== 0 ? Math.round(payables / dailyCost) : 0;
+
+    const efficiency: KpiMetric[] = [
+      {
+        label: '売上債権回転日数',
+        value: receivableDays,
+        unit: '日',
+        status: FreeeClient.evaluateStatus(
+          receivableDays,
+          KT.receivableDays.healthy,
+          KT.receivableDays.caution,
+          KT.receivableDays.higherIsBetter,
+        ),
+      },
+      {
+        label: '仕入債務回転日数',
+        value: payableDays,
+        unit: '日',
+        status: FreeeClient.evaluateStatus(
+          payableDays,
+          KT.payableDays.healthy,
+          KT.payableDays.caution,
+          KT.payableDays.higherIsBetter,
+        ),
+      },
+    ];
+
+    // === Liquidity KPIs ===
+    const cashBalance = walletables
+      .filter((w) => w.type !== 'credit_card')
+      .reduce(
+        (sum, w) => sum + (w.walletable_balance ?? w.last_balance ?? 0),
+        0,
+      );
+    const workingCapital = currentAssets - currentLiabilities;
+
+    const liquidity: KpiMetric[] = [
+      { label: '現金・預金残高', value: cashBalance, unit: '円' },
+      { label: '運転資本', value: workingCapital, unit: '円' },
+    ];
+
+    // === Summary ===
+    const allMetrics = [
+      ...profitability,
+      ...safety,
+      ...efficiency,
+      ...liquidity,
+    ];
+    const warningCount = allMetrics.filter(
+      (m) => m.status === 'warning',
+    ).length;
+    const cautionCount = allMetrics.filter(
+      (m) => m.status === 'caution',
+    ).length;
+
+    let summary: string;
+    if (warningCount > 0) {
+      summary = `${warningCount}項目で要注意、${cautionCount}項目で注意`;
+    } else if (cautionCount > 0) {
+      summary = `${cautionCount}項目で注意、他は健全`;
+    } else {
+      summary = '全指標健全';
+    }
+
+    return {
+      fiscal_year: params.fiscal_year,
+      start_month: params.start_month,
+      end_month: params.end_month,
+      profitability,
+      safety,
+      efficiency,
+      liquidity,
+      summary,
+    };
   }
 
   // Note: Cash Flow Statement API (/reports/trial_cf) is not available in freee API
