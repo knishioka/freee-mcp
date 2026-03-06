@@ -838,6 +838,21 @@ export const TaggingConsistencyCheckSchema = {
     ),
 };
 
+// Journal Consistency Check schema
+export const JournalConsistencyCheckSchema = {
+  companyId: companyIdField,
+  startDate: optionalDateField('Start date for analysis period (YYYY-MM-DD).'),
+  endDate: optionalDateField('End date for analysis period (YYYY-MM-DD).'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(3000)
+    .optional()
+    .describe(
+      'Maximum deals to fetch (1-3000, default 1000). Increase for comprehensive analysis.',
+    ),
+};
+
 // Partner Analysis schema
 export const PartnerAnalysisSchema = {
   companyId: companyIdField,
@@ -873,6 +888,14 @@ export const ArAgingSchema = {
     .describe(
       'Base date for aging calculation (YYYY-MM-DD). Defaults to today.',
     ),
+};
+
+// KPI Dashboard schema
+export const KpiDashboardSchema = {
+  companyId: companyIdField,
+  fiscalYear: z.number().describe('Fiscal year'),
+  startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
+  endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
 };
 
 // Accounting Policy Context schema
