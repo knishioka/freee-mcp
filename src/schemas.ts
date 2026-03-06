@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MASTER_CONTEXT_CATEGORIES } from './types/freee.js';
 
 // Common field descriptions
 const companyIdField = z
@@ -770,16 +771,7 @@ export const MultiyearComparisonSchema = {
 export const MasterContextSchema = {
   companyId: companyIdField,
   include: z
-    .array(
-      z.enum([
-        'account_items',
-        'tags',
-        'sections',
-        'segments',
-        'items',
-        'partners',
-      ]),
-    )
+    .array(z.enum(MASTER_CONTEXT_CATEGORIES))
     .optional()
     .describe(
       'Categories to include (default: all). Options: account_items, tags, sections, segments, items, partners',

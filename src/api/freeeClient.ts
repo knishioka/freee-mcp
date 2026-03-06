@@ -63,6 +63,7 @@ import {
   MultiyearComparisonResult,
   MultiyearComparisonItem,
   MasterContextResult,
+  MASTER_CONTEXT_CATEGORIES,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -722,22 +723,15 @@ export class FreeeClient {
     companyId: number,
     include?: string[],
   ): Promise<MasterContextResult> {
-    const all = [
-      'account_items',
-      'tags',
-      'sections',
-      'segments',
-      'items',
-      'partners',
-    ];
-    const categories = include && include.length > 0 ? include : all;
+    const categories =
+      include && include.length > 0
+        ? include
+        : [...MASTER_CONTEXT_CATEGORIES];
 
     const result: MasterContextResult = {};
 
-    const tasks: Promise<void>[] = [];
-
-    if (categories.includes('account_items')) {
-      tasks.push(
+    const fetcherMap: Record<string, () => Promise<void>> = {
+      account_items: () =>
         this.getAccountItems(companyId).then((items) => {
           result.account_items = items.map((i) => ({
             id: i.id,
@@ -746,30 +740,18 @@ export class FreeeClient {
             tax_code: i.tax_code,
           }));
         }),
-      );
-    }
-
-    if (categories.includes('tags')) {
-      tasks.push(
+      tags: () =>
         this.getTags(companyId).then((tags) => {
           result.tags = tags.map((t) => ({ id: t.id, name: t.name }));
         }),
-      );
-    }
-
-    if (categories.includes('sections')) {
-      tasks.push(
+      sections: () =>
         this.getSections(companyId).then((sections) => {
           result.sections = sections.map((s) => ({
             id: s.id,
             name: s.name,
           }));
         }),
-      );
-    }
-
-    if (categories.includes('segments')) {
-      tasks.push(
+      segments: () =>
         Promise.all([
           this.getSegmentTags(companyId, 1),
           this.getSegmentTags(companyId, 2),
@@ -781,11 +763,7 @@ export class FreeeClient {
             '3': s3.map((t) => ({ id: t.id, name: t.name })),
           };
         }),
-      );
-    }
-
-    if (categories.includes('items')) {
-      tasks.push(
+      items: () =>
         this.getItems(companyId).then((items) => {
           result.items = items.map((i) => ({
             id: i.id,
@@ -793,19 +771,21 @@ export class FreeeClient {
             code: i.code,
           }));
         }),
-      );
-    }
+      partners: () =>
+        this.getPartners(companyId, { limit: PAGINATION_LIMIT }).then(
+          (partners) => {
+            result.partners = partners.map((p) => ({
+              id: p.id,
+              name: p.name,
+            }));
+          },
+        ),
+    };
 
-    if (categories.includes('partners')) {
-      tasks.push(
-        this.getPartners(companyId, { limit: 100 }).then((partners) => {
-          result.partners = partners.map((p) => ({
-            id: p.id,
-            name: p.name,
-          }));
-        }),
-      );
-    }
+    const tasks = categories
+      .map((cat) => fetcherMap[cat])
+      .filter((fetcher): fetcher is () => Promise<void> => !!fetcher)
+      .map((fetcher) => fetcher());
 
     await Promise.all(tasks);
     return result;

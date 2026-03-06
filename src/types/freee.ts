@@ -113,13 +113,16 @@ export interface FreeeSegmentTag {
   available: boolean;
 }
 
-export type MasterContextCategory =
-  | 'account_items'
-  | 'tags'
-  | 'sections'
-  | 'segments'
-  | 'items'
-  | 'partners';
+export const MASTER_CONTEXT_CATEGORIES = [
+  'account_items',
+  'tags',
+  'sections',
+  'segments',
+  'items',
+  'partners',
+] as const;
+
+export type MasterContextCategory = (typeof MASTER_CONTEXT_CATEGORIES)[number];
 
 export interface MasterContextResult {
   account_items?: {
