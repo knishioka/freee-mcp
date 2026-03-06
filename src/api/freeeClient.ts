@@ -1,6 +1,6 @@
-import axios, { AxiosInstance, AxiosError } from "axios";
-import createDebug from "debug";
-import { TokenManager } from "../auth/tokenManager.js";
+import axios, { AxiosInstance, AxiosError } from 'axios';
+import createDebug from 'debug';
+import { TokenManager } from '../auth/tokenManager.js';
 import {
   FREEE_API_BASE_URL,
   FREEE_AUTH_BASE_URL,
@@ -13,8 +13,8 @@ import {
   CACHE_TTL_TAX_CODES,
   PAGINATION_LIMIT,
   MAX_AUTO_PAGINATION_RECORDS,
-} from "../constants.js";
-import { TokenRefreshError, formatFreeeApiError } from "../errors.js";
+} from '../constants.js';
+import { TokenRefreshError, formatFreeeApiError } from '../errors.js';
 import {
   FreeeTokenResponse,
   FreeeCompany,
@@ -76,17 +76,20 @@ import {
   TaggingConsistencyResult,
   FreeeDealDetail,
   FreeeFixedAsset,
-} from "../types/freee.js";
+  ArAgingBucket,
+  ArAgingPartner,
+  ArAgingResult,
+} from '../types/freee.js';
 
-declare module "axios" {
+declare module 'axios' {
   interface InternalAxiosRequestConfig {
     __retried?: boolean;
   }
 }
-import { ApiCache, generateCacheKey } from "./cache.js";
+import { ApiCache, generateCacheKey } from './cache.js';
 
-const logAuth = createDebug("freee-mcp:auth");
-const logClient = createDebug("freee-mcp:client");
+const logAuth = createDebug('freee-mcp:auth');
+const logClient = createDebug('freee-mcp:client');
 
 export class FreeeClient {
   private api!: AxiosInstance;
@@ -123,14 +126,14 @@ export class FreeeClient {
     this.api = axios.create({
       baseURL: FREEE_API_BASE_URL,
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
     });
 
     this.authApi = axios.create({
       baseURL: FREEE_AUTH_BASE_URL,
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
   }
@@ -162,9 +165,9 @@ export class FreeeClient {
           companyId || this.tokenManager.getAllCompanyIds()[0];
         const expiryStatus = this.tokenManager.getTokenExpiryStatus(token);
 
-        if (expiryStatus.status === "expired") {
+        if (expiryStatus.status === 'expired') {
           logAuth(
-            "Token for company %d has expired. Attempting refresh...",
+            'Token for company %d has expired. Attempting refresh...',
             effectiveCompanyId,
           );
           if (token.refresh_token) {
@@ -179,7 +182,7 @@ export class FreeeClient {
                 config.headers.Authorization = `Bearer ${refreshedToken.access_token}`;
               }
             } catch (error) {
-              logAuth("Pre-request token refresh failed: %O", error);
+              logAuth('Pre-request token refresh failed: %O', error);
               throw new Error(
                 'Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.',
               );
@@ -189,9 +192,9 @@ export class FreeeClient {
               'Authentication tokens have expired. Please run "npm run setup-auth" to re-authenticate.',
             );
           }
-        } else if (expiryStatus.status === "near_expiry") {
+        } else if (expiryStatus.status === 'near_expiry') {
           logAuth(
-            "Token for company %d expires in %d minutes",
+            'Token for company %d expires in %d minutes',
             effectiveCompanyId,
             expiryStatus.remainingMinutes,
           );
@@ -202,7 +205,7 @@ export class FreeeClient {
               effectiveCompanyId,
               token.refresh_token,
             ).catch((err) =>
-              logAuth("Background token refresh failed: %O", err),
+              logAuth('Background token refresh failed: %O', err),
             );
           }
         } else {
@@ -224,13 +227,13 @@ export class FreeeClient {
     if (error.response?.status === 401) {
       // Check for specific freee API error codes
       const errorData = error.response?.data as FreeeErrorResponse | undefined;
-      const isExpiredToken = errorData?.code === "expired_access_token";
-      const errorCode = errorData?.code || "unknown";
+      const isExpiredToken = errorData?.code === 'expired_access_token';
+      const errorCode = errorData?.code || 'unknown';
 
       logAuth(
-        "Authentication error (401): code=%s type=%s",
+        'Authentication error (401): code=%s type=%s',
         errorCode,
-        isExpiredToken ? "Token expired" : "Unauthorized",
+        isExpiredToken ? 'Token expired' : 'Unauthorized',
       );
 
       // Token might be expired, try to refresh
@@ -255,13 +258,13 @@ export class FreeeClient {
           // Retry guard: prevent infinite 401 retry loops
           if (error.config?.__retried) {
             throw new Error(
-              "Authentication failed after token refresh. Please re-authenticate.",
+              'Authentication failed after token refresh. Please re-authenticate.',
             );
           }
 
           try {
             logAuth(
-              "Attempting automatic token refresh for company %d...",
+              'Attempting automatic token refresh for company %d...',
               companyId,
             );
             await this.refreshTokenWithLock(companyId, token.refresh_token);
@@ -269,7 +272,7 @@ export class FreeeClient {
             if (error.config) {
               error.config.__retried = true;
               logAuth(
-                "Token refreshed successfully. Retrying original request...",
+                'Token refreshed successfully. Retrying original request...',
               );
               const retryResult = await this.api.request(error.config);
               return retryResult as never;
@@ -281,22 +284,22 @@ export class FreeeClient {
             const refreshErrorMessage =
               refreshError instanceof Error
                 ? refreshError.message
-                : "Unknown error";
+                : 'Unknown error';
             logAuth(
-              "Token refresh failed: %s",
+              'Token refresh failed: %s',
               refreshErrorData?.error || refreshErrorMessage,
             );
 
             // On invalid_grant, re-check token state before deleting
             // Another concurrent refresh may have succeeded
-            if (refreshErrorData?.error === "invalid_grant") {
+            if (refreshErrorData?.error === 'invalid_grant') {
               const currentToken = this.tokenManager.getToken(companyId);
               if (
                 currentToken &&
                 currentToken.access_token !== token.access_token
               ) {
                 // Token was refreshed by another request, retry with new token
-                logAuth("Token was refreshed by another request. Retrying...");
+                logAuth('Token was refreshed by another request. Retrying...');
                 if (error.config) {
                   const retryResult = await this.api.request(error.config);
                   return retryResult as never;
@@ -306,27 +309,27 @@ export class FreeeClient {
               // Token is genuinely invalid, remove and suggest re-auth
               await this.tokenManager.removeToken(companyId);
               logAuth(
-                "Refresh token is no longer valid. Possible causes: (1) token already used (freee tokens are single-use), (2) OAuth app permissions changed, (3) token revoked. Re-authenticate using freee_get_auth_url.",
+                'Refresh token is no longer valid. Possible causes: (1) token already used (freee tokens are single-use), (2) OAuth app permissions changed, (3) token revoked. Re-authenticate using freee_get_auth_url.',
               );
               throw new Error(
-                "Authentication expired. Please re-authenticate using freee_get_auth_url.",
+                'Authentication expired. Please re-authenticate using freee_get_auth_url.',
               );
             }
 
             // Only delete tokens on definitive auth failures
-            if (refreshErrorData?.error === "invalid_client") {
+            if (refreshErrorData?.error === 'invalid_client') {
               await this.tokenManager.removeToken(companyId);
             } else {
               // Transient error (network, timeout, etc.) — keep token for retry
               logAuth(
-                "Token refresh failed (transient error), keeping existing token",
+                'Token refresh failed (transient error), keeping existing token',
               );
             }
 
             // CIRCUIT BREAKER: Prevent recursive error messages
             if (refreshError instanceof TokenRefreshError) {
               throw new Error(
-                "Authentication expired. Please re-authenticate using freee_get_auth_url.",
+                'Authentication expired. Please re-authenticate using freee_get_auth_url.',
               );
             }
 
@@ -339,17 +342,17 @@ export class FreeeClient {
             );
           }
         } else {
-          logAuth("No refresh token available. Please re-authenticate.");
+          logAuth('No refresh token available. Please re-authenticate.');
           throw new Error(
-            "No refresh token available. Use freee_get_auth_url to re-authenticate.",
+            'No refresh token available. Use freee_get_auth_url to re-authenticate.',
           );
         }
       } else {
         logAuth(
-          "No company ID found for authentication. Please ensure you have authenticated at least once.",
+          'No company ID found for authentication. Please ensure you have authenticated at least once.',
         );
         throw new Error(
-          "No authenticated companies found. Use freee_get_auth_url to authenticate.",
+          'No authenticated companies found. Use freee_get_auth_url to authenticate.',
         );
       }
     }
@@ -357,18 +360,18 @@ export class FreeeClient {
     // Handle other API errors
     if (error.response?.status === 403) {
       logClient(
-        "Permission error (403): The OAuth app does not have permission for this operation. Check freee OAuth app settings and scopes.",
+        'Permission error (403): The OAuth app does not have permission for this operation. Check freee OAuth app settings and scopes.',
       );
     } else if (error.response?.status === 429) {
       logClient(
-        "Rate limit error (429): freee API rate limit exceeded (3,600 requests/hour). Please wait before making more requests.",
+        'Rate limit error (429): freee API rate limit exceeded (3,600 requests/hour). Please wait before making more requests.',
       );
     }
 
     throw new Error(
       formatFreeeApiError(
         error.response?.status ?? 0,
-        error.response?.statusText ?? "Unknown",
+        error.response?.statusText ?? 'Unknown',
         error.response?.data,
         error.message,
       ),
@@ -380,11 +383,11 @@ export class FreeeClient {
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
-      response_type: "code",
+      response_type: 'code',
     });
 
     if (state) {
-      params.append("state", state);
+      params.append('state', state);
     }
 
     return `${FREEE_AUTH_BASE_URL}/public_api/authorize?${params.toString()}`;
@@ -392,7 +395,7 @@ export class FreeeClient {
 
   async getAccessToken(code: string): Promise<FreeeTokenResponse> {
     const params = new URLSearchParams({
-      grant_type: "authorization_code",
+      grant_type: 'authorization_code',
       client_id: this.clientId,
       client_secret: this.clientSecret,
       code,
@@ -400,12 +403,12 @@ export class FreeeClient {
     });
 
     try {
-      logAuth("Making token request to freee API...");
+      logAuth('Making token request to freee API...');
       const response = await this.authApi.post<FreeeTokenResponse>(
-        "/public_api/token",
+        '/public_api/token',
         params.toString(),
       );
-      logAuth("Token request successful");
+      logAuth('Token request successful');
       return response.data;
     } catch (error: unknown) {
       const errorInfo = axios.isAxiosError(error)
@@ -413,21 +416,21 @@ export class FreeeClient {
         : error instanceof Error
           ? error.message
           : error;
-      logAuth("Token request failed: %O", errorInfo);
+      logAuth('Token request failed: %O', errorInfo);
       throw error;
     }
   }
 
   async refreshToken(companyId: number, refreshToken: string): Promise<void> {
     const params = new URLSearchParams({
-      grant_type: "refresh_token",
+      grant_type: 'refresh_token',
       client_id: this.clientId,
       client_secret: this.clientSecret,
       refresh_token: refreshToken,
     });
 
     const response = await this.authApi.post<FreeeTokenResponse>(
-      "/public_api/token",
+      '/public_api/token',
       params.toString(),
     );
 
@@ -455,12 +458,12 @@ export class FreeeClient {
 
   // Company methods
   async getCompanies(): Promise<FreeeCompany[]> {
-    const cacheKey = "companies:all";
+    const cacheKey = 'companies:all';
     const cached = this.cache.get<FreeeCompany[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ companies: FreeeCompany[] }>(
-      "/companies",
+      '/companies',
     );
     const companies = response.data.companies;
     this.cache.set(cacheKey, companies, CACHE_TTL_COMPANIES);
@@ -498,7 +501,7 @@ export class FreeeClient {
       limit?: number;
     },
   ): Promise<FreeeDeal[]> {
-    const response = await this.api.get<{ deals: FreeeDeal[] }>("/deals", {
+    const response = await this.api.get<{ deals: FreeeDeal[] }>('/deals', {
       params: { company_id: companyId, ...params },
     });
     return response.data.deals;
@@ -514,9 +517,9 @@ export class FreeeClient {
 
   async createDeal(
     companyId: number,
-    deal: Omit<FreeeDeal, "id" | "company_id">,
+    deal: Omit<FreeeDeal, 'id' | 'company_id'>,
   ): Promise<FreeeDeal> {
-    const response = await this.api.post<{ deal: FreeeDeal }>("/deals", {
+    const response = await this.api.post<{ deal: FreeeDeal }>('/deals', {
       company_id: companyId,
       ...deal,
     });
@@ -539,7 +542,7 @@ export class FreeeClient {
   async createDealPayment(
     companyId: number,
     dealId: number,
-    payment: Omit<FreeeDealPayment, "id">,
+    payment: Omit<FreeeDealPayment, 'id'>,
   ): Promise<FreeeDealPayment> {
     const response = await this.api.post<{ deal_payment: FreeeDealPayment }>(
       `/deals/${dealId}/payments`,
@@ -554,14 +557,14 @@ export class FreeeClient {
     companyId: number,
     accountCategory?: string,
   ): Promise<FreeeAccountItem[]> {
-    const cacheKey = generateCacheKey(companyId, "account_items", {
+    const cacheKey = generateCacheKey(companyId, 'account_items', {
       account_category: accountCategory,
     });
     const cached = this.cache.get<FreeeAccountItem[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ account_items: FreeeAccountItem[] }>(
-      "/account_items",
+      '/account_items',
       { params: { company_id: companyId, account_category: accountCategory } },
     );
     this.cache.set(
@@ -582,12 +585,12 @@ export class FreeeClient {
       limit?: number;
     },
   ): Promise<FreeePartner[]> {
-    const cacheKey = generateCacheKey(companyId, "partners", params);
+    const cacheKey = generateCacheKey(companyId, 'partners', params);
     const cached = this.cache.get<FreeePartner[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ partners: FreeePartner[] }>(
-      "/partners",
+      '/partners',
       {
         params: { company_id: companyId, ...params },
       },
@@ -598,10 +601,10 @@ export class FreeeClient {
 
   async createPartner(
     companyId: number,
-    partner: Omit<FreeePartner, "id" | "company_id" | "available">,
+    partner: Omit<FreeePartner, 'id' | 'company_id' | 'available'>,
   ): Promise<FreeePartner> {
     const response = await this.api.post<{ partner: FreeePartner }>(
-      "/partners",
+      '/partners',
       { company_id: companyId, ...partner },
     );
     this.cache.invalidate(`${companyId}:partners`);
@@ -616,11 +619,11 @@ export class FreeeClient {
       limit?: number;
     },
   ): Promise<FreeeItem[]> {
-    const cacheKey = generateCacheKey(companyId, "items", params);
+    const cacheKey = generateCacheKey(companyId, 'items', params);
     const cached = this.cache.get<FreeeItem[]>(cacheKey);
     if (cached) return cached;
 
-    const response = await this.api.get<{ items: FreeeItem[] }>("/items", {
+    const response = await this.api.get<{ items: FreeeItem[] }>('/items', {
       params: { company_id: companyId, ...params },
     });
     this.cache.set(cacheKey, response.data.items, CACHE_TTL_ITEMS);
@@ -628,7 +631,7 @@ export class FreeeClient {
   }
 
   async getItem(companyId: number, itemId: number): Promise<FreeeItem> {
-    const cacheKey = generateCacheKey(companyId, "item", { itemId });
+    const cacheKey = generateCacheKey(companyId, 'item', { itemId });
     const cached = this.cache.get<FreeeItem>(cacheKey);
     if (cached) return cached;
 
@@ -644,12 +647,12 @@ export class FreeeClient {
 
   // Section methods
   async getSections(companyId: number): Promise<FreeeSection[]> {
-    const cacheKey = generateCacheKey(companyId, "sections");
+    const cacheKey = generateCacheKey(companyId, 'sections');
     const cached = this.cache.get<FreeeSection[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ sections: FreeeSection[] }>(
-      "/sections",
+      '/sections',
       {
         params: { company_id: companyId },
       },
@@ -660,11 +663,11 @@ export class FreeeClient {
 
   // Tag methods
   async getTags(companyId: number): Promise<FreeeTag[]> {
-    const cacheKey = generateCacheKey(companyId, "tags");
+    const cacheKey = generateCacheKey(companyId, 'tags');
     const cached = this.cache.get<FreeeTag[]>(cacheKey);
     if (cached) return cached;
 
-    const response = await this.api.get<{ tags: FreeeTag[] }>("/tags", {
+    const response = await this.api.get<{ tags: FreeeTag[] }>('/tags', {
       params: { company_id: companyId },
     });
     this.cache.set(cacheKey, response.data.tags, CACHE_TTL_TAGS);
@@ -673,12 +676,12 @@ export class FreeeClient {
 
   // Tax Code methods
   async getTaxCodes(companyId: number): Promise<FreeeTaxCode[]> {
-    const cacheKey = generateCacheKey(companyId, "tax_codes");
+    const cacheKey = generateCacheKey(companyId, 'tax_codes');
     const cached = this.cache.get<FreeeTaxCode[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ taxes: FreeeTaxCode[] }>(
-      "/taxes/codes",
+      '/taxes/codes',
       { params: { company_id: companyId } },
     );
     this.cache.set(cacheKey, response.data.taxes, CACHE_TTL_TAX_CODES);
@@ -709,7 +712,7 @@ export class FreeeClient {
     // Limit to 500 records as a performance trade-off; sufficient for most partner history analysis
     const [deals, accountItems, taxCodes] = await Promise.all([
       needsDealFetch
-        ? this.fetchAllPages<FreeeDeal>("/deals", dealParams, "deals", 500)
+        ? this.fetchAllPages<FreeeDeal>('/deals', dealParams, 'deals', 500)
         : Promise.resolve([] as FreeeDeal[]),
       this.getAccountItems(companyId),
       this.getTaxCodes(companyId),
@@ -776,7 +779,7 @@ export class FreeeClient {
     const TOP_RESULTS_LIMIT = 10;
     const SIMILAR_AMOUNT_LOWER = 0.5;
     const SIMILAR_AMOUNT_UPPER = 1.5;
-    const UNKNOWN_ACCOUNT_NAME = "不明";
+    const UNKNOWN_ACCOUNT_NAME = '不明';
 
     candidates.sort((a, b) => b.usage_count - a.usage_count);
     const topCandidates = candidates.slice(0, TOP_RESULTS_LIMIT);
@@ -906,9 +909,9 @@ export class FreeeClient {
           this.getSegmentTags(companyId, 3),
         ]).then(([s1, s2, s3]) => {
           result.segments = {
-            "1": s1.map((t) => ({ id: t.id, name: t.name })),
-            "2": s2.map((t) => ({ id: t.id, name: t.name })),
-            "3": s3.map((t) => ({ id: t.id, name: t.name })),
+            '1': s1.map((t) => ({ id: t.id, name: t.name })),
+            '2': s2.map((t) => ({ id: t.id, name: t.name })),
+            '3': s3.map((t) => ({ id: t.id, name: t.name })),
           };
         }),
       items: () =>
@@ -953,7 +956,7 @@ export class FreeeClient {
     },
   ): Promise<FreeeInvoice[]> {
     const response = await this.api.get<{ invoices: FreeeInvoice[] }>(
-      "/invoices",
+      '/invoices',
       {
         params: { company_id: companyId, ...params },
       },
@@ -963,10 +966,10 @@ export class FreeeClient {
 
   async createInvoice(
     companyId: number,
-    invoice: Omit<FreeeInvoice, "id" | "company_id" | "invoice_number">,
+    invoice: Omit<FreeeInvoice, 'id' | 'company_id' | 'invoice_number'>,
   ): Promise<FreeeInvoice> {
     const response = await this.api.post<{ invoice: FreeeInvoice }>(
-      "/invoices",
+      '/invoices',
       { company_id: companyId, ...invoice },
     );
     return response.data.invoice;
@@ -982,7 +985,7 @@ export class FreeeClient {
     },
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{ trial_bs: FreeeTrialBalance }>(
-      "/reports/trial_bs",
+      '/reports/trial_bs',
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
@@ -1000,7 +1003,7 @@ export class FreeeClient {
   ): Promise<FreeeGeneralLedger> {
     const response = await this.api.get<{
       general_ledgers: FreeeGeneralLedger;
-    }>("/reports/general_ledgers", {
+    }>('/reports/general_ledgers', {
       params: { company_id: companyId, ...params },
     });
     return response.data.general_ledgers;
@@ -1013,11 +1016,11 @@ export class FreeeClient {
       fiscal_year: number;
       start_month: number;
       end_month: number;
-      breakdown_display_type?: "partner" | "item" | "section" | "tag" | null;
+      breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
     },
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{ trial_pl: FreeeTrialBalance }>(
-      "/reports/trial_pl",
+      '/reports/trial_pl',
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_pl;
@@ -1030,11 +1033,11 @@ export class FreeeClient {
       fiscal_year: number;
       start_month: number;
       end_month: number;
-      breakdown_display_type?: "partner" | "item" | "section" | "tag" | null;
+      breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
     },
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{ trial_bs: FreeeTrialBalance }>(
-      "/reports/trial_bs",
+      '/reports/trial_bs',
       { params: { company_id: companyId, ...params } },
     );
     return response.data.trial_bs;
@@ -1051,7 +1054,7 @@ export class FreeeClient {
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{
       trial_pl_sections: FreeeTrialBalance;
-    }>("/reports/trial_pl_sections", {
+    }>('/reports/trial_pl_sections', {
       params: { company_id: companyId, ...params },
     });
     return response.data.trial_pl_sections;
@@ -1102,8 +1105,8 @@ export class FreeeClient {
     },
   ): Promise<FreeeMultiyearTrialBalance> {
     return this._getMultiyearReport(
-      "/reports/trial_pl_two_years",
-      "trial_pl_two_years",
+      '/reports/trial_pl_two_years',
+      'trial_pl_two_years',
       companyId,
       params,
     );
@@ -1118,8 +1121,8 @@ export class FreeeClient {
     },
   ): Promise<FreeeMultiyearTrialBalance> {
     return this._getMultiyearReport(
-      "/reports/trial_pl_three_years",
-      "trial_pl_three_years",
+      '/reports/trial_pl_three_years',
+      'trial_pl_three_years',
       companyId,
       params,
     );
@@ -1134,8 +1137,8 @@ export class FreeeClient {
     },
   ): Promise<FreeeMultiyearTrialBalance> {
     return this._getMultiyearReport(
-      "/reports/trial_bs_two_years",
-      "trial_bs_two_years",
+      '/reports/trial_bs_two_years',
+      'trial_bs_two_years',
       companyId,
       params,
     );
@@ -1150,8 +1153,8 @@ export class FreeeClient {
     },
   ): Promise<FreeeMultiyearTrialBalance> {
     return this._getMultiyearReport(
-      "/reports/trial_bs_three_years",
-      "trial_bs_three_years",
+      '/reports/trial_bs_three_years',
+      'trial_bs_three_years',
       companyId,
       params,
     );
@@ -1159,7 +1162,7 @@ export class FreeeClient {
 
   async getMultiyearComparison(
     companyId: number,
-    reportType: "pl" | "bs",
+    reportType: 'pl' | 'bs',
     years: 2 | 3,
     params: {
       fiscal_year: number;
@@ -1219,7 +1222,7 @@ export class FreeeClient {
     },
   ): Promise<FreeeWalletable[]> {
     const response = await this.api.get<{ walletables: FreeeWalletable[] }>(
-      "/walletables",
+      '/walletables',
       { params: { company_id: companyId, ...params } },
     );
     return response.data.walletables;
@@ -1243,7 +1246,7 @@ export class FreeeClient {
   ): Promise<FreeeManualJournal[]> {
     const response = await this.api.get<{
       manual_journals: FreeeManualJournal[];
-    }>("/manual_journals", {
+    }>('/manual_journals', {
       params: { company_id: companyId, ...params },
     });
     return response.data.manual_journals;
@@ -1267,7 +1270,7 @@ export class FreeeClient {
       issue_date: string;
       adjustment?: boolean;
       details: Array<{
-        entry_side: "debit" | "credit";
+        entry_side: 'debit' | 'credit';
         account_item_id: number;
         tax_code: number;
         amount: number;
@@ -1280,7 +1283,7 @@ export class FreeeClient {
   ): Promise<FreeeManualJournal> {
     const response = await this.api.post<{
       manual_journal: FreeeManualJournal;
-    }>("/manual_journals", {
+    }>('/manual_journals', {
       company_id: companyId,
       ...journal,
     });
@@ -1302,7 +1305,7 @@ export class FreeeClient {
   ): Promise<FreeeWalletTransaction[]> {
     const response = await this.api.get<{
       wallet_txns: FreeeWalletTransaction[];
-    }>("/wallet_txns", {
+    }>('/wallet_txns', {
       params: { company_id: companyId, ...params },
     });
     return response.data.wallet_txns;
@@ -1315,13 +1318,13 @@ export class FreeeClient {
       start_date?: string;
       end_date?: string;
       walletable_id?: number;
-      walletable_type?: "bank_account" | "credit_card" | "wallet";
+      walletable_type?: 'bank_account' | 'credit_card' | 'wallet';
       offset?: number;
       limit?: number;
     },
   ): Promise<FreeeTransfer[]> {
     const response = await this.api.get<{ transfers: FreeeTransfer[] }>(
-      "/transfers",
+      '/transfers',
       { params: { company_id: companyId, ...params } },
     );
     return response.data.transfers;
@@ -1344,14 +1347,14 @@ export class FreeeClient {
       date: string;
       amount: number;
       from_walletable_id: number;
-      from_walletable_type: "bank_account" | "credit_card" | "wallet";
+      from_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
       to_walletable_id: number;
-      to_walletable_type: "bank_account" | "credit_card" | "wallet";
+      to_walletable_type: 'bank_account' | 'credit_card' | 'wallet';
       description?: string;
     },
   ): Promise<FreeeTransfer> {
     const response = await this.api.post<{ transfer: FreeeTransfer }>(
-      "/transfers",
+      '/transfers',
       { company_id: companyId, ...transfer },
       { params: { company_id: companyId } },
     );
@@ -1371,7 +1374,7 @@ export class FreeeClient {
     },
   ): Promise<FreeeReceipt[]> {
     const response = await this.api.get<{ receipts: FreeeReceipt[] }>(
-      "/receipts",
+      '/receipts',
       {
         params: { company_id: companyId, ...params },
       },
@@ -1409,7 +1412,7 @@ export class FreeeClient {
   ): Promise<FreeeExpenseApplication[]> {
     const response = await this.api.get<{
       expense_applications: FreeeExpenseApplication[];
-    }>("/expense_applications", {
+    }>('/expense_applications', {
       params: { company_id: companyId, ...params },
     });
     return response.data.expense_applications;
@@ -1468,7 +1471,7 @@ export class FreeeClient {
 
       if (pageCount > 1 && pageCount % 5 === 0) {
         logClient(
-          "Auto-pagination: fetched %d records in %d API calls for %s",
+          'Auto-pagination: fetched %d records in %d API calls for %s',
           allResults.length,
           pageCount,
           endpoint,
@@ -1482,7 +1485,7 @@ export class FreeeClient {
     const truncated = allResults.length > maxRecords;
     if (truncated) {
       logClient(
-        "Auto-pagination: results truncated at %d records for %s (total fetched: %d)",
+        'Auto-pagination: results truncated at %d records for %s (total fetched: %d)',
         maxRecords,
         endpoint,
         allResults.length,
@@ -1517,9 +1520,9 @@ export class FreeeClient {
 
     const effectiveMax = maxRecords ?? MAX_AUTO_PAGINATION_RECORDS;
     const deals = await this.fetchAllPages<FreeeDeal>(
-      "/deals",
+      '/deals',
       params,
-      "deals",
+      'deals',
       maxRecords,
     );
 
@@ -1549,7 +1552,7 @@ export class FreeeClient {
     const accountItemMap = new Map<number, { total: number; count: number }>();
 
     for (const deal of deals) {
-      if (deal.type === "income") {
+      if (deal.type === 'income') {
         totalIncome += deal.amount;
       } else {
         totalExpense += deal.amount;
@@ -1563,7 +1566,7 @@ export class FreeeClient {
           expense: 0,
           count: 0,
         };
-        if (deal.type === "income") existing.income += deal.amount;
+        if (deal.type === 'income') existing.income += deal.amount;
         else existing.expense += deal.amount;
         existing.count++;
         partnerMap.set(deal.partner_id, existing);
@@ -1576,7 +1579,7 @@ export class FreeeClient {
         expense: 0,
         count: 0,
       };
-      if (deal.type === "income") monthEntry.income += deal.amount;
+      if (deal.type === 'income') monthEntry.income += deal.amount;
       else monthEntry.expense += deal.amount;
       monthEntry.count++;
       monthMap.set(month, monthEntry);
@@ -1658,9 +1661,9 @@ export class FreeeClient {
 
     const effectiveMax = maxRecords ?? MAX_AUTO_PAGINATION_RECORDS;
     const invoices = await this.fetchAllPages<FreeeInvoice>(
-      "/invoices",
+      '/invoices',
       params,
-      "invoices",
+      'invoices',
       maxRecords,
     );
 
@@ -1679,14 +1682,14 @@ export class FreeeClient {
       a.issue_date.localeCompare(b.issue_date),
     );
 
-    const today = new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Asia/Tokyo",
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
     })
       .format(new Date())
-      .replace(/\//g, "-");
+      .replace(/\//g, '-');
     let totalAmount = 0;
     let unpaidAmount = 0;
     let overdueCount = 0;
@@ -1700,8 +1703,8 @@ export class FreeeClient {
       totalAmount += invoice.total_amount;
 
       const isUnpaid =
-        invoice.payment_status === "unsettled" ||
-        invoice.payment_status === "empty";
+        invoice.payment_status === 'unsettled' ||
+        invoice.payment_status === 'empty';
       if (isUnpaid) {
         unpaidAmount += invoice.total_amount;
         if (invoice.due_date && invoice.due_date < today) {
@@ -1710,7 +1713,7 @@ export class FreeeClient {
       }
 
       // By status (combine invoice_status and payment_status)
-      const statusKey = `${invoice.invoice_status}/${invoice.payment_status || "unknown"}`;
+      const statusKey = `${invoice.invoice_status}/${invoice.payment_status || 'unknown'}`;
       const statusEntry = statusMap.get(statusKey) || {
         count: 0,
         amount: 0,
@@ -1770,23 +1773,23 @@ export class FreeeClient {
 
   async comparePeriods(
     companyId: number,
-    reportType: "profit_loss" | "balance_sheet",
+    reportType: 'profit_loss' | 'balance_sheet',
     period1: { fiscal_year: number; start_month: number; end_month: number },
     period2: { fiscal_year: number; start_month: number; end_month: number },
-    breakdownDisplayType?: "partner" | "item" | "section" | "tag",
+    breakdownDisplayType?: 'partner' | 'item' | 'section' | 'tag',
   ): Promise<PeriodComparisonResult> {
     const fetchReport =
-      reportType === "profit_loss"
+      reportType === 'profit_loss'
         ? (p: typeof period1) =>
-            this.getProfitLoss(companyId, {
-              ...p,
-              breakdown_display_type: breakdownDisplayType,
-            })
+          this.getProfitLoss(companyId, {
+            ...p,
+            breakdown_display_type: breakdownDisplayType,
+          })
         : (p: typeof period1) =>
-            this.getBalanceSheet(companyId, {
-              ...p,
-              breakdown_display_type: breakdownDisplayType,
-            });
+          this.getBalanceSheet(companyId, {
+            ...p,
+            breakdown_display_type: breakdownDisplayType,
+          });
 
     const [report1, report2] = await Promise.all([
       fetchReport(period1),
@@ -1821,14 +1824,14 @@ export class FreeeClient {
       if (amount === 0) continue;
 
       const absPercentage = percentage !== null ? Math.abs(percentage) : 0;
-      const significance: "high" | "medium" | "low" =
-        absPercentage > 10 ? "high" : absPercentage > 5 ? "medium" : "low";
+      const significance: 'high' | 'medium' | 'low' =
+        absPercentage > 10 ? 'high' : absPercentage > 5 ? 'medium' : 'low';
 
-      if (significance !== "low") {
+      if (significance !== 'low') {
         const changeStr =
           percentage !== null
-            ? `${percentage >= 0 ? "+" : ""}${percentage}%`
-            : "new";
+            ? `${percentage >= 0 ? '+' : ''}${percentage}%`
+            : 'new';
         intermediateHighlights.push({
           item,
           change: changeStr,
@@ -1860,25 +1863,25 @@ export class FreeeClient {
   async getMonthlyTrends(
     companyId: number,
     fiscalYear: number,
-    reportType: "profit_loss" | "balance_sheet",
+    reportType: 'profit_loss' | 'balance_sheet',
     months?: number[],
   ): Promise<MonthlyTrendsResult> {
     const targetMonths = months ?? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
     const fetchReport =
-      reportType === "profit_loss"
+      reportType === 'profit_loss'
         ? (m: number) =>
-            this.getProfitLoss(companyId, {
-              fiscal_year: fiscalYear,
-              start_month: m,
-              end_month: m,
-            })
+          this.getProfitLoss(companyId, {
+            fiscal_year: fiscalYear,
+            start_month: m,
+            end_month: m,
+          })
         : (m: number) =>
-            this.getBalanceSheet(companyId, {
-              fiscal_year: fiscalYear,
-              start_month: m,
-              end_month: m,
-            });
+          this.getBalanceSheet(companyId, {
+            fiscal_year: fiscalYear,
+            start_month: m,
+            end_month: m,
+          });
 
     const reports = await Promise.all(targetMonths.map((m) => fetchReport(m)));
 
@@ -1890,7 +1893,7 @@ export class FreeeClient {
     // Compute summary using first available metric as primary
     const allMetricNames =
       monthlyData.length > 0 ? Object.keys(monthlyData[0].metrics) : [];
-    const primaryMetric = allMetricNames[0] ?? "";
+    const primaryMetric = allMetricNames[0] ?? '';
 
     const primaryValues = monthlyData.map((m) => ({
       month: m.month,
@@ -1900,9 +1903,9 @@ export class FreeeClient {
     const avg =
       primaryValues.length > 0
         ? Math.round(
-            primaryValues.reduce((sum, v) => sum + v.value, 0) /
+          primaryValues.reduce((sum, v) => sum + v.value, 0) /
               primaryValues.length,
-          )
+        )
         : 0;
 
     const max = primaryValues.reduce(
@@ -1932,26 +1935,26 @@ export class FreeeClient {
   }
 
   async getCashPosition(companyId: number): Promise<CashPositionResult> {
-    const today = new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      timeZone: "Asia/Tokyo",
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
     })
       .format(new Date())
-      .replace(/\//g, "-");
+      .replace(/\//g, '-');
 
     const [walletables, unsettledInvoices, allDeals] = await Promise.all([
       this.getWalletables(companyId, { with_balance: true }),
       this.fetchAllPages<FreeeInvoice>(
-        "/invoices",
-        { company_id: companyId, payment_status: "unsettled" },
-        "invoices",
+        '/invoices',
+        { company_id: companyId, payment_status: 'unsettled' },
+        'invoices',
       ),
       this.fetchAllPages<FreeeDeal>(
-        "/deals",
+        '/deals',
         { company_id: companyId },
-        "deals",
+        'deals',
       ),
     ]);
 
@@ -1963,12 +1966,12 @@ export class FreeeClient {
     }));
 
     const totalCash = accounts
-      .filter((a) => a.type !== "credit_card")
+      .filter((a) => a.type !== 'credit_card')
       .reduce((sum, a) => sum + a.balance, 0);
 
     // Receivables from unsettled invoices and income deals
     const unsettledIncomes = allDeals.filter(
-      (d) => d.type === "income" && d.status !== "settled",
+      (d) => d.type === 'income' && d.status !== 'settled',
     );
     const overdueInvoices = unsettledInvoices.filter(
       (i) => i.due_date && i.due_date < today,
@@ -1988,7 +1991,7 @@ export class FreeeClient {
 
     // Payables from unsettled expense deals
     const unsettledExpenses = allDeals.filter(
-      (d) => d.type === "expense" && d.status !== "settled",
+      (d) => d.type === 'expense' && d.status !== 'settled',
     );
     const overdueExpenses = unsettledExpenses.filter(
       (d) => d.due_date && d.due_date < today,
@@ -2008,6 +2011,133 @@ export class FreeeClient {
     };
   }
 
+  async getArAging(
+    companyId: number,
+    asOfDate?: string,
+  ): Promise<ArAgingResult> {
+    const today = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(new Date())
+      .replace(/\//g, '-');
+
+    const baseDate = asOfDate || today;
+
+    // Fetch unsettled income deals (売掛金)
+    const deals = await this.fetchAllPages<FreeeDeal>(
+      '/deals',
+      {
+        company_id: companyId,
+        type: 'income',
+        status: 'unsettled',
+      },
+      'deals',
+    );
+
+    const baseDateMs = new Date(baseDate).getTime();
+
+    // Define aging buckets
+    const bucketDefs: { label: string; min: number; max: number | null }[] = [
+      { label: '〜30日', min: 0, max: 30 },
+      { label: '31〜60日', min: 31, max: 60 },
+      { label: '61〜90日', min: 61, max: 90 },
+      { label: '90日超', min: 91, max: null },
+    ];
+
+    const buckets: ArAgingBucket[] = bucketDefs.map((def) => ({
+      label: def.label,
+      min_days: def.min,
+      max_days: def.max,
+      total_amount: 0,
+      count: 0,
+    }));
+
+    // Partner aggregation
+    const partnerMap = new Map<
+      string,
+      {
+        partner_id: number | null;
+        partner_name: string;
+        total_amount: number;
+        oldest_days: number;
+        deal_count: number;
+      }
+    >();
+
+    let totalAmount = 0;
+
+    for (const deal of deals) {
+      const issueDateMs = new Date(deal.issue_date).getTime();
+      const daysDiff = Math.floor(
+        (baseDateMs - issueDateMs) / (1000 * 60 * 60 * 24),
+      );
+
+      // Skip future-dated deals (issue_date after as_of_date)
+      if (daysDiff < 0) continue;
+
+      totalAmount += deal.amount;
+
+      // Assign to bucket
+      for (let i = 0; i < bucketDefs.length; i++) {
+        const def = bucketDefs[i];
+        if (daysDiff >= def.min && (def.max === null || daysDiff <= def.max)) {
+          buckets[i].total_amount += deal.amount;
+          buckets[i].count++;
+          break;
+        }
+      }
+
+      // Partner aggregation
+      const partnerKey =
+        deal.partner_id != null
+          ? String(deal.partner_id)
+          : deal.partner_name || '不明';
+      const existing = partnerMap.get(partnerKey) || {
+        partner_id: deal.partner_id ?? null,
+        partner_name:
+          deal.partner_name ||
+          (deal.partner_id != null ? `Partner ${deal.partner_id}` : '不明'),
+        total_amount: 0,
+        oldest_days: 0,
+        deal_count: 0,
+      };
+      existing.total_amount += deal.amount;
+      existing.oldest_days = Math.max(existing.oldest_days, daysDiff);
+      existing.deal_count++;
+      partnerMap.set(partnerKey, existing);
+    }
+
+    // Sort partners by oldest days descending
+    const partnersByOldest: ArAgingPartner[] = Array.from(
+      partnerMap.values(),
+    ).sort((a, b) => b.oldest_days - a.oldest_days);
+
+    // Build summary
+    const longTermCount = buckets[2].count + buckets[3].count;
+    const longTermAmount = buckets[2].total_amount + buckets[3].total_amount;
+    const summaryParts = [
+      `売掛金エイジング分析（${baseDate} 時点）:`,
+      `合計: ${totalAmount.toLocaleString()}円 (${deals.length}件)`,
+    ];
+    if (longTermCount > 0) {
+      summaryParts.push(
+        `⚠️ 61日超の未回収: ${longTermAmount.toLocaleString()}円 (${longTermCount}件)`,
+      );
+    }
+
+    return {
+      as_of_date: baseDate,
+      buckets,
+      total_amount: totalAmount,
+      total_count: deals.length,
+      partners_by_oldest: partnersByOldest,
+      summary: summaryParts.join('\n'),
+    };
+  }
+
   private extractBalanceMetrics(
     balances: FreeeTrialBalanceItem[],
   ): Record<string, number> {
@@ -2022,8 +2152,8 @@ export class FreeeClient {
 
   private computeTrend(
     values: number[],
-  ): "increasing" | "decreasing" | "stable" | "fluctuating" {
-    if (values.length < 2) return "stable";
+  ): 'increasing' | 'decreasing' | 'stable' | 'fluctuating' {
+    if (values.length < 2) return 'stable';
 
     const thirdSize = Math.max(1, Math.floor(values.length / 3));
     const firstThird = values.slice(0, thirdSize);
@@ -2032,48 +2162,48 @@ export class FreeeClient {
     const firstAvg = firstThird.reduce((a, b) => a + b, 0) / firstThird.length;
     const lastAvg = lastThird.reduce((a, b) => a + b, 0) / lastThird.length;
 
-    if (firstAvg === 0 && lastAvg === 0) return "stable";
-    if (firstAvg === 0) return lastAvg > 0 ? "increasing" : "decreasing";
+    if (firstAvg === 0 && lastAvg === 0) return 'stable';
+    if (firstAvg === 0) return lastAvg > 0 ? 'increasing' : 'decreasing';
 
     const changePercent = ((lastAvg - firstAvg) / Math.abs(firstAvg)) * 100;
 
-    if (changePercent > 10) return "increasing";
-    if (changePercent < -10) return "decreasing";
+    if (changePercent > 10) return 'increasing';
+    if (changePercent < -10) return 'decreasing';
 
     // Check for fluctuation via coefficient of variation
     const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    if (avg === 0) return "stable";
+    if (avg === 0) return 'stable';
 
     const variance =
       values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length;
     const cv = Math.sqrt(variance) / Math.abs(avg);
 
-    if (cv > 0.2) return "fluctuating";
-    return "stable";
+    if (cv > 0.2) return 'fluctuating';
+    return 'stable';
   }
 
   // === Monthly Closing Check ===
 
   private static readonly ALL_CLOSING_CHECKS: MonthlyClosingCheckType[] = [
-    "unprocessed_transactions",
-    "balance_verification",
-    "temporary_accounts",
-    "receivable_aging",
-    "payable_aging",
-    "unattached_receipts",
+    'unprocessed_transactions',
+    'balance_verification',
+    'temporary_accounts',
+    'receivable_aging',
+    'payable_aging',
+    'unattached_receipts',
   ];
 
   private static readonly CASH_ACCOUNT_KEYWORDS = [
-    "現金",
-    "普通預金",
-    "当座預金",
-    "定期預金",
+    '現金',
+    '普通預金',
+    '当座預金',
+    '定期預金',
   ];
 
   private static readonly TEMPORARY_ACCOUNT_NAMES = [
-    "仮払金",
-    "仮受金",
-    "立替金",
+    '仮払金',
+    '仮受金',
+    '立替金',
   ];
 
   async getMonthlyClosingChecklist(
@@ -2084,45 +2214,45 @@ export class FreeeClient {
   ): Promise<MonthlyClosingCheckResult> {
     const targetChecks = checks ?? FreeeClient.ALL_CLOSING_CHECKS;
 
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
     // Determine which APIs need to be called
     const needsTrialBalance = targetChecks.some((c) =>
-      ["balance_verification", "temporary_accounts"].includes(c),
+      ['balance_verification', 'temporary_accounts'].includes(c),
     );
-    const needsWalletables = targetChecks.includes("balance_verification");
-    const needsWalletTxns = targetChecks.includes("unprocessed_transactions");
+    const needsWalletables = targetChecks.includes('balance_verification');
+    const needsWalletTxns = targetChecks.includes('unprocessed_transactions');
     const needsDeals = targetChecks.some((c) =>
-      ["receivable_aging", "payable_aging"].includes(c),
+      ['receivable_aging', 'payable_aging'].includes(c),
     );
 
     // Parallel API calls — only fetch what's needed
     const [trialBalance, walletables, walletTxns, deals] = await Promise.all([
       needsTrialBalance
         ? this.getTrialBalance(companyId, {
-            fiscal_year: year,
-            start_month: month,
-            end_month: month,
-          })
+          fiscal_year: year,
+          start_month: month,
+          end_month: month,
+        })
         : Promise.resolve(undefined),
       needsWalletables
         ? this.getWalletables(companyId, { with_balance: true })
         : Promise.resolve(undefined),
       needsWalletTxns
         ? this.fetchAllPages<FreeeWalletTransaction>(
-            "/wallet_txns",
-            { company_id: companyId, start_date: startDate, end_date: endDate },
-            "wallet_txns",
-          )
+          '/wallet_txns',
+          { company_id: companyId, start_date: startDate, end_date: endDate },
+          'wallet_txns',
+        )
         : Promise.resolve(undefined),
       needsDeals
         ? this.fetchAllPages<FreeeDeal>(
-            "/deals",
-            { company_id: companyId },
-            "deals",
-          )
+          '/deals',
+          { company_id: companyId },
+          'deals',
+        )
         : Promise.resolve(undefined),
     ]);
 
@@ -2131,59 +2261,59 @@ export class FreeeClient {
 
     for (const check of targetChecks) {
       switch (check) {
-        case "unprocessed_transactions":
-          checkResults.push(
-            this.checkUnprocessedTransactions(walletTxns ?? []),
-          );
-          break;
-        case "balance_verification":
-          checkResults.push(
-            this.checkBalanceVerification(trialBalance!, walletables ?? []),
-          );
-          break;
-        case "temporary_accounts":
-          checkResults.push(this.checkTemporaryAccounts(trialBalance!));
-          break;
-        case "receivable_aging":
-          checkResults.push(
-            this.checkAgingDeals(deals ?? [], "income", endDate),
-          );
-          break;
-        case "payable_aging":
-          checkResults.push(
-            this.checkAgingDeals(deals ?? [], "expense", endDate),
-          );
-          break;
-        case "unattached_receipts":
-          checkResults.push(this.checkUnattachedReceipts());
-          break;
+      case 'unprocessed_transactions':
+        checkResults.push(
+          this.checkUnprocessedTransactions(walletTxns ?? []),
+        );
+        break;
+      case 'balance_verification':
+        checkResults.push(
+          this.checkBalanceVerification(trialBalance!, walletables ?? []),
+        );
+        break;
+      case 'temporary_accounts':
+        checkResults.push(this.checkTemporaryAccounts(trialBalance!));
+        break;
+      case 'receivable_aging':
+        checkResults.push(
+          this.checkAgingDeals(deals ?? [], 'income', endDate),
+        );
+        break;
+      case 'payable_aging':
+        checkResults.push(
+          this.checkAgingDeals(deals ?? [], 'expense', endDate),
+        );
+        break;
+      case 'unattached_receipts':
+        checkResults.push(this.checkUnattachedReceipts());
+        break;
       }
     }
 
     // Compute overall status
-    const overallStatus: "ok" | "warning" | "error" = checkResults.some(
-      (c) => c.status === "error",
+    const overallStatus: 'ok' | 'warning' | 'error' = checkResults.some(
+      (c) => c.status === 'error',
     )
-      ? "error"
-      : checkResults.some((c) => c.status === "warning")
-        ? "warning"
-        : "ok";
+      ? 'error'
+      : checkResults.some((c) => c.status === 'warning')
+        ? 'warning'
+        : 'ok';
 
-    const okCount = checkResults.filter((c) => c.status === "ok").length;
+    const okCount = checkResults.filter((c) => c.status === 'ok').length;
     const warningCount = checkResults.filter(
-      (c) => c.status === "warning",
+      (c) => c.status === 'warning',
     ).length;
-    const errorCount = checkResults.filter((c) => c.status === "error").length;
+    const errorCount = checkResults.filter((c) => c.status === 'error').length;
 
     let summary: string;
-    if (overallStatus === "ok") {
+    if (overallStatus === 'ok') {
       summary = `${checkResults.length}項目すべてOKです`;
     } else {
       const parts: string[] = [];
       if (okCount > 0) parts.push(`${okCount}項目OK`);
       if (warningCount > 0) parts.push(`${warningCount}項目で要確認`);
       if (errorCount > 0) parts.push(`${errorCount}項目でエラー`);
-      summary = `${checkResults.length}項目中${parts.join("、")}`;
+      summary = `${checkResults.length}項目中${parts.join('、')}`;
     }
 
     return {
@@ -2201,15 +2331,15 @@ export class FreeeClient {
 
     if (unprocessed.length === 0) {
       return {
-        name: "未処理明細チェック",
-        status: "ok",
-        details: "未処理の明細はありません",
+        name: '未処理明細チェック',
+        status: 'ok',
+        details: '未処理の明細はありません',
       };
     }
 
     return {
-      name: "未処理明細チェック",
-      status: "warning",
+      name: '未処理明細チェック',
+      status: 'warning',
       details: `${unprocessed.length}件の未処理明細があります`,
       items: unprocessed.map((txn) => ({
         id: txn.id,
@@ -2228,7 +2358,7 @@ export class FreeeClient {
   ): MonthlyClosingCheckItem {
     // Sum walletable balances (excluding credit cards)
     const walletableTotal = walletables
-      .filter((w) => w.type !== "credit_card")
+      .filter((w) => w.type !== 'credit_card')
       .reduce(
         (sum, w) => sum + (w.walletable_balance ?? w.last_balance ?? 0),
         0,
@@ -2249,15 +2379,15 @@ export class FreeeClient {
 
     if (diff === 0) {
       return {
-        name: "残高突合チェック",
-        status: "ok",
-        details: "全口座の残高が一致しています",
+        name: '残高突合チェック',
+        status: 'ok',
+        details: '全口座の残高が一致しています',
       };
     }
 
     return {
-      name: "残高突合チェック",
-      status: "warning",
+      name: '残高突合チェック',
+      status: 'warning',
       details: `口座残高と帳簿残高に${diff}円の差異があります（口座: ${walletableTotal}円、帳簿: ${trialBalanceTotal}円）`,
       items: [
         {
@@ -2289,19 +2419,19 @@ export class FreeeClient {
 
     if (nonZeroAccounts.length === 0) {
       return {
-        name: "仮勘定残高チェック",
-        status: "ok",
-        details: "仮勘定の残高はすべて0円です",
+        name: '仮勘定残高チェック',
+        status: 'ok',
+        details: '仮勘定の残高はすべて0円です',
       };
     }
 
     const details = nonZeroAccounts
       .map((a) => `${a.account_item_name}: ${a.closing_balance}円`)
-      .join("、");
+      .join('、');
 
     return {
-      name: "仮勘定残高チェック",
-      status: "warning",
+      name: '仮勘定残高チェック',
+      status: 'warning',
       details: `仮勘定に残高があります（${details}）`,
       items: nonZeroAccounts.map((a) => ({
         name: a.account_item_name,
@@ -2312,26 +2442,26 @@ export class FreeeClient {
 
   private checkAgingDeals(
     deals: FreeeDeal[],
-    type: "income" | "expense",
+    type: 'income' | 'expense',
     referenceDate: string,
   ): MonthlyClosingCheckItem {
     const name =
-      type === "income" ? "売掛金滞留チェック" : "買掛金滞留チェック";
+      type === 'income' ? '売掛金滞留チェック' : '買掛金滞留チェック';
     const unsettled = deals.filter(
       (d) =>
         d.type === type &&
-        d.status !== "settled" &&
+        d.status !== 'settled' &&
         d.issue_date <= referenceDate,
     );
 
     if (unsettled.length === 0) {
       return {
         name,
-        status: "ok",
+        status: 'ok',
         details:
-          type === "income"
-            ? "未回収の売掛金はありません"
-            : "未払いの買掛金はありません",
+          type === 'income'
+            ? '未回収の売掛金はありません'
+            : '未払いの買掛金はありません',
       };
     }
 
@@ -2375,8 +2505,8 @@ export class FreeeClient {
     });
 
     const totalAmount = unsettled.reduce((sum, d) => sum + d.amount, 0);
-    const status: "ok" | "warning" = buckets.days90plus > 0 ? "warning" : "ok";
-    const label = type === "income" ? "未回収売掛金" : "未払買掛金";
+    const status: 'ok' | 'warning' = buckets.days90plus > 0 ? 'warning' : 'ok';
+    const label = type === 'income' ? '未回収売掛金' : '未払買掛金';
 
     return {
       name,
@@ -2388,22 +2518,22 @@ export class FreeeClient {
           total_amount: totalAmount,
           buckets: [
             {
-              label: "0-30日",
+              label: '0-30日',
               count: buckets.current,
               amount: bucketAmounts.current,
             },
             {
-              label: "31-60日",
+              label: '31-60日',
               count: buckets.days31_60,
               amount: bucketAmounts.days31_60,
             },
             {
-              label: "61-90日",
+              label: '61-90日',
               count: buckets.days61_90,
               amount: bucketAmounts.days61_90,
             },
             {
-              label: "90日超",
+              label: '90日超',
               count: buckets.days90plus,
               amount: bucketAmounts.days90plus,
             },
@@ -2418,10 +2548,10 @@ export class FreeeClient {
 
   private checkUnattachedReceipts(): MonthlyClosingCheckItem {
     return {
-      name: "未紐付け証憑チェック",
-      status: "warning",
+      name: '未紐付け証憑チェック',
+      status: 'warning',
       details:
-        "この機能は現在準備中です（証憑APIの実装後に利用可能になります）",
+        'この機能は現在準備中です（証憑APIの実装後に利用可能になります）',
     };
   }
 
@@ -2441,7 +2571,7 @@ export class FreeeClient {
   ): Promise<FreeeJournalEntry[]> {
     // Step 1: Request download (returns 202)
     logClient(
-      "Requesting journal download for company %d (%s to %s)",
+      'Requesting journal download for company %d (%s to %s)',
       companyId,
       params.start_date,
       params.end_date,
@@ -2449,20 +2579,20 @@ export class FreeeClient {
 
     const downloadReq = await this.api.get<{
       journals: FreeeJournalDownloadRequest;
-    }>("/journals", {
+    }>('/journals', {
       params: {
         company_id: companyId,
-        download_type: "generic",
+        download_type: 'generic',
         start_date: params.start_date,
         end_date: params.end_date,
-        "visible_tags[]": params.visible_tags ?? ["all"],
-        "visible_ids[]": params.visible_ids,
+        'visible_tags[]': params.visible_tags ?? ['all'],
+        'visible_ids[]': params.visible_ids,
       },
       // freee returns 202 Accepted — axios treats 2xx as success
     });
 
     const reportId = downloadReq.data.journals.id;
-    logClient("Journal download request accepted: id=%d", reportId);
+    logClient('Journal download request accepted: id=%d', reportId);
 
     // Step 2: Poll status until uploaded or failed
     let downloadUrl: string | undefined;
@@ -2483,18 +2613,18 @@ export class FreeeClient {
 
       const { status } = statusResp.data.journals;
       logClient(
-        "Journal download status: %s (attempt %d)",
+        'Journal download status: %s (attempt %d)',
         status,
         attempt + 1,
       );
 
-      if (status === "uploaded") {
+      if (status === 'uploaded') {
         downloadUrl = statusResp.data.journals.download_url;
         break;
       }
-      if (status === "failed") {
+      if (status === 'failed') {
         throw new Error(
-          "Journal download failed on freee server. Please try again later.",
+          'Journal download failed on freee server. Please try again later.',
         );
       }
       // enqueued or working → continue polling
@@ -2507,13 +2637,13 @@ export class FreeeClient {
     }
 
     // Step 3: Download CSV
-    logClient("Downloading journal CSV from %s", downloadUrl);
+    logClient('Downloading journal CSV from %s', downloadUrl);
     const csvResp = await this.api.get<string>(
       `/journals/reports/${reportId}/download`,
       {
         params: { company_id: companyId },
-        responseType: "text",
-        headers: { Accept: "text/csv" },
+        responseType: 'text',
+        headers: { Accept: 'text/csv' },
       },
     );
 
@@ -2522,7 +2652,7 @@ export class FreeeClient {
   }
 
   static parseJournalCsv(csv: string): FreeeJournalEntry[] {
-    const lines = csv.split("\n");
+    const lines = csv.split('\n');
     if (lines.length < 2) return [];
 
     // Find header row (first non-empty line)
@@ -2534,18 +2664,18 @@ export class FreeeClient {
     // Build column index map using known Japanese headers from freee generic format
     const colMap: Record<string, number> = {};
     const headerMappings: Record<string, string> = {
-      発生日: "date",
-      仕訳番号: "txn_number",
-      明細行: "detail_number",
-      借方勘定科目: "debit_account_item",
-      "借方金額(税込)": "debit_amount",
-      借方金額: "debit_amount",
-      貸方勘定科目: "credit_account_item",
-      "貸方金額(税込)": "credit_amount",
-      貸方金額: "credit_amount",
-      摘要: "description",
-      取引先: "partner",
-      仕訳種別: "source_type",
+      発生日: 'date',
+      仕訳番号: 'txn_number',
+      明細行: 'detail_number',
+      借方勘定科目: 'debit_account_item',
+      '借方金額(税込)': 'debit_amount',
+      借方金額: 'debit_amount',
+      貸方勘定科目: 'credit_account_item',
+      '貸方金額(税込)': 'credit_amount',
+      貸方金額: 'credit_amount',
+      摘要: 'description',
+      取引先: 'partner',
+      仕訳種別: 'source_type',
     };
 
     for (let i = 0; i < headers.length; i++) {
@@ -2566,23 +2696,23 @@ export class FreeeClient {
 
       const getCol = (key: string): string => {
         const idx = colMap[key];
-        return idx !== undefined ? (cols[idx] ?? "").trim() : "";
+        return idx !== undefined ? (cols[idx] ?? '').trim() : '';
       };
 
-      const date = getCol("date");
+      const date = getCol('date');
       if (!date) continue; // Skip rows without a date
 
       entries.push({
         date,
-        txn_number: getCol("txn_number"),
-        detail_number: getCol("detail_number"),
-        debit_account_item: getCol("debit_account_item"),
-        debit_amount: parseInt(getCol("debit_amount") || "0", 10) || 0,
-        credit_account_item: getCol("credit_account_item"),
-        credit_amount: parseInt(getCol("credit_amount") || "0", 10) || 0,
-        description: getCol("description") || undefined,
-        partner: getCol("partner") || undefined,
-        source_type: getCol("source_type") || undefined,
+        txn_number: getCol('txn_number'),
+        detail_number: getCol('detail_number'),
+        debit_account_item: getCol('debit_account_item'),
+        debit_amount: parseInt(getCol('debit_amount') || '0', 10) || 0,
+        credit_account_item: getCol('credit_account_item'),
+        credit_amount: parseInt(getCol('credit_amount') || '0', 10) || 0,
+        description: getCol('description') || undefined,
+        partner: getCol('partner') || undefined,
+        source_type: getCol('source_type') || undefined,
       });
     }
 
@@ -2591,7 +2721,7 @@ export class FreeeClient {
 
   private static parseCsvLine(line: string): string[] {
     const fields: string[] = [];
-    let current = "";
+    let current = '';
     let inQuotes = false;
 
     for (let i = 0; i < line.length; i++) {
@@ -2610,9 +2740,9 @@ export class FreeeClient {
       } else {
         if (ch === '"') {
           inQuotes = true;
-        } else if (ch === ",") {
+        } else if (ch === ',') {
           fields.push(current);
-          current = "";
+          current = '';
         } else {
           current += ch;
         }
@@ -2650,10 +2780,10 @@ export class FreeeClient {
       this.getItems(companyId),
       partnerId
         ? this.fetchAllPages<FreeeDeal>(
-            "/deals",
-            { company_id: companyId, partner_id: partnerId },
-            "deals",
-          )
+          '/deals',
+          { company_id: companyId, partner_id: partnerId },
+          'deals',
+        )
         : Promise.resolve([] as FreeeDeal[]),
     ]);
 
@@ -2736,7 +2866,7 @@ export class FreeeClient {
 
     let summary: string;
     if (!partnerId) {
-      summary = "取引先が指定されていないため、品目マスタのみ返します";
+      summary = '取引先が指定されていないため、品目マスタのみ返します';
     } else if (deals.length === 0) {
       summary = `${resolvedPartnerName}の過去取引は見つかりませんでした`;
     } else {
@@ -2766,7 +2896,7 @@ export class FreeeClient {
     const maxRecords = params.max_records ?? MAX_AUTO_PAGINATION_RECORDS;
 
     const [deals, tags, accountItems] = await Promise.all([
-      this.fetchAllPages<FreeeDeal>("/deals", fetchParams, "deals", maxRecords),
+      this.fetchAllPages<FreeeDeal>('/deals', fetchParams, 'deals', maxRecords),
       this.getTags(companyId),
       this.getAccountItems(companyId),
     ]);
@@ -2815,7 +2945,7 @@ export class FreeeClient {
       }
       const hasTag = allTagIds.size > 0;
       const tagKey = hasTag
-        ? resolveTagNames(Array.from(allTagIds)).join(",")
+        ? resolveTagNames(Array.from(allTagIds)).join(',')
         : null;
       entry.dealTags.push({ hasTag, tagKey });
     }
@@ -2839,7 +2969,7 @@ export class FreeeClient {
 
       if (hasInconsistency) {
         const tagPatterns = Array.from(patternCounts.entries())
-          .map(([key, count]) => ({ tag_names: key.split(","), count }))
+          .map(([key, count]) => ({ tag_names: key.split(','), count }))
           .sort((a, b) => b.count - a.count);
 
         tagInconsistencies.push({
@@ -2874,8 +3004,8 @@ export class FreeeClient {
       }
 
       segmentGaps.push({
-        type: "section",
-        label: "部門",
+        type: 'section',
+        label: '部門',
         total_details: allDetails.length,
         unset_count: sectionUnset.length,
         sample_partners: Array.from(samplePartners),
@@ -2901,15 +3031,15 @@ export class FreeeClient {
       for (const d of details) {
         const key =
           d.tag_ids && d.tag_ids.length > 0
-            ? resolveTagNames(d.tag_ids).join(",")
-            : "(none)";
+            ? resolveTagNames(d.tag_ids).join(',')
+            : '(none)';
         patternCounts.set(key, (patternCounts.get(key) ?? 0) + 1);
       }
 
       if (patternCounts.size <= 1) continue; // All same pattern
 
       // Find majority pattern
-      let majorityPattern = "";
+      let majorityPattern = '';
       let majorityCount = 0;
       for (const [pattern, count] of patternCounts) {
         if (count > majorityCount) {
@@ -2925,7 +3055,7 @@ export class FreeeClient {
         account_item_name:
           accountItemNameMap.get(accountItemId) ?? `ID:${accountItemId}`,
         majority_pattern:
-          majorityPattern === "(none)" ? [] : majorityPattern.split(","),
+          majorityPattern === '(none)' ? [] : majorityPattern.split(','),
         total_details: details.length,
         deviating_details: deviatingCount,
       });
@@ -2938,7 +3068,7 @@ export class FreeeClient {
     const periodParts: string[] = [];
     if (params.start_date) periodParts.push(params.start_date);
     if (params.end_date) periodParts.push(params.end_date);
-    const period = periodParts.length > 0 ? periodParts.join(" ~ ") : "all";
+    const period = periodParts.length > 0 ? periodParts.join(' ~ ') : 'all';
 
     // --- Summary ---
     const summaryParts: string[] = [];
@@ -2958,7 +3088,7 @@ export class FreeeClient {
       segmentGaps.length === 0 &&
       accountDeviations.length === 0
     ) {
-      summaryParts.push("問題なし");
+      summaryParts.push('問題なし');
     }
 
     return {
@@ -2968,18 +3098,18 @@ export class FreeeClient {
       segment_gaps: segmentGaps,
       account_deviations: accountDeviations,
       consistent_partner_count: consistentPartnerCount,
-      summary: summaryParts.join(", "),
+      summary: summaryParts.join(', '),
     };
   }
 
   // Fixed Asset methods
   async getFixedAssets(companyId: number): Promise<FreeeFixedAsset[]> {
-    const cacheKey = generateCacheKey(companyId, "fixed_assets");
+    const cacheKey = generateCacheKey(companyId, 'fixed_assets');
     const cached = this.cache.get<FreeeFixedAsset[]>(cacheKey);
     if (cached) return cached;
 
     const response = await this.api.get<{ fixed_assets: FreeeFixedAsset[] }>(
-      "/fixed_assets",
+      '/fixed_assets',
       { params: { company_id: companyId } },
     );
     const assets = response.data.fixed_assets ?? [];

@@ -2386,6 +2386,33 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_ar_aging',
+  {
+    description:
+      'Accounts receivable aging analysis (売掛金エイジング分析) - Classifies unsettled income deals into aging buckets (0-30, 31-60, 61-90, 90+ days) by days since issue_date, aggregates by partner, and highlights long-overdue receivables. Use for cash flow risk assessment and collection prioritization.',
+    inputSchema: schemas.ArAgingSchema,
+  },
+  async ({ companyId, as_of_date }) => {
+    try {
+      const result = await freeeClient.getArAging(
+        getCompanyId(companyId),
+        as_of_date,
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_ar_aging', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(
