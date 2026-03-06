@@ -1094,11 +1094,20 @@ export class FreeeClient {
       section_ids?: number[];
     },
   ): Promise<FreeeTrialBalance> {
-    // section_ids is required by the API — auto-fetch all sections if not provided
+    // section_ids is required by the API (1-5 sections) — auto-fetch all sections if not provided
     let sectionIds = params.section_ids;
     if (!sectionIds || sectionIds.length === 0) {
       const sections = await this.getSections(companyId);
-      sectionIds = sections.map((s) => s.id);
+      if (sections.length === 0) {
+        throw new Error(
+          'この事業所には部門が設定されていません。freee管理画面で部門を作成してください。',
+        );
+      }
+      // API allows max 5 sections
+      sectionIds = sections.slice(0, 5).map((s) => s.id);
+    } else if (sectionIds.length > 5) {
+      // API allows max 5 sections
+      sectionIds = sectionIds.slice(0, 5);
     }
     const response = await this.api.get<{
       trial_pl_sections: FreeeTrialBalance;
