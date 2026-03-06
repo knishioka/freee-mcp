@@ -640,11 +640,10 @@ registerTool(
       'Get list of partners - Retrieves customer/vendor master data efficiently. For partner-based analysis, use profit_loss API with partner breakdown instead of aggregating individual transactions. Cache results as partner data changes infrequently.',
     inputSchema: schemas.GetPartnersSchema,
   },
-  async ({ companyId, name, shortcut1, offset, limit, compact }) => {
+  async ({ companyId, keyword, offset, limit, compact }) => {
     try {
       const partners = await freeeClient.getPartners(getCompanyId(companyId), {
-        name,
-        shortcut1,
+        keyword,
         offset,
         limit,
       });
@@ -1254,8 +1253,6 @@ registerTool(
     companyId,
     startDate,
     endDate,
-    walletableId,
-    walletableType,
     offset,
     limit,
   }) => {
@@ -1265,8 +1262,6 @@ registerTool(
         {
           start_date: startDate,
           end_date: endDate,
-          walletable_id: walletableId,
-          walletable_type: walletableType,
           offset,
           limit,
         },

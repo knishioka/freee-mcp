@@ -551,8 +551,6 @@ describe('Schema Structure Verification', () => {
     expect(getTransfersSchema.companyId).toBeDefined();
     expect(getTransfersSchema.startDate).toBeDefined();
     expect(getTransfersSchema.endDate).toBeDefined();
-    expect(getTransfersSchema.walletableId).toBeDefined();
-    expect(getTransfersSchema.walletableType).toBeDefined();
     expect(getTransfersSchema.offset).toBeDefined();
     expect(getTransfersSchema.limit).toBeDefined();
 

@@ -103,6 +103,16 @@ describe('FreeeClient Segment P&L Methods', () => {
         }),
       ];
 
+      // First call: getSections (auto-fetch when section_ids not provided)
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          sections: [
+            { id: 1, name: '営業部' },
+            { id: 2, name: '管理部' },
+          ],
+        },
+      });
+      // Second call: trial_pl_sections
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: { trial_pl_sections: makePLReport(balances) },
       });
@@ -121,6 +131,7 @@ describe('FreeeClient Segment P&L Methods', () => {
             fiscal_year: 2024,
             start_month: 4,
             end_month: 3,
+            section_ids: '1,2',
           },
         },
       );
@@ -131,6 +142,11 @@ describe('FreeeClient Segment P&L Methods', () => {
 
     it('should return FreeeTrialBalance structure', async () => {
       const balances = [makeBalanceItem()];
+      // First call: getSections (auto-fetch when section_ids not provided)
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: { sections: [{ id: 1, name: '営業部' }] },
+      });
+      // Second call: trial_pl_sections
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: { trial_pl_sections: makePLReport(balances) },
       });

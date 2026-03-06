@@ -180,8 +180,12 @@ export const GetAccountItemsSchema = {
 // Partner schemas
 export const GetPartnersSchema = {
   companyId: companyIdField,
-  name: z.string().optional().describe('Partner name to search'),
-  shortcut1: z.string().optional().describe('Shortcut 1 to search'),
+  keyword: z
+    .string()
+    .optional()
+    .describe(
+      'Search keyword: fuzzy matches partner name, formal name, kana name, or exact matches shortcut keys',
+    ),
   offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
@@ -457,14 +461,6 @@ export const GetTransfersSchema = {
   companyId: companyIdField,
   startDate: optionalDateField('Start date (YYYY-MM-DD)'),
   endDate: optionalDateField('End date (YYYY-MM-DD)'),
-  walletableId: z
-    .number()
-    .optional()
-    .describe('Filter by walletable account ID'),
-  walletableType: z
-    .enum(['bank_account', 'credit_card', 'wallet'])
-    .optional()
-    .describe('Filter by walletable account type'),
   offset: z.number().min(0).optional().describe('Pagination offset'),
   limit: z
     .number()
@@ -529,9 +525,11 @@ export const GetProfitLossSchema = {
   startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
   endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
   breakdownDisplayType: z
-    .enum(['partner', 'item', 'section', 'tag'])
+    .enum(['partner', 'item', 'section', 'account_item'])
     .optional()
-    .describe('Breakdown display type'),
+    .describe(
+      'Breakdown display type (partner: 取引先, item: 品目, section: 部門, account_item: 勘定科目)',
+    ),
 };
 
 export const GetBalanceSheetSchema = {
@@ -540,9 +538,11 @@ export const GetBalanceSheetSchema = {
   startMonth: z.number().min(1).max(12).describe('Start month (1-12)'),
   endMonth: z.number().min(1).max(12).describe('End month (1-12)'),
   breakdownDisplayType: z
-    .enum(['partner', 'item', 'section', 'tag'])
+    .enum(['partner', 'item', 'account_item'])
     .optional()
-    .describe('Breakdown display type'),
+    .describe(
+      'Breakdown display type (partner: 取引先, item: 品目, account_item: 勘定科目)',
+    ),
 };
 
 export const SegmentPnlSchema = {
@@ -578,9 +578,11 @@ export const ComparePeriodsSchema = {
     })
     .describe('Second period to compare'),
   breakdownDisplayType: z
-    .enum(['partner', 'item', 'section', 'tag'])
+    .enum(['partner', 'item', 'section', 'account_item'])
     .optional()
-    .describe('Breakdown display type'),
+    .describe(
+      'Breakdown display type (partner: 取引先, item: 品目, section: 部門, account_item: 勘定科目)',
+    ),
 };
 
 export const MonthlyTrendsSchema = {

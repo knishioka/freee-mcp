@@ -576,30 +576,35 @@ export class FreeeClient {
     companyId: number,
     accountCategory?: string,
   ): Promise<FreeeAccountItem[]> {
-    const cacheKey = generateCacheKey(companyId, 'account_items', {
-      account_category: accountCategory,
-    });
+    const cacheKey = generateCacheKey(companyId, 'account_items');
     const cached = this.cache.get<FreeeAccountItem[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      return accountCategory
+        ? cached.filter((i) => i.account_category === accountCategory)
+        : cached;
+    }
 
     const response = await this.api.get<{ account_items: FreeeAccountItem[] }>(
       '/account_items',
-      { params: { company_id: companyId, account_category: accountCategory } },
+      { params: { company_id: companyId } },
     );
     this.cache.set(
       cacheKey,
       response.data.account_items,
       CACHE_TTL_ACCOUNT_ITEMS,
     );
-    return response.data.account_items;
+    return accountCategory
+      ? response.data.account_items.filter(
+        (i) => i.account_category === accountCategory,
+      )
+      : response.data.account_items;
   }
 
   // Partner methods
   async getPartners(
     companyId: number,
     params?: {
-      name?: string;
-      shortcut1?: string;
+      keyword?: string;
       offset?: number;
       limit?: number;
     },
@@ -1020,11 +1025,23 @@ export class FreeeClient {
       account_item_id?: number;
     },
   ): Promise<FreeeGeneralLedger> {
+    const { fiscal_year, start_month, end_month, account_item_id } = params;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const startDate = `${fiscal_year}-${pad(start_month)}-01`;
+    // Last day of end_month: day 0 of next month
+    const lastDay = new Date(fiscal_year, end_month, 0).getDate();
+    const endDate = `${fiscal_year}-${pad(end_month)}-${pad(lastDay)}`;
+    const apiParams: Record<string, unknown> = {
+      company_id: companyId,
+      start_date: startDate,
+      end_date: endDate,
+    };
+    if (account_item_id != null) {
+      apiParams.account_item_id = account_item_id;
+    }
     const response = await this.api.get<{
       general_ledgers: FreeeGeneralLedger;
-    }>('/reports/general_ledgers', {
-      params: { company_id: companyId, ...params },
-    });
+    }>('/reports/general_ledgers', { params: apiParams });
     return response.data.general_ledgers;
   }
 
@@ -1035,7 +1052,12 @@ export class FreeeClient {
       fiscal_year: number;
       start_month: number;
       end_month: number;
-      breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
+      breakdown_display_type?:
+        | 'partner'
+        | 'item'
+        | 'section'
+        | 'account_item'
+        | null;
     },
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{ trial_pl: FreeeTrialBalance }>(
@@ -1052,7 +1074,7 @@ export class FreeeClient {
       fiscal_year: number;
       start_month: number;
       end_month: number;
-      breakdown_display_type?: 'partner' | 'item' | 'section' | 'tag' | null;
+      breakdown_display_type?: 'partner' | 'item' | 'account_item' | null;
     },
   ): Promise<FreeeTrialBalance> {
     const response = await this.api.get<{ trial_bs: FreeeTrialBalance }>(
@@ -1069,12 +1091,25 @@ export class FreeeClient {
       fiscal_year: number;
       start_month: number;
       end_month: number;
+      section_ids?: number[];
     },
   ): Promise<FreeeTrialBalance> {
+    // section_ids is required by the API — auto-fetch all sections if not provided
+    let sectionIds = params.section_ids;
+    if (!sectionIds || sectionIds.length === 0) {
+      const sections = await this.getSections(companyId);
+      sectionIds = sections.map((s) => s.id);
+    }
     const response = await this.api.get<{
       trial_pl_sections: FreeeTrialBalance;
     }>('/reports/trial_pl_sections', {
-      params: { company_id: companyId, ...params },
+      params: {
+        company_id: companyId,
+        fiscal_year: params.fiscal_year,
+        start_month: params.start_month,
+        end_month: params.end_month,
+        section_ids: sectionIds.join(','),
+      },
     });
     return response.data.trial_pl_sections;
   }
@@ -1336,8 +1371,6 @@ export class FreeeClient {
     params?: {
       start_date?: string;
       end_date?: string;
-      walletable_id?: number;
-      walletable_type?: 'bank_account' | 'credit_card' | 'wallet';
       offset?: number;
       limit?: number;
     },
@@ -1795,7 +1828,7 @@ export class FreeeClient {
     reportType: 'profit_loss' | 'balance_sheet',
     period1: { fiscal_year: number; start_month: number; end_month: number },
     period2: { fiscal_year: number; start_month: number; end_month: number },
-    breakdownDisplayType?: 'partner' | 'item' | 'section' | 'tag',
+    breakdownDisplayType?: 'partner' | 'item' | 'section' | 'account_item',
   ): Promise<PeriodComparisonResult> {
     const fetchReport =
       reportType === 'profit_loss'
@@ -1807,7 +1840,11 @@ export class FreeeClient {
         : (p: typeof period1) =>
           this.getBalanceSheet(companyId, {
             ...p,
-            breakdown_display_type: breakdownDisplayType,
+            breakdown_display_type: breakdownDisplayType as
+                | 'partner'
+                | 'item'
+                | 'account_item'
+                | undefined,
           });
 
     const [report1, report2] = await Promise.all([
@@ -2384,10 +2421,12 @@ export class FreeeClient {
       );
 
     // Sum cash/bank related trial balance items
-    const cashBalances = (trialBalance.balances ?? []).filter((b) =>
-      FreeeClient.CASH_ACCOUNT_KEYWORDS.some((kw) =>
-        b.account_item_name.includes(kw),
-      ),
+    const cashBalances = (trialBalance.balances ?? []).filter(
+      (b) =>
+        b.account_item_name &&
+        FreeeClient.CASH_ACCOUNT_KEYWORDS.some((kw) =>
+          b.account_item_name!.includes(kw),
+        ),
     );
     const trialBalanceTotal = cashBalances.reduce(
       (sum, b) => sum + b.closing_balance,
@@ -2432,6 +2471,7 @@ export class FreeeClient {
   ): MonthlyClosingCheckItem {
     const nonZeroAccounts = (trialBalance.balances ?? []).filter(
       (b) =>
+        b.account_item_name &&
         FreeeClient.TEMPORARY_ACCOUNT_NAMES.includes(b.account_item_name) &&
         b.closing_balance !== 0,
     );
@@ -2786,7 +2826,7 @@ export class FreeeClient {
 
     if (!partnerId && params.partner_name) {
       const partners = await this.getPartners(companyId, {
-        name: params.partner_name,
+        keyword: params.partner_name,
       });
       if (partners.length > 0) {
         partnerId = partners[0].id;
@@ -3165,7 +3205,7 @@ export class FreeeClient {
     const endMonth = month ?? 12;
 
     // Fetch current year and previous year PL in parallel
-    const [currentPl, previousPl] = await Promise.all([
+    const [currentPl, previousPlOrNull] = await Promise.all([
       this.getProfitLoss(companyId, {
         fiscal_year,
         start_month: startMonth,
@@ -3175,8 +3215,9 @@ export class FreeeClient {
         fiscal_year: fiscal_year - 1,
         start_month: startMonth,
         end_month: endMonth,
-      }),
+      }).catch(() => null),
     ]);
+    const previousPl = previousPlOrNull ?? { balances: [] };
 
     // Build a map of previous year expense items for comparison
     const previousExpenseMap = new Map<string, number>();
@@ -3199,7 +3240,7 @@ export class FreeeClient {
     let currentCategory = '';
     for (const item of currentPl.balances) {
       if (item.hierarchy_level === 0) {
-        currentCategory = item.account_item_name;
+        currentCategory = item.account_item_name ?? '';
       } else if (
         expenseCategories.has(currentCategory) &&
         item.closing_balance !== 0
@@ -3211,9 +3252,9 @@ export class FreeeClient {
     // Detect anomalies (YoY changes exceeding threshold)
     const anomalies: CostAnalysisAnomaly[] = [];
     for (const item of expenseItems) {
+      const itemName = item.account_item_name ?? '';
       const currentAmount = item.closing_balance;
-      const previousAmount =
-        previousExpenseMap.get(item.account_item_name) ?? 0;
+      const previousAmount = previousExpenseMap.get(itemName) ?? 0;
       const changeAmount = currentAmount - previousAmount;
 
       let changePercentage: number | null = null;
@@ -3231,7 +3272,7 @@ export class FreeeClient {
         Math.abs(changePercentage) >= threshold
       ) {
         anomalies.push({
-          account_item_name: item.account_item_name,
+          account_item_name: itemName,
           current_amount: currentAmount,
           previous_amount: previousAmount,
           change_amount: changeAmount,
@@ -3239,7 +3280,7 @@ export class FreeeClient {
         });
       } else if (changePercentage === null && currentAmount > 0) {
         anomalies.push({
-          account_item_name: item.account_item_name,
+          account_item_name: itemName,
           current_amount: currentAmount,
           previous_amount: 0,
           change_amount: currentAmount,
@@ -3263,11 +3304,12 @@ export class FreeeClient {
     let totalExpense = 0;
 
     for (const item of expenseItems) {
+      const itemName = item.account_item_name ?? '';
       const amount = item.closing_balance;
       totalExpense += amount;
-      const classification = this.classifyExpenseItem(item.account_item_name);
+      const classification = this.classifyExpenseItem(itemName);
       const breakdown: CostCategoryBreakdown = {
-        account_item_name: item.account_item_name,
+        account_item_name: itemName,
         amount,
       };
       if (classification === 'fixed') {
@@ -3750,7 +3792,11 @@ export class FreeeClient {
     keywords: string[],
   ): number {
     return balances
-      .filter((b) => keywords.some((kw) => b.account_item_name.includes(kw)))
+      .filter(
+        (b) =>
+          b.account_item_name &&
+          keywords.some((kw) => b.account_item_name!.includes(kw)),
+      )
       .reduce((sum, b) => sum + b.closing_balance, 0);
   }
 

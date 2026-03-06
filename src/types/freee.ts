@@ -171,9 +171,13 @@ export interface FreeeInvoiceLine {
 
 export interface FreeeTrialBalanceItem {
   account_item_id?: number;
-  account_item_name: string;
+  account_item_name?: string;
+  account_category_id?: number;
   account_category_name?: string;
+  total_line?: boolean;
   hierarchy_level: number;
+  parent_account_category_id?: number;
+  parent_account_category_name?: string;
   opening_balance: number;
   debit_amount: number;
   credit_amount: number;
