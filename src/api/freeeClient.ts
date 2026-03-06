@@ -3055,28 +3055,29 @@ export class FreeeClient {
       }
     }
 
-    // Build sorted partner lists
-    const buildPartnerList = (
+    // Build sorted partner list (full list for concentration, sliced for output)
+    const CONCENTRATION_HIGH_THRESHOLD = 70;
+    const CONCENTRATION_MEDIUM_THRESHOLD = 50;
+
+    const buildSortedPartners = (
       sortKey: 'income' | 'expense',
       total: number,
     ): PartnerAnalysisItem[] => {
-      const sorted = Array.from(partnerMap.entries())
+      return Array.from(partnerMap.entries())
         .filter(([, v]) => v[sortKey] > 0)
         .sort((a, b) => b[1][sortKey] - a[1][sortKey])
-        .slice(0, topN);
-
-      return sorted.map(([partnerId, v], idx) => ({
-        rank: idx + 1,
-        partner_id: partnerId,
-        partner_name: v.name,
-        amount: v[sortKey],
-        share: total > 0 ? Math.round((v[sortKey] / total) * 10000) / 100 : 0,
-        count: sortKey === 'income' ? v.income_count : v.expense_count,
-        monthly_breakdown: Array.from(v.monthly.entries())
-          .filter(([, m]) => m[sortKey] > 0)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([month, m]) => ({ month, amount: m[sortKey] })),
-      }));
+        .map(([partnerId, v], idx) => ({
+          rank: idx + 1,
+          partner_id: partnerId,
+          partner_name: v.name,
+          amount: v[sortKey],
+          share: total > 0 ? Math.round((v[sortKey] / total) * 10000) / 100 : 0,
+          count: sortKey === 'income' ? v.income_count : v.expense_count,
+          monthly_breakdown: Array.from(v.monthly.entries())
+            .filter(([, m]) => m[sortKey] > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, m]) => ({ month, amount: m[sortKey] })),
+        }));
     };
 
     const computeConcentration = (
@@ -3096,14 +3097,18 @@ export class FreeeClient {
       const top5Pct = Math.round(top5 * 10000) / 100;
 
       let level: 'low' | 'medium' | 'high' = 'low';
-      if (top3Pct >= 70) level = 'high';
-      else if (top3Pct >= 50) level = 'medium';
+      if (top3Pct >= CONCENTRATION_HIGH_THRESHOLD) level = 'high';
+      else if (top3Pct >= CONCENTRATION_MEDIUM_THRESHOLD) level = 'medium';
 
       return { top3_share: top3Pct, top5_share: top5Pct, level };
     };
 
-    const incomePartners = buildPartnerList('income', totalIncome);
-    const expensePartners = buildPartnerList('expense', totalExpense);
+    // Build full sorted lists for accurate concentration, then slice for output
+    const allIncomePartners = buildSortedPartners('income', totalIncome);
+    const allExpensePartners = buildSortedPartners('expense', totalExpense);
+
+    const incomePartners = allIncomePartners.slice(0, topN);
+    const expensePartners = allExpensePartners.slice(0, topN);
 
     const dateRange =
       params.start_date || params.end_date
@@ -3120,11 +3125,11 @@ export class FreeeClient {
       income_concentration:
         analysisType === 'expense'
           ? { top3_share: 0, top5_share: 0, level: 'low' }
-          : computeConcentration(incomePartners, totalIncome),
+          : computeConcentration(allIncomePartners, totalIncome),
       expense_concentration:
         analysisType === 'income'
           ? { top3_share: 0, top5_share: 0, level: 'low' }
-          : computeConcentration(expensePartners, totalExpense),
+          : computeConcentration(allExpensePartners, totalExpense),
       truncated,
       ...(truncated ? { max_records_cap: maxRecords } : {}),
     };

@@ -247,6 +247,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.AccountItemContextSchema',
         'schemas.TaggingConsistencyCheckSchema',
         'schemas.AccountingPolicyContextSchema',
+        'schemas.PartnerAnalysisSchema',
       ];
 
       schemaUsages.forEach((usage) => {
