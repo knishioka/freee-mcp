@@ -841,18 +841,8 @@ export const TaggingConsistencyCheckSchema = {
 // Journal Consistency Check schema
 export const JournalConsistencyCheckSchema = {
   companyId: companyIdField,
-  fiscalYear: z
-    .number()
-    .optional()
-    .describe(
-      'Fiscal year to analyze (e.g. 2024). If omitted, startDate/endDate are used instead.',
-    ),
-  startDate: optionalDateField(
-    'Start date for analysis period (YYYY-MM-DD). Used when fiscalYear is not specified.',
-  ),
-  endDate: optionalDateField(
-    'End date for analysis period (YYYY-MM-DD). Used when fiscalYear is not specified.',
-  ),
+  startDate: optionalDateField('Start date for analysis period (YYYY-MM-DD).'),
+  endDate: optionalDateField('End date for analysis period (YYYY-MM-DD).'),
   maxRecords: z
     .number()
     .min(1)

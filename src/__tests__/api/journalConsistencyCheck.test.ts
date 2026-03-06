@@ -452,4 +452,39 @@ describe('FreeeClient Journal Consistency Check', () => {
     expect(inconsistency.account_items[0].total_amount).toBe(3000);
     expect(inconsistency.account_items[1].total_amount).toBe(500);
   });
+
+  it('should separate aggregation by deal type to avoid false positives', async () => {
+    const deals = [
+      {
+        id: 1,
+        company_id: 1,
+        issue_date: '2024-01-15',
+        amount: 1000,
+        type: 'expense',
+        partner_id: 100,
+        partner_name: 'Dual Partner',
+        status: 'settled',
+        details: [{ account_item_id: 10, tax_code: 1, amount: 1000 }],
+      },
+      {
+        id: 2,
+        company_id: 1,
+        issue_date: '2024-02-15',
+        amount: 2000,
+        type: 'income',
+        partner_id: 100,
+        partner_name: 'Dual Partner',
+        status: 'settled',
+        details: [{ account_item_id: 20, tax_code: 1, amount: 2000 }],
+      },
+    ];
+
+    mockResponses(deals);
+
+    const result = await client.checkJournalConsistency(1, {});
+
+    // Same partner with different deal types should NOT be flagged as inconsistent
+    expect(result.account_item_inconsistencies).toHaveLength(0);
+    expect(result.consistent_partner_count).toBe(2);
+  });
 });
