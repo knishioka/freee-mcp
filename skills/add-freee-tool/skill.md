@@ -174,7 +174,7 @@ Key conventions:
 - Tool name: `freee_` prefix with `snake_case`
 - Always use `try/catch` with `handleToolError`
 - Use `getCompanyId(companyId)` to resolve optional company ID
-- Return `{ content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] }`
+- Return `{ content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }`
 - For formatted output, use `ResponseFormatter` methods if applicable
 
 ### Step 6: Add Tests
