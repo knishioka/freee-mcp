@@ -799,6 +799,24 @@ export class FreeeClient {
   }
 
   // Multiyear Trial Balance methods
+  private async _getMultiyearReport(
+    endpoint: string,
+    responseKey: string,
+    companyId: number,
+    params: {
+      fiscal_year: number;
+      start_month?: number;
+      end_month?: number;
+    },
+  ): Promise<FreeeMultiyearTrialBalance> {
+    const response = await this.api.get<
+      Record<string, FreeeMultiyearTrialBalance>
+    >(endpoint, {
+      params: { company_id: companyId, ...params },
+    });
+    return response.data[responseKey];
+  }
+
   async getProfitLossTwoYears(
     companyId: number,
     params: {
@@ -807,12 +825,12 @@ export class FreeeClient {
       end_month?: number;
     },
   ): Promise<FreeeMultiyearTrialBalance> {
-    const response = await this.api.get<{
-      trial_pl_two_years: FreeeMultiyearTrialBalance;
-    }>('/reports/trial_pl_two_years', {
-      params: { company_id: companyId, ...params },
-    });
-    return response.data.trial_pl_two_years;
+    return this._getMultiyearReport(
+      '/reports/trial_pl_two_years',
+      'trial_pl_two_years',
+      companyId,
+      params,
+    );
   }
 
   async getProfitLossThreeYears(
@@ -823,12 +841,12 @@ export class FreeeClient {
       end_month?: number;
     },
   ): Promise<FreeeMultiyearTrialBalance> {
-    const response = await this.api.get<{
-      trial_pl_three_years: FreeeMultiyearTrialBalance;
-    }>('/reports/trial_pl_three_years', {
-      params: { company_id: companyId, ...params },
-    });
-    return response.data.trial_pl_three_years;
+    return this._getMultiyearReport(
+      '/reports/trial_pl_three_years',
+      'trial_pl_three_years',
+      companyId,
+      params,
+    );
   }
 
   async getBalanceSheetTwoYears(
@@ -839,12 +857,12 @@ export class FreeeClient {
       end_month?: number;
     },
   ): Promise<FreeeMultiyearTrialBalance> {
-    const response = await this.api.get<{
-      trial_bs_two_years: FreeeMultiyearTrialBalance;
-    }>('/reports/trial_bs_two_years', {
-      params: { company_id: companyId, ...params },
-    });
-    return response.data.trial_bs_two_years;
+    return this._getMultiyearReport(
+      '/reports/trial_bs_two_years',
+      'trial_bs_two_years',
+      companyId,
+      params,
+    );
   }
 
   async getBalanceSheetThreeYears(
@@ -855,12 +873,12 @@ export class FreeeClient {
       end_month?: number;
     },
   ): Promise<FreeeMultiyearTrialBalance> {
-    const response = await this.api.get<{
-      trial_bs_three_years: FreeeMultiyearTrialBalance;
-    }>('/reports/trial_bs_three_years', {
-      params: { company_id: companyId, ...params },
-    });
-    return response.data.trial_bs_three_years;
+    return this._getMultiyearReport(
+      '/reports/trial_bs_three_years',
+      'trial_bs_three_years',
+      companyId,
+      params,
+    );
   }
 
   async getMultiyearComparison(
@@ -888,10 +906,8 @@ export class FreeeClient {
       const yoyChange = currentYear - lastYear;
       const yoyPercentage =
         lastYear !== 0
-          ? Math.round(
-            ((currentYear - lastYear) / Math.abs(lastYear)) * 10000,
-          ) / 100
-          : currentYear === lastYear
+          ? Math.round((yoyChange / Math.abs(lastYear)) * 10000) / 100
+          : yoyChange === 0
             ? 0
             : null;
 
