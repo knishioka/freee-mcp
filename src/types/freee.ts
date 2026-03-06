@@ -113,6 +113,32 @@ export interface FreeeSegmentTag {
   available: boolean;
 }
 
+export type MasterContextCategory =
+  | 'account_items'
+  | 'tags'
+  | 'sections'
+  | 'segments'
+  | 'items'
+  | 'partners';
+
+export interface MasterContextResult {
+  account_items?: {
+    id: number;
+    name: string;
+    account_category: string;
+    tax_code?: number;
+  }[];
+  tags?: { id: number; name: string }[];
+  sections?: { id: number; name: string }[];
+  segments?: {
+    '1': { id: number; name: string }[];
+    '2': { id: number; name: string }[];
+    '3': { id: number; name: string }[];
+  };
+  items?: { id: number; name: string; code?: string }[];
+  partners?: { id: number; name: string }[];
+}
+
 export interface FreeeInvoice {
   id: number;
   company_id: number;

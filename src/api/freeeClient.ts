@@ -62,6 +62,7 @@ import {
   FreeeMultiyearTrialBalance,
   MultiyearComparisonResult,
   MultiyearComparisonItem,
+  MasterContextResult,
 } from '../types/freee.js';
 
 declare module 'axios' {
@@ -714,6 +715,100 @@ export class FreeeClient {
     );
     this.cache.invalidate(`${companyId}:segment_${segmentId}_tags`);
     return response.data.segment_tag;
+  }
+
+  // Master Context method
+  async getMasterContext(
+    companyId: number,
+    include?: string[],
+  ): Promise<MasterContextResult> {
+    const all = [
+      'account_items',
+      'tags',
+      'sections',
+      'segments',
+      'items',
+      'partners',
+    ];
+    const categories = include && include.length > 0 ? include : all;
+
+    const result: MasterContextResult = {};
+
+    const tasks: Promise<void>[] = [];
+
+    if (categories.includes('account_items')) {
+      tasks.push(
+        this.getAccountItems(companyId).then((items) => {
+          result.account_items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            account_category: i.account_category,
+            tax_code: i.tax_code,
+          }));
+        }),
+      );
+    }
+
+    if (categories.includes('tags')) {
+      tasks.push(
+        this.getTags(companyId).then((tags) => {
+          result.tags = tags.map((t) => ({ id: t.id, name: t.name }));
+        }),
+      );
+    }
+
+    if (categories.includes('sections')) {
+      tasks.push(
+        this.getSections(companyId).then((sections) => {
+          result.sections = sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+          }));
+        }),
+      );
+    }
+
+    if (categories.includes('segments')) {
+      tasks.push(
+        Promise.all([
+          this.getSegmentTags(companyId, 1),
+          this.getSegmentTags(companyId, 2),
+          this.getSegmentTags(companyId, 3),
+        ]).then(([s1, s2, s3]) => {
+          result.segments = {
+            '1': s1.map((t) => ({ id: t.id, name: t.name })),
+            '2': s2.map((t) => ({ id: t.id, name: t.name })),
+            '3': s3.map((t) => ({ id: t.id, name: t.name })),
+          };
+        }),
+      );
+    }
+
+    if (categories.includes('items')) {
+      tasks.push(
+        this.getItems(companyId).then((items) => {
+          result.items = items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            code: i.code,
+          }));
+        }),
+      );
+    }
+
+    if (categories.includes('partners')) {
+      tasks.push(
+        this.getPartners(companyId, { limit: 100 }).then((partners) => {
+          result.partners = partners.map((p) => ({
+            id: p.id,
+            name: p.name,
+          }));
+        }),
+      );
+    }
+
+    await Promise.all(tasks);
+    return result;
   }
 
   // Invoice methods

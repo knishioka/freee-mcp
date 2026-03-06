@@ -766,6 +766,26 @@ export const MultiyearComparisonSchema = {
     .describe('Number of years to compare (2 or 3)'),
 };
 
+// Master Context schema
+export const MasterContextSchema = {
+  companyId: companyIdField,
+  include: z
+    .array(
+      z.enum([
+        'account_items',
+        'tags',
+        'sections',
+        'segments',
+        'items',
+        'partners',
+      ]),
+    )
+    .optional()
+    .describe(
+      'Categories to include (default: all). Options: account_items, tags, sections, segments, items, partners',
+    ),
+};
+
 // Tax Code schemas
 export const GetTaxCodesSchema = {
   companyId: companyIdField,
