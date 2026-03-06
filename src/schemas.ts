@@ -822,3 +822,18 @@ export const GetTaxCodesSchema = {
       'When true, returns summary statistics only without individual records. Useful for quick overviews.',
     ),
 };
+
+// Tagging Consistency Check schemas
+export const TaggingConsistencyCheckSchema = {
+  companyId: companyIdField,
+  startDate: optionalDateField('Start date for analysis period (YYYY-MM-DD)'),
+  endDate: optionalDateField('End date for analysis period (YYYY-MM-DD)'),
+  maxRecords: z
+    .number()
+    .min(1)
+    .max(3000)
+    .optional()
+    .describe(
+      'Maximum deals to fetch (1-3000, default 1000). Increase for comprehensive analysis.',
+    ),
+};

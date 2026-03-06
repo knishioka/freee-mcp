@@ -2131,6 +2131,39 @@ registerTool(
   },
 );
 
+// === Tagging Consistency Check ===
+
+registerTool(
+  'freee_tagging_consistency_check',
+  {
+    description:
+      'Check tagging consistency across deals (タグ付け一貫性チェック) - Analyzes deals to detect: (1) partners with inconsistent tag assignments, (2) deals missing tags, (3) deals missing section/segment assignments, (4) account items with deviating tag patterns. Use for bookkeeping quality assurance and ensuring consistent categorization. Returns partner-level tag patterns, segment gaps, and account-level deviations.',
+    inputSchema: schemas.TaggingConsistencyCheckSchema,
+  },
+  async ({ companyId, startDate, endDate, maxRecords }) => {
+    try {
+      const result = await freeeClient.checkTaggingConsistency(
+        getCompanyId(companyId),
+        {
+          start_date: startDate,
+          end_date: endDate,
+          max_records: maxRecords,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_tagging_consistency_check', error);
+    }
+  },
+);
+
 registerTool(
   'freee_account_item_context',
   {

@@ -90,8 +90,8 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       toolNames.push(match[1]);
     }
 
-    it('should register exactly 53 tools via registerTool()', () => {
-      expect(toolNames).toHaveLength(53);
+    it('should register exactly 54 tools via registerTool()', () => {
+      expect(toolNames).toHaveLength(54);
     });
 
     it('should register all expected tool names', () => {
@@ -149,6 +149,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'freee_master_context',
         'freee_item_suggestion_context',
         'freee_account_item_context',
+        'freee_tagging_consistency_check',
       ];
 
       expectedToolNames.forEach((name) => {
@@ -176,7 +177,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
           (block.includes('\'freee_') || block.includes('"freee_')),
       );
 
-      expect(toolCalls.length).toBe(53);
+      expect(toolCalls.length).toBe(54);
       toolCalls.forEach((block) => {
         expect(block).toContain('description:');
       });
@@ -242,6 +243,7 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
         'schemas.MasterContextSchema',
         'schemas.ItemSuggestionContextSchema',
         'schemas.AccountItemContextSchema',
+        'schemas.TaggingConsistencyCheckSchema',
       ];
 
       schemaUsages.forEach((usage) => {
@@ -467,6 +469,8 @@ describe('Schema Structure Verification', () => {
       'ItemSuggestionContextSchema',
       'SegmentPnlSchema',
       'AuthStatusSchema',
+      'AccountItemContextSchema',
+      'TaggingConsistencyCheckSchema',
     ];
 
     schemaNames.forEach((name) => {
@@ -496,7 +500,7 @@ describe('Schema Structure Verification', () => {
       key.endsWith('Schema'),
     );
 
-    expect(schemaExports).toHaveLength(55);
+    expect(schemaExports).toHaveLength(56);
   });
 
   it('should use Zod types in schema fields', async () => {
