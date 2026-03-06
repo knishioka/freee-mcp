@@ -3318,7 +3318,7 @@ export class FreeeClient {
     }
 
     summaryParts.push(
-      `固定費${Math.round((fixedTotal / (totalExpense || 1)) * 100)}%/変動費${Math.round((variableTotal / (totalExpense || 1)) * 100)}%`,
+      `固定費${totalExpense > 0 ? Math.round((fixedTotal / totalExpense) * 100) : 0}%/変動費${totalExpense > 0 ? Math.round((variableTotal / totalExpense) * 100) : 0}%`,
     );
 
     return {

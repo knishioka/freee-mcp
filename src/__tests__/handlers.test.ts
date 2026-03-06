@@ -1,13 +1,13 @@
-import { jest } from '@jest/globals';
-import { FreeeClient } from '../api/freeeClient.js';
-import { TokenManager } from '../auth/tokenManager.js';
-import * as schemas from '../schemas.js';
+import { jest } from "@jest/globals";
+import { FreeeClient } from "../api/freeeClient.js";
+import { TokenManager } from "../auth/tokenManager.js";
+import * as schemas from "../schemas.js";
 
 // Mock dependencies
-jest.mock('../api/freeeClient.js');
-jest.mock('../auth/tokenManager.js');
+jest.mock("../api/freeeClient.js");
+jest.mock("../auth/tokenManager.js");
 
-describe('MCP Tool Handlers', () => {
+describe("MCP Tool Handlers", () => {
   let mockClient: any;
   let mockTokenManager: any;
 
@@ -61,54 +61,55 @@ describe('MCP Tool Handlers', () => {
     );
   });
 
-  describe('Tool Schema Validation', () => {
-    it('should have schemas for all expected operations', () => {
+  describe("Tool Schema Validation", () => {
+    it("should have schemas for all expected operations", () => {
       const expectedSchemas = [
-        'AuthorizeSchema',
-        'GetTokenSchema',
-        'ClearAuthSchema',
-        'GetCompaniesSchema',
-        'GetCompanySchema',
-        'GetDealsSchema',
-        'GetDealSchema',
-        'CreateDealSchema',
-        'GetInvoicesSchema',
-        'CreateInvoiceSchema',
-        'GetAccountItemsSchema',
-        'GetPartnersSchema',
-        'GetItemsSchema',
-        'GetItemSchema',
-        'GetSectionsSchema',
-        'GetTagsSchema',
-        'GetSegmentTagsSchema',
-        'CreateSegmentTagSchema',
-        'GetProfitLossSchema',
-        'GetBalanceSheetSchema',
-        'GetTrialBalanceSchema',
-        'GetGeneralLedgerSchema',
-        'AccountingPolicyContextSchema',
-        'CostAnalysisSchema',
-        'AuthStatusSchema',
+        "AuthorizeSchema",
+        "GetTokenSchema",
+        "ClearAuthSchema",
+        "GetCompaniesSchema",
+        "GetCompanySchema",
+        "GetDealsSchema",
+        "GetDealSchema",
+        "CreateDealSchema",
+        "GetInvoicesSchema",
+        "CreateInvoiceSchema",
+        "GetAccountItemsSchema",
+        "GetPartnersSchema",
+        "GetItemsSchema",
+        "GetItemSchema",
+        "GetSectionsSchema",
+        "GetTagsSchema",
+        "GetSegmentTagsSchema",
+        "CreateSegmentTagSchema",
+        "GetProfitLossSchema",
+        "GetBalanceSheetSchema",
+        "GetTrialBalanceSchema",
+        "GetGeneralLedgerSchema",
+        "AccountingPolicyContextSchema",
+        "ArAgingSchema",
+        "CostAnalysisSchema",
+        "AuthStatusSchema",
       ];
 
       expectedSchemas.forEach((schemaName) => {
         const schema = (schemas as any)[schemaName];
         expect(schema).toBeDefined();
         // Schemas are now raw shapes (plain objects with Zod fields) for MCP SDK 1.x registerTool
-        expect(typeof schema).toBe('object');
+        expect(typeof schema).toBe("object");
       });
     });
 
-    it('should not export GetCashFlowSchema (removed)', () => {
+    it("should not export GetCashFlowSchema (removed)", () => {
       expect((schemas as any).GetCashFlowSchema).toBeUndefined();
     });
   });
 
-  describe('Authentication Tools', () => {
-    it('should generate auth URL correctly', () => {
-      const state = 'test-state';
+  describe("Authentication Tools", () => {
+    it("should generate auth URL correctly", () => {
+      const state = "test-state";
       const expectedUrl =
-        'https://accounts.secure.freee.co.jp/authorize?state=test-state';
+        "https://accounts.secure.freee.co.jp/authorize?state=test-state";
       mockClient.getAuthorizationUrl.mockReturnValue(expectedUrl);
 
       // Simulate tool call
@@ -118,11 +119,11 @@ describe('MCP Tool Handlers', () => {
       expect(result).toBe(expectedUrl);
     });
 
-    it('should exchange authorization code for token', async () => {
-      const code = 'test-code';
+    it("should exchange authorization code for token", async () => {
+      const code = "test-code";
       const mockTokenResponse = {
-        access_token: 'test-access-token',
-        refresh_token: 'test-refresh-token',
+        access_token: "test-access-token",
+        refresh_token: "test-refresh-token",
         expires_in: 21600,
       };
 
@@ -135,11 +136,11 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('Company Tools', () => {
-    it('should fetch all companies', async () => {
+  describe("Company Tools", () => {
+    it("should fetch all companies", async () => {
       const mockCompanies = [
-        { id: 1, name: 'Company 1' },
-        { id: 2, name: 'Company 2' },
+        { id: 1, name: "Company 1" },
+        { id: 2, name: "Company 2" },
       ];
 
       mockClient.getCompanies.mockResolvedValue(mockCompanies);
@@ -150,9 +151,9 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getCompanies).toHaveBeenCalled();
     });
 
-    it('should fetch specific company', async () => {
+    it("should fetch specific company", async () => {
       const companyId = 123;
-      const mockCompany = { id: companyId, name: 'Test Company' };
+      const mockCompany = { id: companyId, name: "Test Company" };
 
       mockClient.getCompany.mockResolvedValue(mockCompany);
 
@@ -163,12 +164,12 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('Deal Tools', () => {
-    it('should fetch deals with filters', async () => {
+  describe("Deal Tools", () => {
+    it("should fetch deals with filters", async () => {
       const companyId = 123;
       const filters = {
-        start_issue_date: '2024-01-01',
-        end_issue_date: '2024-01-31',
+        start_issue_date: "2024-01-01",
+        end_issue_date: "2024-01-31",
       };
       const mockDeals = [
         { id: 1, amount: 10000 },
@@ -183,11 +184,11 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getDeals).toHaveBeenCalledWith(companyId, filters);
     });
 
-    it('should create a deal', async () => {
+    it("should create a deal", async () => {
       const companyId = 123;
       const dealData = {
-        issue_date: '2024-01-01',
-        type: 'income',
+        issue_date: "2024-01-01",
+        type: "income",
         amount: 10000,
         details: [],
       };
@@ -202,8 +203,8 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('Financial Report Tools', () => {
-    it('should fetch profit and loss report', async () => {
+  describe("Financial Report Tools", () => {
+    it("should fetch profit and loss report", async () => {
       const companyId = 123;
       const params = {
         fiscal_year: 2024,
@@ -224,7 +225,7 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getProfitLoss).toHaveBeenCalledWith(companyId, params);
     });
 
-    it('should fetch balance sheet report', async () => {
+    it("should fetch balance sheet report", async () => {
       const companyId = 123;
       const params = {
         fiscal_year: 2024,
@@ -248,7 +249,7 @@ describe('MCP Tool Handlers', () => {
       );
     });
 
-    it('should fetch general ledger', async () => {
+    it("should fetch general ledger", async () => {
       const companyId = 123;
       const params = {
         fiscal_year: 2024,
@@ -263,18 +264,18 @@ describe('MCP Tool Handlers', () => {
         general_ledger_items: [
           {
             account_item_id: 1,
-            account_item_name: '売上高',
+            account_item_name: "売上高",
             partners: [
               {
                 partner_id: null,
-                partner_name: '',
+                partner_name: "",
                 entries: [
                   {
-                    date: '2024-01-15',
-                    entry_side: 'credit',
+                    date: "2024-01-15",
+                    entry_side: "credit",
                     amount: 100000,
                     balance: 100000,
-                    description: 'テスト売上',
+                    description: "テスト売上",
                   },
                 ],
               },
@@ -294,7 +295,7 @@ describe('MCP Tool Handlers', () => {
       );
     });
 
-    it('should fetch general ledger with account_item_id filter', async () => {
+    it("should fetch general ledger with account_item_id filter", async () => {
       const companyId = 123;
       const params = {
         fiscal_year: 2024,
@@ -321,8 +322,8 @@ describe('MCP Tool Handlers', () => {
       );
     });
 
-    it('should handle general ledger API errors', async () => {
-      mockClient.getGeneralLedger.mockRejectedValue(new Error('API Error'));
+    it("should handle general ledger API errors", async () => {
+      mockClient.getGeneralLedger.mockRejectedValue(new Error("API Error"));
 
       await expect(
         mockClient.getGeneralLedger(123, {
@@ -330,10 +331,10 @@ describe('MCP Tool Handlers', () => {
           start_month: 1,
           end_month: 12,
         }),
-      ).rejects.toThrow('API Error');
+      ).rejects.toThrow("API Error");
     });
 
-    it('should fetch trial balance report', async () => {
+    it("should fetch trial balance report", async () => {
       const companyId = 123;
       const params = {
         fiscal_year: 2024,
@@ -358,12 +359,12 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('Master Data Tools', () => {
-    it('should fetch account items', async () => {
+  describe("Master Data Tools", () => {
+    it("should fetch account items", async () => {
       const companyId = 123;
       const mockItems = [
-        { id: 1, name: 'Sales' },
-        { id: 2, name: 'Cost of Sales' },
+        { id: 1, name: "Sales" },
+        { id: 2, name: "Cost of Sales" },
       ];
 
       mockClient.getAccountItems.mockResolvedValue(mockItems);
@@ -374,11 +375,11 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getAccountItems).toHaveBeenCalledWith(companyId);
     });
 
-    it('should fetch partners', async () => {
+    it("should fetch partners", async () => {
       const companyId = 123;
       const mockPartners = [
-        { id: 1, name: 'Partner 1' },
-        { id: 2, name: 'Partner 2' },
+        { id: 1, name: "Partner 1" },
+        { id: 2, name: "Partner 2" },
       ];
 
       mockClient.getPartners.mockResolvedValue(mockPartners);
@@ -389,11 +390,11 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getPartners).toHaveBeenCalledWith(companyId);
     });
 
-    it('should fetch sections', async () => {
+    it("should fetch sections", async () => {
       const companyId = 123;
       const mockSections = [
-        { id: 1, name: 'Section 1' },
-        { id: 2, name: 'Section 2' },
+        { id: 1, name: "Section 1" },
+        { id: 2, name: "Section 2" },
       ];
 
       mockClient.getSections.mockResolvedValue(mockSections);
@@ -404,11 +405,11 @@ describe('MCP Tool Handlers', () => {
       expect(mockClient.getSections).toHaveBeenCalledWith(companyId);
     });
 
-    it('should fetch tags', async () => {
+    it("should fetch tags", async () => {
       const companyId = 123;
       const mockTags = [
-        { id: 1, name: 'Tag 1' },
-        { id: 2, name: 'Tag 2' },
+        { id: 1, name: "Tag 1" },
+        { id: 2, name: "Tag 2" },
       ];
 
       mockClient.getTags.mockResolvedValue(mockTags);
@@ -420,8 +421,8 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('Default Company ID Handling', () => {
-    it('should use default company ID when not provided', async () => {
+  describe("Default Company ID Handling", () => {
+    it("should use default company ID when not provided", async () => {
       const defaultCompanyId = 456;
       process.env.FREEE_DEFAULT_COMPANY_ID = defaultCompanyId.toString();
 

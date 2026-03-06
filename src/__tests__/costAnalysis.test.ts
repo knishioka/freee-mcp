@@ -1,4 +1,6 @@
 import { jest } from '@jest/globals';
+import type { FreeeClient as FreeeClientType } from '../api/freeeClient.js';
+import type { TokenManager } from '../auth/tokenManager.js';
 import type { FreeeTrialBalance, CostAnalysisResult } from '../types/freee.js';
 
 // We test getCostAnalysis logic by directly calling it with mocked getProfitLoss
@@ -50,8 +52,8 @@ jest.mock('axios', () => {
 });
 
 describe('freee_cost_analysis', () => {
-  let FreeeClient: any;
-  let mockTokenManager: any;
+  let FreeeClient: typeof FreeeClientType;
+  let mockTokenManager: jest.Mocked<TokenManager>;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -68,17 +70,18 @@ describe('freee_cost_analysis', () => {
       getAllCompanyIds: jest.fn(),
       isTokenExpired: jest.fn(),
       getTokenExpiryStatus: jest.fn(),
-    };
+    } as unknown as jest.Mocked<TokenManager>;
   });
 
-  function createClient(getProfitLossMock: jest.Mock): any {
+  function createClient(getProfitLossMock: jest.Mock): FreeeClientType {
     const client = new FreeeClient(
       'id',
       'secret',
       'redirect',
       mockTokenManager,
     );
-    client.getProfitLoss = getProfitLossMock;
+    client.getProfitLoss =
+      getProfitLossMock as FreeeClientType['getProfitLoss'];
     return client;
   }
 
