@@ -2386,6 +2386,37 @@ registerTool(
   },
 );
 
+registerTool(
+  'freee_kpi_dashboard',
+  {
+    description:
+      'Get key management KPIs in a single call (経営KPIダッシュボード) - Fetches PL, BS, and walletable data in parallel to compute profitability (revenue, operating/ordinary profit margins), safety (current ratio, equity ratio), efficiency (receivable/payable turnover days), and liquidity (cash balance, working capital). Each metric includes a health indicator (healthy/caution/warning). Use for quick executive-level financial health overview.',
+    inputSchema: schemas.KpiDashboardSchema,
+  },
+  async ({ companyId, fiscalYear, startMonth, endMonth }) => {
+    try {
+      const result = await freeeClient.getKpiDashboard(
+        getCompanyId(companyId),
+        {
+          fiscal_year: fiscalYear,
+          start_month: startMonth,
+          end_month: endMonth,
+        },
+      );
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      handleToolError('freee_kpi_dashboard', error);
+    }
+  },
+);
+
 // === Resource handlers ===
 
 server.registerResource(
