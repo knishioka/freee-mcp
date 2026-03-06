@@ -1777,25 +1777,23 @@ registerTool(
 
       if (compact) {
         const summary = generalLedger.general_ledger_items.map((item) => {
-          let totalDebit = 0;
-          let totalCredit = 0;
-          let entryCount = 0;
-          for (const partner of item.partners) {
-            for (const entry of partner.entries) {
-              entryCount++;
-              if (entry.entry_side === 'debit') {
-                totalDebit += entry.amount;
-              } else {
-                totalCredit += entry.amount;
-              }
-            }
-          }
+          const entries = item.partners.flatMap((p) => p.entries);
+          const totals = entries.reduce(
+            (acc, entry) => ({
+              count: acc.count + 1,
+              debit:
+                acc.debit + (entry.entry_side === 'debit' ? entry.amount : 0),
+              credit:
+                acc.credit + (entry.entry_side === 'credit' ? entry.amount : 0),
+            }),
+            { count: 0, debit: 0, credit: 0 },
+          );
           return {
             account_item_id: item.account_item_id,
             account_item_name: item.account_item_name,
-            entry_count: entryCount,
-            total_debit: totalDebit,
-            total_credit: totalCredit,
+            entry_count: totals.count,
+            total_debit: totals.debit,
+            total_credit: totals.credit,
           };
         });
         return {
