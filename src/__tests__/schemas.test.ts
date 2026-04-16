@@ -20,6 +20,8 @@ import {
   SummarizeInvoicesSchema,
 } from '../schemas.js';
 
+type RawSchema = z.ZodRawShape;
+
 /**
  * Tests for Issue #111: date format, offset, and amount validations in schemas.
  *
@@ -108,7 +110,7 @@ describe('dateField validation', () => {
 describe('dateField applied to multiple schemas', () => {
   const dateFieldCases: {
     schemaName: string;
-    schema: Record<string, z.ZodTypeAny>;
+    schema: RawSchema;
     field: string;
   }[] = [
     {
@@ -150,7 +152,7 @@ describe('dateField applied to multiple schemas', () => {
 
   describe.each(dateFieldCases)('$schemaName.$field', ({ schema, field }) => {
     const wrapped = z.object({
-      [field]: (schema as Record<string, z.ZodTypeAny>)[field],
+      [field]: schema[field],
     });
 
     it('should reject invalid format "2024/01/01"', () => {
@@ -216,7 +218,7 @@ describe('optionalDateField validation', () => {
 describe('optionalDateField applied to multiple schemas', () => {
   const optionalDateFieldCases: {
     schemaName: string;
-    schema: Record<string, z.ZodTypeAny>;
+    schema: RawSchema;
     field: string;
   }[] = [
     {
@@ -290,7 +292,7 @@ describe('optionalDateField applied to multiple schemas', () => {
     '$schemaName.$field',
     ({ schema, field }) => {
       const wrapped = z.object({
-        [field]: (schema as Record<string, z.ZodTypeAny>)[field],
+        [field]: schema[field],
       });
 
       it('should allow undefined', () => {
@@ -316,7 +318,7 @@ describe('optionalDateField applied to multiple schemas', () => {
 describe('offset field validation (.min(0))', () => {
   const offsetCases: {
     schemaName: string;
-    schema: Record<string, z.ZodTypeAny>;
+    schema: RawSchema;
   }[] = [
     { schemaName: 'GetDealsSchema', schema: GetDealsSchema },
     { schemaName: 'GetPartnersSchema', schema: GetPartnersSchema },

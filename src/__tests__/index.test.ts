@@ -34,6 +34,10 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       );
     });
 
+    it('should use Zod v4 in package.json', () => {
+      expect(packageJson.dependencies.zod).toMatch(/^\^4\./);
+    });
+
     it('should import McpServer from @modelcontextprotocol/sdk/server/mcp.js', () => {
       expect(indexSource).toMatch(
         /from ['"]@modelcontextprotocol\/sdk\/server\/mcp\.js['"]/,
@@ -167,10 +171,13 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       expect(toolNames).not.toContain('freee_get_cash_flow');
     });
 
-    it('should use non-generic registerTool wrapper to avoid TS2589', () => {
-      // Verify the workaround function exists
-      expect(indexSource).toContain('function registerTool(');
-      expect(indexSource).toContain('(server as any).registerTool(');
+    it('should use typed registerTool wrapper without any casts', () => {
+      expect(indexSource).toContain(
+        'function registerTool<InputSchema extends z.ZodRawShape | undefined>(',
+      );
+      expect(indexSource).toContain('handler: ToolCallback<InputSchema>');
+      expect(indexSource).toContain('server.registerTool(name, config, handler);');
+      expect(indexSource).not.toContain('(server as any).registerTool(');
     });
 
     it('should register each tool with description', () => {
@@ -643,9 +650,9 @@ describe('Build & Quality Verification', () => {
     expect(indexSource).not.toContain('CashFlow');
   });
 
-  it('should use CallToolResult type from SDK types', () => {
-    expect(indexSource).toContain('CallToolResult');
-    expect(indexSource).toContain('type CallToolResult');
+  it('should use ToolCallback type from MCP server SDK', () => {
+    expect(indexSource).toContain('ToolCallback');
+    expect(indexSource).toContain('type ToolCallback');
   });
 });
 
