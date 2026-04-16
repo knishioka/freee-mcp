@@ -3,12 +3,12 @@
 import {
   McpServer,
   ResourceTemplate,
+  type ToolCallback,
 } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   McpError,
   ErrorCode,
-  type CallToolResult,
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'node:fs';
 import createDebug from 'debug';
@@ -124,18 +124,14 @@ function formatError(error: unknown): string {
   return String(error);
 }
 
-// Workaround for TS2589: cumulative registerTool calls with complex Zod schemas
-// exceed TypeScript's type instantiation depth limit due to Zod v3/v4 dual type inference.
-// This non-generic wrapper breaks the inference chain while preserving runtime validation.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function registerTool(
+// Keep a local wrapper so tool registrations stay consistent in one place, but
+// let Zod 4's lighter types carry the actual schema and handler inference.
+function registerTool<InputSchema extends z.ZodRawShape | undefined>(
   name: string,
-  config: { description: string; inputSchema?: Record<string, z.ZodTypeAny> },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (args: any) => Promise<CallToolResult>,
+  config: { description: string; inputSchema?: InputSchema },
+  handler: ToolCallback<InputSchema>,
 ): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (server as any).registerTool(name, config, handler);
+  server.registerTool(name, config, handler);
 }
 
 // Helper to handle tool errors with logging
