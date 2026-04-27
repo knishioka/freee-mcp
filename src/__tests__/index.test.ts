@@ -28,9 +28,9 @@ const packageJson = JSON.parse(
 
 describe('MCP SDK 1.x Migration - index.ts', () => {
   describe('MCP SDK Version', () => {
-    it('should use MCP SDK ^1.26.0 in package.json', () => {
+    it('should use MCP SDK ^1.29.0 in package.json', () => {
       expect(packageJson.dependencies['@modelcontextprotocol/sdk']).toBe(
-        '^1.26.0',
+        '^1.29.0',
       );
     });
 
@@ -278,6 +278,26 @@ describe('MCP SDK 1.x Migration - index.ts', () => {
       expect(companiesBlock).toBeDefined();
       // It should NOT have inputSchema
       expect(companiesBlock![0]).not.toContain('inputSchema');
+    });
+
+    it('should return structuredContent for freee_kpi_dashboard without changing text content', () => {
+      const kpiNameStart = indexSource.indexOf('freee_kpi_dashboard');
+      const kpiStart = indexSource.lastIndexOf(
+        'registerTool(',
+        kpiNameStart,
+      );
+      const resourceStart = indexSource.indexOf('// === Resource handlers ===');
+      const kpiBlock = indexSource.slice(kpiStart, resourceStart);
+
+      expect(kpiNameStart).toBeGreaterThan(-1);
+      expect(kpiStart).toBeGreaterThan(-1);
+      expect(resourceStart).toBeGreaterThan(kpiStart);
+      expect(kpiBlock).toContain('text: JSON.stringify(result, null, 2)');
+      expect(kpiBlock).toContain('structuredContent:');
+      expect(kpiBlock).toContain(
+        'ResponseFormatter.formatKpiDashboardStructured',
+      );
+      expect(kpiBlock).toContain('resolvedCompanyId');
     });
   });
 
