@@ -412,6 +412,8 @@ Parameters:
 
 Aggregating operating profit from individual deals can require thousands of API calls and significant client-side processing. The `freee_get_profit_loss` tool returns pre-aggregated report data in a single request, which dramatically reduces rate-limit usage. For most reporting flows, start with report APIs and only fetch raw deals when you need detailed drill-down.
 
+The `freee_kpi_dashboard` tool is the first structured output PoC: it keeps the existing text response for current clients and also returns `structuredContent` with the company, period, and profitability / safety / efficiency / liquidity KPI sections for UI and automation use.
+
 Tip: Set `FREEE_DEFAULT_COMPANY_ID` so report calls work without passing `companyId` each time.
 
 ## Development

@@ -1015,6 +1015,7 @@ export interface ItemSuggestionResult {
 // KPI Dashboard types
 
 export type KpiStatus = 'healthy' | 'caution' | 'warning';
+export type KpiStructuredStatus = KpiStatus | 'neutral';
 
 export interface KpiMetric {
   label: string;
@@ -1033,6 +1034,27 @@ export interface KpiDashboardResult {
   liquidity: KpiMetric[];
   summary: string;
 }
+
+export interface KpiStructuredMetric {
+  label: string;
+  value: number;
+  unit: string;
+  status: KpiStructuredStatus;
+}
+
+export type KpiDashboardStructuredContent = Record<string, unknown> & {
+  company_id: number;
+  period: {
+    fiscal_year: number;
+    start_month: number;
+    end_month: number;
+  };
+  profitability: KpiStructuredMetric[];
+  safety: KpiStructuredMetric[];
+  efficiency: KpiStructuredMetric[];
+  liquidity: KpiStructuredMetric[];
+  summary: string;
+};
 
 // AR Aging types
 

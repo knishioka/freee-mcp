@@ -39,6 +39,10 @@ import type {
   FormattedExpenseApplicationFlowLog,
   ListSummary,
   FormattedListResponse,
+  KpiDashboardResult,
+  KpiDashboardStructuredContent,
+  KpiMetric,
+  KpiStructuredMetric,
 } from '../types/freee.js';
 
 /**
@@ -55,6 +59,33 @@ function stripEmpty<T extends Record<string, unknown>>(obj: T): Partial<T> {
 }
 
 export class ResponseFormatter {
+  static formatKpiDashboardStructured(
+    companyId: number,
+    result: KpiDashboardResult,
+  ): KpiDashboardStructuredContent {
+    const addDefaultStatus = (metrics: KpiMetric[]): KpiStructuredMetric[] =>
+      metrics.map((metric) => ({
+        label: metric.label,
+        value: metric.value,
+        unit: metric.unit,
+        status: metric.status ?? 'neutral',
+      }));
+
+    return {
+      company_id: companyId,
+      period: {
+        fiscal_year: result.fiscal_year,
+        start_month: result.start_month,
+        end_month: result.end_month,
+      },
+      profitability: addDefaultStatus(result.profitability),
+      safety: addDefaultStatus(result.safety),
+      efficiency: addDefaultStatus(result.efficiency),
+      liquidity: addDefaultStatus(result.liquidity),
+      summary: result.summary,
+    };
+  }
+
   // Deal formatting
   static formatDeal(deal: FreeeDeal): FormattedDeal {
     const detail: FormattedDealDetail[] = (deal.details ?? []).map((d) =>
