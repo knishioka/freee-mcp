@@ -2512,8 +2512,9 @@ registerTool(
   },
   async ({ companyId, fiscalYear, startMonth, endMonth }) => {
     try {
+      const resolvedCompanyId = getCompanyId(companyId);
       const result = await freeeClient.getKpiDashboard(
-        getCompanyId(companyId),
+        resolvedCompanyId,
         {
           fiscal_year: fiscalYear,
           start_month: startMonth,
@@ -2527,6 +2528,10 @@ registerTool(
             text: JSON.stringify(result, null, 2),
           },
         ],
+        structuredContent: ResponseFormatter.formatKpiDashboardStructured(
+          resolvedCompanyId,
+          result,
+        ),
       };
     } catch (error) {
       handleToolError('freee_kpi_dashboard', error);

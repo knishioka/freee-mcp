@@ -10,6 +10,7 @@ import type {
   FreeeTag,
   FreeeTransfer,
   FreeeSegmentTag,
+  KpiDashboardResult,
 } from '../../types/freee.js';
 
 // --- Test Data Factories ---
@@ -162,6 +163,56 @@ function makeSegmentTag(overrides?: Partial<FreeeSegmentTag>): FreeeSegmentTag {
 // --- Tests ---
 
 describe('ResponseFormatter', () => {
+  describe('formatKpiDashboardStructured', () => {
+    it('should add company and period identifiers while preserving KPI sections', () => {
+      const dashboard: KpiDashboardResult = {
+        fiscal_year: 2024,
+        start_month: 1,
+        end_month: 12,
+        profitability: [
+          { label: '売上高', value: 10000000, unit: '円' },
+          { label: '営業利益率', value: 20, unit: '%', status: 'healthy' },
+        ],
+        safety: [
+          { label: '流動比率', value: 200, unit: '%', status: 'healthy' },
+        ],
+        efficiency: [
+          { label: '売上債権回転日数', value: 44, unit: '日', status: 'caution' },
+        ],
+        liquidity: [{ label: '運転資本', value: 2500000, unit: '円' }],
+        summary: '全指標健全',
+      };
+
+      const result = ResponseFormatter.formatKpiDashboardStructured(
+        123,
+        dashboard,
+      );
+
+      expect(result).toEqual({
+        company_id: 123,
+        period: {
+          fiscal_year: 2024,
+          start_month: 1,
+          end_month: 12,
+        },
+        profitability: [
+          { label: '売上高', value: 10000000, unit: '円', status: 'neutral' },
+          { label: '営業利益率', value: 20, unit: '%', status: 'healthy' },
+        ],
+        safety: [
+          { label: '流動比率', value: 200, unit: '%', status: 'healthy' },
+        ],
+        efficiency: [
+          { label: '売上債権回転日数', value: 44, unit: '日', status: 'caution' },
+        ],
+        liquidity: [
+          { label: '運転資本', value: 2500000, unit: '円', status: 'neutral' },
+        ],
+        summary: '全指標健全',
+      });
+    });
+  });
+
   // =============================================
   // Deal Formatting
   // =============================================
