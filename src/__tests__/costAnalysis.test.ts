@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { FreeeClient as FreeeClientType } from '../api/freeeClient.js';
 import type { TokenManager } from '../auth/tokenManager.js';
 import type { FreeeTrialBalance, CostAnalysisResult } from '../types/freee.js';
@@ -32,48 +32,48 @@ const makePl = (
 });
 
 // Mock axios to prevent real HTTP calls during FreeeClient construction
-jest.mock('axios', () => {
+vi.mock('axios', () => {
   const mockAxiosInstance = {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
     interceptors: {
-      request: { use: jest.fn() },
-      response: { use: jest.fn() },
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
     },
   };
   return {
     __esModule: true,
     default: {
-      create: jest.fn(() => mockAxiosInstance),
+      create: vi.fn(() => mockAxiosInstance),
     },
   };
 });
 
 describe('freee_cost_analysis', () => {
   let FreeeClient: typeof FreeeClientType;
-  let mockTokenManager: jest.Mocked<TokenManager>;
+  let mockTokenManager: vi.Mocked<TokenManager>;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Dynamic import to ensure axios mock is in place
     const mod = await import('../api/freeeClient.js');
     FreeeClient = mod.FreeeClient;
 
     mockTokenManager = {
-      loadTokens: jest.fn(),
-      saveTokens: jest.fn(),
-      setToken: jest.fn(),
-      getToken: jest.fn(),
-      removeToken: jest.fn(),
-      getAllCompanyIds: jest.fn(),
-      isTokenExpired: jest.fn(),
-      getTokenExpiryStatus: jest.fn(),
-    } as unknown as jest.Mocked<TokenManager>;
+      loadTokens: vi.fn(),
+      saveTokens: vi.fn(),
+      setToken: vi.fn(),
+      getToken: vi.fn(),
+      removeToken: vi.fn(),
+      getAllCompanyIds: vi.fn(),
+      isTokenExpired: vi.fn(),
+      getTokenExpiryStatus: vi.fn(),
+    } as unknown as vi.Mocked<TokenManager>;
   });
 
-  function createClient(getProfitLossMock: jest.Mock): FreeeClientType {
+  function createClient(getProfitLossMock: vi.Mock): FreeeClientType {
     const client = new FreeeClient(
       'id',
       'secret',
@@ -129,7 +129,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -204,7 +204,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -259,7 +259,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -293,7 +293,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -329,7 +329,7 @@ describe('freee_cost_analysis', () => {
 
       const previousPl = makePl([]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -365,7 +365,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);
@@ -412,7 +412,7 @@ describe('freee_cost_analysis', () => {
         },
       ]);
 
-      const mock = jest
+      const mock = vi
         .fn<any>()
         .mockResolvedValueOnce(currentPl)
         .mockResolvedValueOnce(previousPl);

@@ -1,17 +1,17 @@
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import axios from 'axios';
 import type { AxiosError as AxiosErrorType } from 'axios';
 import { FreeeClient } from '../../api/freeeClient.js';
 import { TokenManager } from '../../auth/tokenManager.js';
 
 // Get the REAL (unmocked) AxiosError class and AxiosHeaders.
-// jest.mock('axios') auto-mocks the module, replacing AxiosError with a stub
+// vi.mock('axios') auto-mocks the module, replacing AxiosError with a stub
 // that does not extend Error and ignores constructor arguments.
 // The production code's catch blocks use `refreshError instanceof Error` and
 // `axios.isAxiosError(refreshError)` for type narrowing, both of which require
 // real AxiosError instances.
 const { AxiosError: RealAxiosError, AxiosHeaders: RealAxiosHeaders } =
-  jest.requireActual<typeof import('axios')>('axios');
+  await vi.importActual<typeof import('axios')>('axios');
 
 /**
  * Helper to create a real AxiosError with response data.
@@ -39,11 +39,11 @@ function createAxiosError(
 }
 
 // Mock axios
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+vi.mock('axios');
+const mockedAxios = axios as vi.Mocked<typeof axios>;
 
 // Mock TokenManager
-jest.mock('../../auth/tokenManager.js');
+vi.mock('../../auth/tokenManager.js');
 
 describe('FreeeClient', () => {
   let client: FreeeClient;
@@ -53,27 +53,27 @@ describe('FreeeClient', () => {
 
   beforeEach(() => {
     // Reset all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create mock axios instances
     mockAxiosInstance = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      request: jest.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn(),
       interceptors: {
         request: {
-          use: jest.fn(),
+          use: vi.fn(),
         },
         response: {
-          use: jest.fn(),
+          use: vi.fn(),
         },
       },
     };
 
     mockAuthAxiosInstance = {
-      post: jest.fn(),
+      post: vi.fn(),
     };
 
     // Mock axios.create to return different instances
@@ -84,8 +84,8 @@ describe('FreeeClient', () => {
     });
 
     // Restore real isAxiosError behavior (needed for type narrowing in catch blocks).
-    // jest.mock('axios') auto-mocks isAxiosError, so we restore it using the real
-    // AxiosError class obtained via jest.requireActual.
+    // vi.mock('axios') auto-mocks isAxiosError, so we restore it using the real
+    // AxiosError class obtained via await vi.importActual.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (mockedAxios.isAxiosError as any).mockImplementation(
       (error: unknown) => error instanceof RealAxiosError,
@@ -93,18 +93,18 @@ describe('FreeeClient', () => {
 
     // Create mock TokenManager
     mockTokenManager = {
-      getToken: jest.fn(),
-      setToken: jest.fn(),
-      isTokenExpired: jest.fn(),
-      saveTokens: jest.fn(),
-      loadTokens: jest.fn(),
-      removeToken: jest.fn(),
-      getAllCompanyIds: jest.fn(),
-      getTokenExpiryStatus: jest.fn(),
+      getToken: vi.fn(),
+      setToken: vi.fn(),
+      isTokenExpired: vi.fn(),
+      saveTokens: vi.fn(),
+      loadTokens: vi.fn(),
+      removeToken: vi.fn(),
+      getAllCompanyIds: vi.fn(),
+      getTokenExpiryStatus: vi.fn(),
     };
 
     // Create client instance with mocked dependencies
-    const MockedTokenManager = TokenManager as jest.MockedClass<
+    const MockedTokenManager = TokenManager as vi.MockedClass<
       typeof TokenManager
     >;
     MockedTokenManager.mockImplementation(() => mockTokenManager);
@@ -1194,7 +1194,7 @@ describe('FreeeClient', () => {
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
       // Mock refreshToken to succeed (must return a Promise for refreshTokenWithLock)
-      const mockRefresh = jest.fn(() => Promise.resolve());
+      const mockRefresh = vi.fn(() => Promise.resolve());
       (client as any).refreshToken = mockRefresh;
 
       // Get the error handler from response interceptor
@@ -1231,7 +1231,7 @@ describe('FreeeClient', () => {
       });
 
       // Mock refreshToken to return a delayed promise
-      (client as any).refreshToken = jest
+      (client as any).refreshToken = vi
         .fn()
         .mockReturnValue(refreshPromise) as any;
 
@@ -1254,7 +1254,7 @@ describe('FreeeClient', () => {
     });
 
     it('should allow independent refresh for different companies', async () => {
-      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = vi.fn(() => Promise.resolve());
 
       // Call refreshTokenWithLock for two different companies
       await Promise.all([
@@ -1269,7 +1269,7 @@ describe('FreeeClient', () => {
     });
 
     it('should clean up refresh promise after completion', async () => {
-      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = vi.fn(() => Promise.resolve());
 
       await (client as any).refreshTokenWithLock(123, 'refresh-token');
 
@@ -1278,7 +1278,7 @@ describe('FreeeClient', () => {
     });
 
     it('should clean up refresh promise after failure', async () => {
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         Promise.reject(new Error('refresh failed')),
       );
 
@@ -1303,7 +1303,7 @@ describe('FreeeClient', () => {
       });
 
       // Mock refreshToken to succeed
-      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = vi.fn(() => Promise.resolve());
 
       // Get the request interceptor
       const requestInterceptor =
@@ -1339,7 +1339,7 @@ describe('FreeeClient', () => {
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
       // Mock refreshToken to succeed
-      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = vi.fn(() => Promise.resolve());
 
       const errorHandler =
         mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
@@ -1374,7 +1374,7 @@ describe('FreeeClient', () => {
       mockTokenManager.getAllCompanyIds.mockReturnValue([123]);
 
       // Mock refreshToken to succeed
-      (client as any).refreshToken = jest.fn(() => Promise.resolve());
+      (client as any).refreshToken = vi.fn(() => Promise.resolve());
 
       const errorHandler =
         mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
@@ -1408,7 +1408,7 @@ describe('FreeeClient', () => {
 
       // Mock refreshToken to fail with network error (no response)
       const networkError = new Error('Network Error');
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         Promise.reject(networkError),
       );
 
@@ -1446,7 +1446,7 @@ describe('FreeeClient', () => {
         { error: 'invalid_grant' },
         'invalid_grant',
       );
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         Promise.reject(invalidGrantError),
       );
 
@@ -1483,7 +1483,7 @@ describe('FreeeClient', () => {
         { error: 'invalid_client' },
         'invalid_client',
       );
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         Promise.reject(invalidClientError),
       );
 
@@ -1530,7 +1530,7 @@ describe('FreeeClient', () => {
         },
         'Request failed',
       );
-      (client as any).refreshToken = jest.fn(() => Promise.reject(axiosError));
+      (client as any).refreshToken = vi.fn(() => Promise.reject(axiosError));
 
       const errorHandler =
         mockAxiosInstance.interceptors.response.use.mock.calls[0][1];
@@ -1560,7 +1560,7 @@ describe('FreeeClient', () => {
 
       // Reject with a string (non-Error, non-AxiosError)
       // This exercises the `catch (refreshError: unknown)` fallback path
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         // eslint-disable-next-line prefer-promise-reject-errors
         Promise.reject('string error'),
       );
@@ -1629,7 +1629,7 @@ describe('FreeeClient', () => {
         { error: 'invalid_grant' },
         'invalid_grant',
       );
-      (client as any).refreshToken = jest.fn(() =>
+      (client as any).refreshToken = vi.fn(() =>
         Promise.reject(invalidGrantError),
       );
 

@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ApiCache, generateCacheKey } from '../../api/cache.js';
 
 describe('ApiCache', () => {
@@ -5,11 +6,11 @@ describe('ApiCache', () => {
 
   beforeEach(() => {
     cache = new ApiCache();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('get/set', () => {
@@ -52,20 +53,20 @@ describe('ApiCache', () => {
   describe('TTL expiry', () => {
     it('should return value before TTL expires', () => {
       cache.set('key', 'value', 5000);
-      jest.advanceTimersByTime(4999);
+      vi.advanceTimersByTime(4999);
       expect(cache.get('key')).toBe('value');
     });
 
     it('should return undefined after TTL expires', () => {
       cache.set('key', 'value', 5000);
-      jest.advanceTimersByTime(5001);
+      vi.advanceTimersByTime(5001);
       expect(cache.get('key')).toBeUndefined();
     });
 
     it('should clean up expired entry on access', () => {
       cache.set('key', 'value', 100);
       expect(cache.size).toBe(1);
-      jest.advanceTimersByTime(101);
+      vi.advanceTimersByTime(101);
       cache.get('key'); // triggers cleanup
       expect(cache.size).toBe(0);
     });
@@ -74,7 +75,7 @@ describe('ApiCache', () => {
       cache.set('short', 'value1', 1000);
       cache.set('long', 'value2', 10000);
 
-      jest.advanceTimersByTime(1001);
+      vi.advanceTimersByTime(1001);
       expect(cache.get('short')).toBeUndefined();
       expect(cache.get('long')).toBe('value2');
     });
@@ -140,7 +141,7 @@ describe('ApiCache', () => {
       expect(cache.size).toBe(1000);
 
       // Advance past TTL
-      jest.advanceTimersByTime(101);
+      vi.advanceTimersByTime(101);
 
       // Adding new entry should trigger eviction
       cache.set('new-key', 'new-value', 10000);

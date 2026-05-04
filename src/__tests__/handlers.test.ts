@@ -1,62 +1,62 @@
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { FreeeClient } from '../api/freeeClient.js';
 import { TokenManager } from '../auth/tokenManager.js';
 import * as schemas from '../schemas.js';
 
 // Mock dependencies
-jest.mock('../api/freeeClient.js');
-jest.mock('../auth/tokenManager.js');
+vi.mock('../api/freeeClient.js');
+vi.mock('../auth/tokenManager.js');
 
 describe('MCP Tool Handlers', () => {
   let mockClient: any;
   let mockTokenManager: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup mock client
     mockClient = {
-      getAuthorizationUrl: jest.fn(),
-      getAccessToken: jest.fn(),
-      getCompanies: jest.fn(),
-      getCompany: jest.fn(),
-      getDeals: jest.fn(),
-      createDeal: jest.fn(),
-      updateDeal: jest.fn(),
-      deleteDeal: jest.fn(),
-      getInvoices: jest.fn(),
-      createInvoice: jest.fn(),
-      updateInvoice: jest.fn(),
-      deleteInvoice: jest.fn(),
-      getAccountItems: jest.fn(),
-      getPartners: jest.fn(),
-      getItems: jest.fn(),
-      getItem: jest.fn(),
-      getSections: jest.fn(),
-      getTags: jest.fn(),
-      getProfitLoss: jest.fn(),
-      getBalanceSheet: jest.fn(),
-      getTrialBalance: jest.fn(),
-      getGeneralLedger: jest.fn(),
+      getAuthorizationUrl: vi.fn(),
+      getAccessToken: vi.fn(),
+      getCompanies: vi.fn(),
+      getCompany: vi.fn(),
+      getDeals: vi.fn(),
+      createDeal: vi.fn(),
+      updateDeal: vi.fn(),
+      deleteDeal: vi.fn(),
+      getInvoices: vi.fn(),
+      createInvoice: vi.fn(),
+      updateInvoice: vi.fn(),
+      deleteInvoice: vi.fn(),
+      getAccountItems: vi.fn(),
+      getPartners: vi.fn(),
+      getItems: vi.fn(),
+      getItem: vi.fn(),
+      getSections: vi.fn(),
+      getTags: vi.fn(),
+      getProfitLoss: vi.fn(),
+      getBalanceSheet: vi.fn(),
+      getTrialBalance: vi.fn(),
+      getGeneralLedger: vi.fn(),
     };
 
     // Setup mock token manager
     mockTokenManager = {
-      loadTokens: jest.fn(),
-      saveTokens: jest.fn(),
-      setToken: jest.fn(),
-      getToken: jest.fn(),
-      removeToken: jest.fn(),
-      getAllCompanyIds: jest.fn(),
-      isTokenExpired: jest.fn(),
-      getTokenExpiryStatus: jest.fn(),
+      loadTokens: vi.fn(),
+      saveTokens: vi.fn(),
+      setToken: vi.fn(),
+      getToken: vi.fn(),
+      removeToken: vi.fn(),
+      getAllCompanyIds: vi.fn(),
+      isTokenExpired: vi.fn(),
+      getTokenExpiryStatus: vi.fn(),
     };
 
     // Mock constructors
-    (FreeeClient as jest.MockedClass<typeof FreeeClient>).mockImplementation(
+    (FreeeClient as vi.MockedClass<typeof FreeeClient>).mockImplementation(
       () => mockClient,
     );
-    (TokenManager as jest.MockedClass<typeof TokenManager>).mockImplementation(
+    (TokenManager as vi.MockedClass<typeof TokenManager>).mockImplementation(
       () => mockTokenManager,
     );
   });
