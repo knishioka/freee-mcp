@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TokenManager, TokenData } from '../../auth/tokenManager.js';
 import { FreeeTokenResponse } from '../../types/freee.js';
 
@@ -48,7 +49,7 @@ describe('TokenManager', () => {
 
   describe('memory mode', () => {
     it('should log warning when running in memory mode', () => {
-      const consoleSpy = jest
+      const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       new TokenManager();
@@ -59,7 +60,7 @@ describe('TokenManager', () => {
     });
 
     it('should not log memory mode warning when storagePath is provided', () => {
-      const consoleSpy = jest
+      const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       new TokenManager('/tmp/test-tokens.enc');
