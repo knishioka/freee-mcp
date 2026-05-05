@@ -1,5 +1,9 @@
+import { describe, it, expect, beforeAll } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Tests for MCP SDK 1.x Migration (Issue #55)
@@ -11,7 +15,7 @@ import * as path from 'path';
  * - Package.json verification for SDK version
  *
  * Note: index.ts has module-level side effects (server creation, tool registration,
- * main() call) which makes ESM module mocking unreliable with jest.unstable_mockModule.
+ * main() call) which makes ESM module mocking unreliable with vi.unstable_mockModule.
  * Instead, we verify the code structure through source analysis and test schemas/types directly.
  */
 

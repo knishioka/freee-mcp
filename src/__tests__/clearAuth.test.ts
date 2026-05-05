@@ -1,26 +1,26 @@
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { TokenManager } from '../auth/tokenManager.js';
 
-jest.mock('../auth/tokenManager.js');
+vi.mock('../auth/tokenManager.js');
 
 describe('freee_clear_auth tool', () => {
   let mockTokenManager: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockTokenManager = {
-      loadTokens: jest.fn(),
-      saveTokens: jest.fn(),
-      setToken: jest.fn(),
-      getToken: jest.fn(),
-      removeToken: jest.fn(),
-      getAllCompanyIds: jest.fn(),
-      isTokenExpired: jest.fn(),
-      getTokenExpiryStatus: jest.fn(),
+      loadTokens: vi.fn(),
+      saveTokens: vi.fn(),
+      setToken: vi.fn(),
+      getToken: vi.fn(),
+      removeToken: vi.fn(),
+      getAllCompanyIds: vi.fn(),
+      isTokenExpired: vi.fn(),
+      getTokenExpiryStatus: vi.fn(),
     };
 
-    (TokenManager as jest.MockedClass<typeof TokenManager>).mockImplementation(
+    (TokenManager as vi.MockedClass<typeof TokenManager>).mockImplementation(
       () => mockTokenManager,
     );
   });

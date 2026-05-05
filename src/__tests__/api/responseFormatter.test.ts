@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { ResponseFormatter } from '../../api/responseFormatter.js';
 import type {
   FreeeDeal,

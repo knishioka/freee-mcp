@@ -1,13 +1,14 @@
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
 import { TokenManager } from '../../auth/tokenManager.js';
 
 const execFileAsync = promisify(execFile);
-
-// __dirname is provided by ts-jest even in ESM mode (import.meta.url is not supported by ts-jest's TS compiler)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Path to the setup-auth.js script
 const SCRIPT_PATH = path.resolve(

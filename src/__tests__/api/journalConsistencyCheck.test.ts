@@ -1,12 +1,12 @@
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import axios from 'axios';
 import { FreeeClient } from '../../api/freeeClient.js';
 import { TokenManager } from '../../auth/tokenManager.js';
 
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+vi.mock('axios');
+const mockedAxios = axios as vi.Mocked<typeof axios>;
 
-jest.mock('../../auth/tokenManager.js');
+vi.mock('../../auth/tokenManager.js');
 
 describe('FreeeClient Journal Consistency Check', () => {
   let client: FreeeClient;
@@ -16,21 +16,21 @@ describe('FreeeClient Journal Consistency Check', () => {
   let mockTokenManager: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockAxiosInstance = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      request: jest.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      request: vi.fn(),
       interceptors: {
-        request: { use: jest.fn() },
-        response: { use: jest.fn() },
+        request: { use: vi.fn() },
+        response: { use: vi.fn() },
       },
     };
 
-    const mockAuthAxiosInstance = { post: jest.fn() };
+    const mockAuthAxiosInstance = { post: vi.fn() };
 
     let createCallCount = 0;
     mockedAxios.create.mockImplementation(() => {
@@ -39,17 +39,17 @@ describe('FreeeClient Journal Consistency Check', () => {
     });
 
     mockTokenManager = {
-      getToken: jest.fn(),
-      setToken: jest.fn(),
-      isTokenExpired: jest.fn(),
-      saveTokens: jest.fn(),
-      loadTokens: jest.fn(),
-      removeToken: jest.fn(),
-      getAllCompanyIds: jest.fn(),
-      getTokenExpiryStatus: jest.fn(),
+      getToken: vi.fn(),
+      setToken: vi.fn(),
+      isTokenExpired: vi.fn(),
+      saveTokens: vi.fn(),
+      loadTokens: vi.fn(),
+      removeToken: vi.fn(),
+      getAllCompanyIds: vi.fn(),
+      getTokenExpiryStatus: vi.fn(),
     };
 
-    const MockedTokenManager = TokenManager as jest.MockedClass<
+    const MockedTokenManager = TokenManager as vi.MockedClass<
       typeof TokenManager
     >;
     MockedTokenManager.mockImplementation(() => mockTokenManager);
