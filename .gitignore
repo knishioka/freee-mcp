@@ -9,6 +9,9 @@ dist/
 .env.local
 .env.*.local
 
+# Local MCP client configuration
+.mcp.json
+
 # Token storage
 tokens.json
 tokens.enc
