@@ -42,14 +42,14 @@
   "devDependencies": {
     "@types/debug": "^4.1.12",
     "@types/node": "^20.19.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
+    "@typescript-eslint/parser": "^8.61.0",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.2.10",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3",
+    "typescript": "^6.0.3",
     "vitest": "^3.2.4"
   },
   "lint-staged": {
