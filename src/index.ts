@@ -41,7 +41,7 @@ const packageJson = (() => {
 })();
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const clientId = process.env.FREEE_CLIENT_ID;
 const clientSecret = process.env.FREEE_CLIENT_SECRET;
