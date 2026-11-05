@@ -13,7 +13,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "setup-auth": "node scripts/setup-auth.js",
     "prepare": "npm run build && (husky || true)",
@@ -29,7 +29,7 @@
   "author": "knishioka",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0",
+    "node": "^20.19.0 || ^22.13.0 || >=24",
     "npm": ">=9.0.0"
   },
   "dependencies": {
@@ -40,12 +40,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/debug": "^4.1.13",
     "@types/node": "^20.19.0",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "@vitest/coverage-v8": "^4.1.9",
-    "eslint": "^8.57.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.2.10",
     "tsx": "^4.22.4",
